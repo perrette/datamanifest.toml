@@ -305,6 +305,14 @@ Normative rules:
 - **Read resolution searches stores in a fixed, normative order** — `repo`, then `data`,
   then `cache` — using the first store where `<root>/<key>` exists, so peer tools resolve
   an ambiguous key identically.
+- **Legacy read-only location (non-normative, transitional).** Implementations whose
+  pre-spec-v1.1 default datasets folder was the un-namespaced `$XDG_CACHE_HOME/Datasets`
+  (i.e. without the `datamanifest/` segment that `platformdirs` adds) SHOULD probe that
+  path **last** and **read-only**, so datasets downloaded by older versions still resolve.
+  New writes MUST go to the resolved store root, never to the legacy path; the probe is
+  skipped when `DATAMANIFEST_DATA_DIR` is set (an explicit user choice). A tool SHOULD warn
+  once when it reads from the legacy path. This is a back-compat aid for the v1.1 default
+  move, not part of the normative cross-tool contract.
 - **Per-store root precedence (normative).** Each store's root is the first that applies:
   (1) the `DATAMANIFEST_<STORE>_DIR` environment variable (`DATAMANIFEST_DATA_DIR`,
   `DATAMANIFEST_CACHE_DIR`); (2) the `_PROFILE.<name>` entry when `DATAMANIFEST_PROFILE`
