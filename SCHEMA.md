@@ -103,7 +103,7 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `sha256` | string | `""` | Expected SHA-256 of the downloaded file/folder. Auto-filled on first successful download and verified at fetch time; **not** re-verified on every load (re-verification is opt-in). |
 | `skip_checksum` | bool | `false` | Disable checksum verification for this dataset. |
 | `skip_download` | bool | `false` | Treat the dataset as externally provided; the documented `uri` is returned as the path and no download is attempted. |
-| `delegate` | bool | *(run default)* | Force the cross-language fetch rung on (`true`) or off (`false`) for this dataset — run a fetcher defined in another language when this tool has no own/`shell` fetcher (via that language's interpreter against the project env, preferred; or a peer `datamanifest` CLI). When omitted, the tool's run-level default applies (`--delegate` / configuration). Honored under the `delegation` capability; other tools preserve it verbatim. See Cross-language fetch. |
+| `delegate` | bool | *(run default)* | Force the cross-language fetch rung (rung 3) on (`true`) or off (`false`) for this dataset. When omitted, the tool's run-level default applies (`--delegate` / configuration). Honored under the `delegation` capability; other tools preserve it verbatim. See Cross-language fetch. |
 | `extract` | bool | `false` | After download, extract the archive (`zip` / `tar` / `tar.gz`) and use the extracted directory as the dataset path. |
 | `format` | string | `""` | Data format hint used to pick a default loader (`csv`, `parquet`, `nc`, `json`, `yaml`, `toml`, `md`, `txt`, `zip`, `tar`, `tar.gz`, …). Inferred from the URI when absent. |
 | `requires` | array of string | `[]` | Names of datasets that must be downloaded before this one; defines a dependency graph resolved in topological order. |
@@ -207,9 +207,9 @@ The tool tries each rung in order, using the first that applies:
 
 1. `[<dataset>._LANG.<self>].fetcher` — in-process call (own language, fastest);
 2. `[<dataset>._LANG.shell].fetcher` — run the command template (cheap subprocess);
-3. **cross-language fetch** — run a foreign-language fetcher (via that language's
-   interpreter against the project env, or a peer `datamanifest` CLI), controlled by the
-   `delegate` field / `--delegate`; see Cross-language fetch below;
+3. **cross-language fetch** — the rare case: run a fetcher defined in another language
+   (mechanism implementation-defined; the Python CLI can serve as a fallback), controlled
+   by `delegate` / `--delegate`; see Cross-language fetch below;
 4. plain `uri` download (if `uri` is set);
 5. else error.
 
@@ -227,69 +227,25 @@ cross a process boundary. Cross-language data preparation is modeled as one lang
 *fetcher* writing a normalized artifact (Arrow/parquet/netcdf) that another language
 then loads with its own format default.
 
-### Cross-language fetch (delegation, rung 3)
+### Cross-language fetch (rung 3)
 
-When a tool cannot fetch a dataset in its own language — no own-language fetcher and no
-`shell` fetcher — but the dataset carries a fetcher in **another** language
-(`[<ds>._LANG.<other>].fetcher`), it MAY run that foreign fetcher before falling through to
-`uri`. This is the cross-language *fetch* path ("delegation"); it never crosses live
-objects, only files on disk (**load never crosses languages**). It is gated by the
-`delegation` capability — a tool without it skips rung 3 — and by the `delegate` control
-(below). There are two mechanisms; the first is preferred.
+Reached **only** in the rare case that a dataset has no fetcher in the running tool's own
+language, no `shell` fetcher, and no `uri` — its bytes can be produced only by a fetcher
+defined in another language (`[<ds>._LANG.<other>].fetcher`). Native / `shell` / plain
+`uri` cases never reach here, so each implementation is self-sufficient for nearly all
+datasets.
 
-**(1) Foreign-interpreter execution — preferred (no peer CLI needed).** The tool runs the
-foreign `module:function` fetcher by invoking that language's **interpreter** against the
-project's environment for that language, e.g.:
+**How a tool runs a foreign fetcher is implementation-defined.** It MAY invoke that
+language's runtime directly (e.g. `julia --project=<env> -e '…'`, writing to
+`$download_path` and materializing the result itself), MAY delegate to a peer-language
+`datamanifest` CLI (see Peer-CLI contract), or MAY skip the rung. The **Python
+implementation is the reference** and aims to cover every language, so a tool with no
+native way to run a foreign fetcher can simply **call the Python CLI as a fallback**.
 
-```
-julia --project=<julia-env> -e 'using MyPkg; MyPkg.fetch_foo(; download_path="…", …)'
-```
-
-The foreign function writes the bytes to `$download_path` — the same contract as a `shell`
-fetcher — and **the calling tool materializes the result** (folder resolution, lock, atomic
-publish, `sha256`, completion marker). It is, in effect, a language-aware `shell` fetcher:
-the tool builds the invocation from the `module:function` binding plus the standard fetch
-variables. It needs only the foreign **interpreter** on `PATH` (e.g. `julia`, installed
-system-wide) plus the project's language environment (e.g. a `Project.toml` in the repo)
-and the referenced package — **no foreign `datamanifest` CLI**. It is preferred precisely
-because interpreters install easily system-wide while packaged CLIs (notably Julia's) do not.
-
-- **Environment.** Default to the project root (the manifest's directory — already the
-  import-path convention for own-language bindings); a tool MAY accept an explicit override
-  (e.g. a `[_LANG.<lang>].project` key, or `DATAMANIFEST_<LANG>_PROJECT`).
-- **Call convention.** The foreign fetcher receives the standard fetch variables
-  (`$download_path`, `$uri`, `$key`, `$version`, …); the `{ ref, args, kwargs }` table form
-  marshals its plain-data arguments into the foreign call — the same `$var`/args model as
-  the `shell` and in-process fetchers.
-
-**(2) Peer-CLI delegation — alternative (heavier).** The tool instead calls a peer-language
-`datamanifest` **CLI**, which resolves the dataset with its **own** fetch ladder,
-materializes into the shared store itself, verifies `sha256`, and exits non-zero on failure
-(see Peer-CLI contract). This requires a shipped, `PATH`-discoverable peer CLI; use it when
-the peer tool should *own* materialization (it has store/index logic the caller lacks). The
-**Python `datamanifest` CLI** is the reference peer for this mechanism — e.g. a non-Python
-tool can stay a plain library and delegate *fetching* to Python while *loading* natively.
-
-**Enabling — the `delegate` control.**
-- **Per dataset:** `delegate = true` (or `false`) forces the rung on (or off) for that
-  dataset, overriding the run default.
-- **Per run:** a tool's `--delegate` flag (or its configuration) sets the default for
-  datasets without the field.
-- **Default policy is a documented per-tool deployment choice** (the spec mandates neither
-  on nor off). The reference deployment enables the rung when the needed foreign toolchain
-  is present — e.g. a Python-driven project runs a `julia` fetcher automatically when
-  `julia` and the repo's Julia environment are available.
-
-**Probe and graceful fallback (normative).** Before running a foreign fetcher, a tool MUST
-verify the required toolchain is usable — the interpreter + environment (mechanism 1) or the
-peer CLI + runtime (mechanism 2). If the probe fails, rung 3 is **silently skipped** and the
-ladder falls through to rung 4 (`uri`). A missing foreign toolchain therefore never breaks
-plain-`uri` datasets; only datasets whose bytes require the foreign fetcher become
-unavailable.
-
-**Scope — fetched datasets only.** This moves *fetching*. A dataset *produced* by a project
-function in a given language (the companion `@cached` layer) is not cross-language — each
-language produces and caches its own; produced artifacts do not travel this rung.
+Either way it moves bytes on disk only (load never crosses languages); a tool MUST fall
+through to `uri` when the needed toolchain is absent; and it applies to fetched datasets
+only — produced (`@cached`) datasets are not cross-language. Gated by the `delegation`
+capability; the `delegate` field / `--delegate` toggles it.
 
 ## Storage
 
@@ -718,7 +674,7 @@ fixture-suite tests tagged for those capabilities.
 | `lang-read` | Parse `[<ds>._LANG.<lang>]` and `[_LANG.<lang>.loaders]`; apply the load ladder. |
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write (full lossless round-trip). |
 | `shell-fetch` | Execute the `[<ds>._LANG.shell].fetcher` command template in the fetch ladder. |
-| `delegation` | Cross-language fetch in the fetch ladder (rung 3): run a foreign-language fetcher — via that language's interpreter against the project env (preferred, no peer CLI), or a peer `datamanifest` CLI (alternative) — controlled by `delegate` / `--delegate`, with the probe-and-fall-through contract (see Cross-language fetch, Peer-CLI contract). |
+| `delegation` | Cross-language fetch (rung 3, the rare case): run a fetcher defined in another language — mechanism implementation-defined (call the language's runtime, or a peer `datamanifest` CLI), with fall-through to `uri` — controlled by `delegate` / `--delegate` (see Cross-language fetch, Peer-CLI contract). |
 | `storage` | Honor the `store` / `default` `$`-folder selectors and `[_STORAGE]` folder-variable resolution; materialize datasets into the selected folder at its canonical or configured root (see Storage). |
 | `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, or Julia `write(...; canonical=true)`). |
 | `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
@@ -737,11 +693,9 @@ conforms to "schema N, spec ≥ vX" — these two axes are independent.
 
 ## Peer-CLI contract
 
-The `delegation` capability's **peer-CLI mechanism** (Cross-language fetch, mechanism 2)
-requires an agreed invocation interface between peer tools. This section is normative for
-any implementation that ships *peer-CLI* delegation. The preferred interpreter-subprocess
-mechanism (mechanism 1) does **not** use this contract — there the caller invokes the
-foreign interpreter against the project env directly and materializes the result itself.
+One way to do cross-language fetch (rung 3) is to call a peer-language `datamanifest` CLI.
+This section is the normative invocation interface for any tool that does so. (A tool that
+instead runs the foreign language's runtime directly does not use this contract.)
 
 ### Invocation
 
@@ -764,8 +718,8 @@ from there.
 
 Each language's CLI is discoverable on `PATH` under a language-specific name, e.g.
 `datamanifest` (Python), `DataManifest` or `datamanifest-julia` (Julia). The Python
-`datamanifest` CLI is the **reference peer** for peer-CLI delegation (Cross-language fetch,
-mechanism 2). Before
+`datamanifest` CLI is the **reference peer** (the fallback target for cross-language fetch).
+Before
 delegating, a tool MUST probe that the peer CLI (and its runtime) is installed and
 usable; if the probe fails, the delegation rung is silently skipped and the ladder
 advances to rung 4 (`uri` download). Probe commands and PATH names are left to each

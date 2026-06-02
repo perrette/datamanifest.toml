@@ -81,18 +81,12 @@ Two changes, both on the spec-document axis (no `_META.schema` bump — see
 ### Cross-language fetch (rung 3) clarified
 
 - **`delegate` is now a defined field** (per-dataset bool) plus the per-run `--delegate`
-  flag, and a dedicated `SCHEMA.md` §Cross-language fetch explains the rung and its two
-  mechanisms.
-- **Two mechanisms — interpreter-subprocess preferred.** A foreign-language fetcher can be
-  run (1) by invoking that language's **interpreter against the repo's project env**
-  (`julia --project=<env> -e '…'`), with the **caller** materializing — **no foreign
-  `datamanifest` CLI required**; or (2) by **peer-CLI delegation**, where the peer
-  `datamanifest` CLI runs its own ladder and materializes (the Python CLI is the reference
-  peer). Mechanism 1 sidesteps the Julia-CLI packaging problem.
-- **Probe and graceful fall-through** to `uri` when the foreign toolchain is absent; the
-  on/off *default* is a documented per-tool deployment choice. Cross-language fetch moves
-  *fetching* only — produced (`@cached`) datasets originate in their host language and are
-  not cross-language. See `ROADMAP.md` for the deployment rationale.
+  flag, and a brief `SCHEMA.md` §Cross-language fetch frames the rung as the **rare** case
+  (a dataset whose bytes need a fetcher in another language, with no native/`shell`/`uri`).
+- **Mechanism left to the implementation:** a tool may call the other language's runtime
+  directly or fall back to the **Python CLI** (the reference implementation, which aims to
+  cover every language). Fall-through to `uri` when the toolchain is absent. Does not
+  extend to produced (`@cached`) datasets.
 
 ### Explicitly deferred
 

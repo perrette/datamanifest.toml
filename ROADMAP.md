@@ -24,42 +24,15 @@ forward-looking view: what is specified, what is built, and what is deferred.
   Rationale and build order: `design/cached-layer-handoff.md`.
 - **Merge Julia core v1.1** before any Julia spec-v2 work.
 
-## Deployment model: cross-language fetch without shipping a Julia CLI
+## Cross-language fetch (a rare case)
 
-The cross-language fetch **mechanisms** are now in the spec (`SCHEMA.md` §Cross-language
-fetch, §Peer-CLI contract). This section is the high-level rationale; the per-tool *default
-policy* (whether the rung fires by default) is a deployment choice the spec leaves to each
-implementation, with the reference deployment described below.
-
-- **Python is the primary driver and orchestrator.** It fetches `python` / `shell` / `uri`
-  recipes natively and owns materialization (store, lock, atomic publish, `sha256`, marker).
-  It is also the normative reference for paths and byte-identity.
-- **Foreign fetchers run via the interpreter, not a shipped CLI (preferred).** When the
-  only available fetcher is in another language (e.g. `[ds._LANG.julia].fetcher`), the
-  driver spawns that language's **interpreter against the repo's project env** —
-  `julia --project=<env> -e 'using MyPkg; MyPkg.fetch_foo(; download_path=…)'` — and
-  materializes the bytes itself. This is a language-aware `shell` fetcher. It needs only the
-  `julia` binary (system-wide) + the repo's `Project.toml` + the package — **no Julia
-  `datamanifest` CLI to compile/ship**. This is the practical answer to the Julia-CLI
-  packaging problem.
-- **Peer-CLI delegation is the heavier alternative.** Where a peer tool should *own*
-  materialization (it has store/index logic the caller lacks), the driver calls the peer
-  `datamanifest` CLI instead; the **Python CLI** is the reference peer (e.g. a thin
-  non-Python client that delegates all fetching to Python and loads natively).
-- **The rung fires by default when its toolchain is present**, else it falls through to
-  `uri` via the mandatory probe — so a missing `julia` (or peer CLI) never breaks plain-`uri`
-  datasets. **Load is always native** (load never crosses languages).
-
-**Caveat — produced (`@cached`) datasets are out of scope.** Cross-language fetch moves
-*fetching* only. A dataset whose bytes are *produced* by a project function in a given
-language (the companion produce-or-load layer) is not cross-language — each language
-produces and caches its own. The fetch model and the companion layer pull in opposite
-directions here; keep them distinct.
-
-**Status in the spec.** `SCHEMA.md` now defines the `delegate` field, the §Cross-language
-fetch subsection (interpreter-subprocess preferred, peer-CLI alternative), and makes the
-on/off *default* a documented per-tool deployment choice rather than hard-coding "off".
-Remaining work is in the implementations, not the spec.
+Nearly all datasets are `uri` downloads (or native/`shell` fetchers), so each
+implementation is self-sufficient on its own. Cross-language fetch (`SCHEMA.md` §rung 3)
+only matters when a dataset's bytes can be produced *only* by a fetcher in another language
+— rare. The spec leaves the mechanism open: a tool may call the other language's runtime
+directly, or fall back to the **Python CLI**, which is the reference implementation and aims
+to cover every language. It does not extend to produced (`@cached`) datasets, which
+originate in their host language.
 
 ## Deferred / reserved
 
