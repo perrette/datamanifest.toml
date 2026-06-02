@@ -24,10 +24,13 @@ forward-looking view: what is specified, what is built, and what is deferred.
   Rationale and build order: `design/cached-layer-handoff.md`.
 - **Merge Julia core v1.1** before any Julia spec-v2 work.
 
-## Deployment model (direction): Python as the reference fetch orchestrator
+## Deployment model: Python as the reference fetch orchestrator
 
-Intended cross-language deployment, **not yet normative** — it would revise the spec's
-current "delegation off by default" stance (see below) when adopted.
+The delegation **mechanism** and the **Python-as-reference-orchestrator** recommendation
+are now in the spec (`SCHEMA.md` §Delegation, §Peer-CLI contract). This section is the
+high-level rationale; the per-tool *default policy* (whether to delegate by default) is a
+deployment choice the spec leaves to each implementation, with the reference deployment
+described below.
 
 - **The Python CLI is the main fetch orchestrator.** It is the canonical
   download/materialization engine — easy to install system-wide (pip `entry_points`, fast
@@ -53,9 +56,12 @@ python-fetcher) datasets; each language still produces and caches its own `@cach
 datasets natively. The orchestrator model and the companion layer pull in opposite
 directions here — keep them distinct.
 
-**Spec implication.** Adopting this flips the normative default in `SCHEMA.md` §Fetch
-ladder (delegation is currently *off* by default) to *on toward Python* for non-Python
-tools. That is a deliberate future spec revision, tracked here, not yet in `SCHEMA.md`.
+**Status in the spec.** `SCHEMA.md` now defines the `delegate` field, the Delegation
+subsection, and names the Python CLI as the reference orchestrator; it makes the on/off
+*default* a documented per-tool deployment choice rather than hard-coding "off". The
+reference deployment (non-Python tools delegating to Python by default, with probe
+fallback) is the recommended configuration. Remaining work is in the implementations, not
+the spec.
 
 ## Deferred / reserved
 

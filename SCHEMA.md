@@ -103,6 +103,7 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `sha256` | string | `""` | Expected SHA-256 of the downloaded file/folder. Auto-filled on first successful download and verified at fetch time; **not** re-verified on every load (re-verification is opt-in). |
 | `skip_checksum` | bool | `false` | Disable checksum verification for this dataset. |
 | `skip_download` | bool | `false` | Treat the dataset as externally provided; the documented `uri` is returned as the path and no download is attempted. |
+| `delegate` | bool | *(run default)* | Force the delegation fetch rung on (`true`) or off (`false`) for this dataset — hand fetching to a peer-language `datamanifest` CLI (the Python reference orchestrator) when this tool has no native/shell fetcher. When omitted, the tool's run-level default applies (`--delegate` / configuration). Honored under the `delegation` capability; other tools preserve it verbatim. See Delegation. |
 | `extract` | bool | `false` | After download, extract the archive (`zip` / `tar` / `tar.gz`) and use the extracted directory as the dataset path. |
 | `format` | string | `""` | Data format hint used to pick a default loader (`csv`, `parquet`, `nc`, `json`, `yaml`, `toml`, `md`, `txt`, `zip`, `tar`, `tar.gz`, …). Inferred from the URI when absent. |
 | `requires` | array of string | `[]` | Names of datasets that must be downloaded before this one; defines a dependency graph resolved in topological order. |
@@ -206,10 +207,8 @@ The tool tries each rung in order, using the first that applies:
 
 1. `[<dataset>._LANG.<self>].fetcher` — in-process call (own language, fastest);
 2. `[<dataset>._LANG.shell].fetcher` — run the command template (cheap subprocess);
-3. **(opt-in)** delegate to a peer-language `datamanifest` CLI — the peer resolves its
-   own `[<dataset>._LANG.<lang>].fetcher`, populates the shared cache, and exits
-   non-zero on failure. Peer delegation is **off by default**; enable per-run with
-   `--delegate` or per-file with `delegate = true`;
+3. **delegation** — hand the fetch to a peer-language `datamanifest` CLI (controlled by
+   the `delegate` field / `--delegate`; see Delegation below);
 4. plain `uri` download (if `uri` is set);
 5. else error.
 
@@ -226,6 +225,44 @@ The tool tries each rung in order:
 cross a process boundary. Cross-language data preparation is modeled as one language's
 *fetcher* writing a normalized artifact (Arrow/parquet/netcdf) that another language
 then loads with its own format default.
+
+### Delegation (fetch rung 3)
+
+**Delegation** lets a tool that cannot fetch a dataset in its own language hand the fetch
+to a **peer-language `datamanifest` CLI**, which materializes the bytes into the **shared
+store** both tools read. It is the cross-language *fetch* mechanism, and it never crosses
+live objects — only files on disk (load never delegates). It is gated by the `delegation`
+capability; a tool without that capability skips rung 3.
+
+- **What the peer does.** The peer CLI runs *its own* full fetch ladder for the dataset
+  (its own-language fetcher, then shell, then plain `uri`), writes the result into the
+  shared folder at the same `<root>/<key>`, verifies `sha256` if present, and **exits
+  non-zero on failure**. No bytes cross stdout — the artifact lands on disk and the calling
+  tool reads it back. Exact invocation: §Peer-CLI contract.
+- **Which peer — the Python CLI is the reference orchestrator.** A dataset is delegable to
+  any language that can fetch it. In practice the recommended target is the **Python
+  `datamanifest` CLI**: it is the canonical download/materialization engine (easy to
+  install system-wide, and already the normative reference for storage paths and
+  byte-identity). A non-Python tool can therefore ship as a plain library that delegates
+  *fetching* to Python and *loads* natively.
+- **How it is enabled — the `delegate` boolean.**
+  - **Per dataset:** `delegate = true` (or `false`) on a dataset forces delegation on (or
+    off) for that dataset, overriding the run default.
+  - **Per run:** a tool's `--delegate` flag (or its configuration) sets the default for
+    datasets that do not carry the field.
+- **Default policy is a deployment choice** (the spec mandates neither on nor off; each
+  tool documents its default). The **reference deployment enables delegation by default
+  toward the Python CLI when that CLI is installed** — so on a machine with the Python tool
+  present, a non-Python tool delegates fetching to it automatically.
+- **Probe and graceful fallback (normative).** Before delegating, a tool MUST probe that
+  the peer CLI and its runtime are installed and usable. If the probe fails, rung 3 is
+  **silently skipped** and the ladder falls through to rung 4 (`uri` download). A missing
+  peer therefore never breaks fetching of plain-`uri` datasets — only datasets whose bytes
+  require the peer's language fetcher become unavailable.
+- **Scope — fetched datasets only.** Delegation moves *fetching*. A dataset *produced* by a
+  project function in a given language (the companion `@cached` layer) cannot be delegated
+  to a different language — its bytes originate there by definition; each language produces
+  and caches its own.
 
 ## Storage
 
@@ -654,7 +691,7 @@ fixture-suite tests tagged for those capabilities.
 | `lang-read` | Parse `[<ds>._LANG.<lang>]` and `[_LANG.<lang>.loaders]`; apply the load ladder. |
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write (full lossless round-trip). |
 | `shell-fetch` | Execute the `[<ds>._LANG.shell].fetcher` command template in the fetch ladder. |
-| `delegation` | Opt-in peer-CLI delegation in the fetch ladder (rung 3). |
+| `delegation` | Peer-CLI delegation in the fetch ladder (rung 3): hand a fetch to a peer-language CLI (the Python reference orchestrator) via the `delegate` field / `--delegate`, with the probe-and-fall-through contract (see Delegation, Peer-CLI contract). |
 | `storage` | Honor the `store` / `default` `$`-folder selectors and `[_STORAGE]` folder-variable resolution; materialize datasets into the selected folder at its canonical or configured root (see Storage). |
 | `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, or Julia `write(...; canonical=true)`). |
 | `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
@@ -697,7 +734,9 @@ from there.
 ### Discovery and availability
 
 Each language's CLI is discoverable on `PATH` under a language-specific name, e.g.
-`datamanifest` (Python), `DataManifest` or `datamanifest-julia` (Julia). Before
+`datamanifest` (Python), `DataManifest` or `datamanifest-julia` (Julia). The Python
+`datamanifest` CLI is the **reference orchestrator** and the default delegation target
+(see Delegation); a deployment that enables delegation by default points it there. Before
 delegating, a tool MUST probe that the peer CLI (and its runtime) is installed and
 usable; if the probe fails, the delegation rung is silently skipped and the ladder
 advances to rung 4 (`uri` download). Probe commands and PATH names are left to each

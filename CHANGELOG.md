@@ -78,6 +78,18 @@ Two changes, both on the spec-document axis (no `_META.schema` bump — see
   `cache-gc` (the `cached.toml` index + usage log + `gc`) — both declared by the
   **companion package**, not the core fetch tool.
 
+### Delegation clarified
+
+- **`delegate` is now a defined field** (per-dataset bool) plus the per-run `--delegate`
+  flag, and a dedicated `SCHEMA.md` §Delegation explains the rung: the peer CLI runs its
+  own fetch ladder into the shared store, with `sha256` verify, probe, and graceful
+  fall-through to `uri` when the peer is absent.
+- **Python CLI named the reference fetch orchestrator.** It is the recommended delegation
+  target; the on/off *default* is a documented per-tool deployment choice (the reference
+  deployment has non-Python tools delegate to Python by default when present). Delegation
+  moves *fetching* only — produced (`@cached`) datasets originate in their host language
+  and are not delegable. See `ROADMAP.md` for the deployment rationale.
+
 ### Explicitly deferred
 
 - The `@cached` macro/decorator **API** is per-language, not normative (only the
