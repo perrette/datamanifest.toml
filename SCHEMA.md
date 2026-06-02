@@ -24,7 +24,7 @@ Two independent version axes govern this format:
 ## Structural keys
 
 Keys beginning with `_` are **structural** — they are not dataset tables. At the top
-level, the defined structural tables are `_META`, `_LANG`, and the legacy `_LOADERS`.
+level, the defined structural tables are `_META`, `_LANG`, `_STORAGE`, and the legacy `_LOADERS`.
 Within a dataset table, the only defined structural sub-table is `_LANG`. Readers MUST
 preserve unknown `_*` keys verbatim and MUST NOT treat them as datasets or drop them on
 write.
@@ -40,6 +40,8 @@ A v1 manifest is a TOML document with:
 - **One table per dataset**, keyed by the dataset name. Dataset tables hold the
   language-agnostic contract fields and an optional `_LANG` sub-table for per-dataset
   bindings.
+- **`[_STORAGE]`** — optional storage configuration: each named store's root location
+  (`data`, `cache`, `repo`), with `_HOST` / `_PROFILE` override sub-tables. See Storage.
 - **Legacy `[_LOADERS]`** — preserved for backward compatibility; see Deprecations.
 
 Example:
@@ -96,6 +98,7 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `description` | string | `""` | Human-readable description (replaces TOML comments). |
 | `key` | string | `""` | Storage key (relative path under the datasets folder). Derived from host + path + version when absent. |
 | `local_path` | string | `""` | User-managed location. If absolute, used verbatim; if relative, resolved against the project root. Bypasses download. |
+| `store` | string | `"data"` | Named store the dataset is materialized into — `data` (persistent, default), `cache` (disposable), `repo` (project-tracked), or `mount` (transient, not materialized). See Storage. Honored under the `storage` capability (`mount` additionally requires `mount`); other tools preserve it verbatim. |
 | `sha256` | string | `""` | Expected SHA-256 of the downloaded file/folder. Auto-filled on first successful download; verified thereafter. |
 | `skip_checksum` | bool | `false` | Disable checksum verification for this dataset. |
 | `skip_download` | bool | `false` | Treat the dataset as externally provided; the documented `uri` is returned as the path and no download is attempted. |
@@ -171,6 +174,86 @@ cross a process boundary. Cross-language data preparation is modeled as one lang
 *fetcher* writing a normalized artifact (Arrow/parquet/netcdf) that another language
 then loads with its own format default.
 
+## Storage
+
+A dataset's bytes are materialized into one of several named **stores**. The `store`
+field selects which; the optional top-level `[_STORAGE]` table configures where each
+store lives. Storage is a portable *policy* layer: a `store` value carries the same
+meaning in every implementation, and default root locations are language-independent so
+peer tools share the same on-disk store without configuration.
+
+### Stores and policies
+
+Every store has two policy axes:
+
+- **Materialization** — `local` (bytes are copied to `<root>/<key>`) or `mount` (the
+  dataset is accessed in place through a mounted/remote filesystem and is never copied).
+- **Retention** (meaningful only for `local`) — how long the materialized bytes persist.
+
+Four stores are defined; `store` defaults to `data`. A dataset's storage **key** (see
+`key`) is independent of its store, so the same dataset resolves to `<root>/<key>` under
+whichever store is selected.
+
+| `store` | materialization | retention | semantics |
+|---|---|---|---|
+| `data` *(default)* | local | persistent | Protected, long-lived data; not subject to automatic deletion. |
+| `cache` | local | disposable | Reconstructible cache; MAY be reclaimed by the OS or by a tool's garbage collector. |
+| `repo` | local | tracked | Lives inside the project tree; its lifetime is the repository's. |
+| `mount` | mount | transient | Accessed in place via a mounted/remote filesystem; never materialized. Requires the `mount` capability. |
+
+An implementation with the `storage` capability MUST apply the materialization and
+retention semantics above for the stores it honors.
+
+### Root locations and `[_STORAGE]`
+
+The optional top-level structural table `[_STORAGE]` configures each store's root. Keys
+are store names; values are paths (`~` and `$VAR` expanded). A `repo` value is resolved
+relative to the project root; absolute values are used verbatim. Per-host and per-profile
+overrides are expressed as sub-tables:
+
+```toml
+[_STORAGE]
+data  = "~/data/Datasets"
+cache = "~/.cache/Datasets"
+repo  = "datasets"
+
+[_STORAGE._HOST."login*.hpc.edu"]   # matched against the hostname (glob/regex)
+data  = "/scratch/$USER/Datasets"
+
+[_STORAGE._PROFILE.cluster]          # selected by an implementation-defined profile signal
+data  = "/work/proj/Datasets"
+```
+
+Normative rules:
+
+- `[_STORAGE]` and its `_HOST` / `_PROFILE` sub-tables are **defined structural keys**:
+  every conforming tool MUST parse them identically and preserve them verbatim on write
+  (a tool without the `storage` capability treats the whole table as a preserved unknown).
+- **Default root locations are language-independent.** When a store's root is not set
+  explicitly, a conforming tool MUST resolve it to the OS-convention path below and MUST
+  NOT substitute a language-native location (e.g. a package depot), so that Python and
+  Julia resolve the same dataset to the **same path**:
+  - `data` → OS user *data* dir (`$XDG_DATA_HOME`, default `~/.local/share`, on Linux;
+    `~/Library/Application Support` on macOS; `%LOCALAPPDATA%` on Windows) + `/datamanifest/Datasets`;
+  - `cache` → OS user *cache* dir (`$XDG_CACHE_HOME`, default `~/.cache`, on Linux;
+    `~/Library/Caches` on macOS; `%LOCALAPPDATA%\…\Cache` on Windows) + `/datamanifest/Datasets`;
+  - `repo` → `<project_root>/datasets`.
+
+  (These follow the `platformdirs` `user_data_dir` / `user_cache_dir` conventions.)
+- **Read resolution MUST cover these canonical locations** (and any explicit `[_STORAGE]`
+  / `_HOST` / `_PROFILE` paths), so a dataset materialized by one tool is found by a peer
+  tool. An explicit path, where given, replaces the corresponding default and MUST be
+  honored identically by every tool.
+- The precedence by which `_HOST` / `_PROFILE` / environment overrides combine is
+  implementation-defined; the explicit and default paths they resolve to are not.
+
+> **Note — the `cache` *store* is not the `@cached` *mechanism*.** `store = "cache"` is a
+> storage tier (a disposable location) and is independent of *how* a dataset is produced.
+> In particular it is unrelated to a tool's produce-or-load (`@cached`) caching of
+> *function results* — a separate, non-normative mechanism that registers
+> function-computed datasets in their own index (e.g. a `cached.toml`). Any dataset,
+> fetched or produced, may use any store.
+
 ## Preservation contract
 
 A conforming writer of language `L` MUST:
@@ -183,6 +266,9 @@ A conforming writer of language `L` MUST:
 - Preserve any `_`-prefixed structural table that it does not own (`_META`, unknown
   future `_*`) verbatim;
 - Preserve legacy `[_LOADERS]` verbatim if present and not explicitly migrated.
+- Preserve `[_STORAGE]` verbatim unless it implements the `storage` capability, in which
+  case it MAY regenerate its own `_STORAGE` entries (a shared, non-language-namespaced
+  table).
 
 Implementation pattern: a `DatasetEntry` keeps foreign `_LANG.X` subtrees and unknown
 scalar keys in its `extra`; the `Database` keeps foreign top-level `[_LANG.X]` and
@@ -200,6 +286,8 @@ fixture-suite tests tagged for those capabilities.
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write (full lossless round-trip). |
 | `shell-fetch` | Execute the `[<ds>._LANG.shell].fetcher` command template in the fetch ladder. |
 | `delegation` | Opt-in peer-CLI delegation in the fetch ladder (rung 3). |
+| `storage` | Honor the `store` field and `[_STORAGE]` resolution; materialize datasets into the selected local store at its canonical or configured root (see Storage). |
+| `mount` | Support the `mount` store — transient, non-materialized in-place access via a mounted/remote filesystem. |
 
 Capabilities are independent — a partial implementation may ship `lang-read` and
 `lang-write` without `shell-fetch` or `delegation`. The spec and its fixture suite are

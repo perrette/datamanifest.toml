@@ -1,5 +1,26 @@
 # Changelog
 
+## spec-v1.1 (schema `_META.schema = 1`, additive)
+
+Additive storage model — no schema bump (old readers preserve the new field/table
+verbatim), tracked on the spec-document axis. New capabilities gate it.
+
+### New features
+
+- **Storage model (`store` field + `[_STORAGE]`).** A dataset is materialized into a
+  named **store**: `data` (persistent, default), `cache` (disposable), `repo`
+  (project-tracked), or `mount` (transient, accessed in place). Stores have two policy
+  axes — *materialization* (`local`/`mount`) and *retention*. The optional `[_STORAGE]`
+  structural table configures each store's root, with `_HOST` (hostname glob/regex) and
+  `_PROFILE` override sub-tables.
+- **Language-independent default locations.** Default `data`/`cache` roots follow the
+  `platformdirs` `user_data_dir`/`user_cache_dir` conventions and are normative, so Python
+  and Julia resolve the same dataset to the **same path** (at minimum for reading) and
+  genuinely share a store. Read resolution MUST cover the canonical locations.
+- **New capabilities.** `storage` (honor `store` + `[_STORAGE]` resolution) and `mount`
+  (the transient mounted store). Tools without `storage` preserve `store`/`[_STORAGE]`
+  verbatim.
+
 ## v1 (schema `_META.schema = 1`)
 
 ### Breaking structural changes
