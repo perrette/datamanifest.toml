@@ -17,6 +17,8 @@ submodule and run a conformance runner against it as their test suite.
 | `single_julia` | julia | `lang-read`, `lang-write` |
 | `multilang` | python, julia, shell | `lang-read`, `lang-write`, `shell-fetch` |
 | `unknown_structural` | python, r | `lang-read`, `lang-write` |
+| `parameterized` | python, julia | `lang-read`, `lang-write`, `binding-args` |
+| `storage` | (none) | `storage` |
 
 ## Expected-outcome JSON schema
 
@@ -53,6 +55,10 @@ An array of capability tags from SCHEMA.md's Conformance-levels table:
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write |
 | `shell-fetch` | Execute `_LANG.shell.fetcher` command templates in the fetch ladder |
 | `delegation` | Opt-in peer-CLI delegation (fetch-ladder rung 3) |
+| `storage` | Honor the `store` field and `[_STORAGE]` root resolution |
+| `mount` | Support the `mount` store (mechanics unspecified in v1.1) |
+| `byte-identity` | Emit canonical lexicographic key ordering (cross-tool byte-identical output) |
+| `binding-args` | Execute the `{ ref, args }` table form of a binding |
 
 A runner filters fixtures to those whose `capabilities` array is a subset of the
 implementation's declared capability set. Fixtures with unsupported capabilities are
@@ -101,6 +107,40 @@ read-then-write round-trip.
 
 `_LANG.shell` is never "owned" by any writer language, so it always appears in the
 foreign set and must always be preserved verbatim.
+
+### Parameterized bindings and `resolution`
+
+A per-dataset `fetcher`/`loader` may be a bare `module:function` string **or** a
+`{ ref, args }` table (a parameterized binding). In `resolution`, `"ref"` is the
+`module:function` string in either case (the table's `ref`). The `args` are asserted
+separately, under `binding_args`.
+
+### `binding_args` (optional)
+
+Present for `binding-args`-capability fixtures. For each `<lang>` → `<dataset>` →
+`<role>` (`fetcher`|`loader`) whose binding uses the table form, gives the exact `args`
+table the resolved function MUST receive (before any `$var` substitution). Bindings using
+the bare-string form have no entry here.
+
+### `storage` (optional)
+
+Present for `storage`-capability fixtures. Asserts store selection and `[_STORAGE]`
+structure (but not absolute on-disk paths, which are machine-dependent — `platformdirs` /
+env / host):
+
+- `default_store` — the `store` assumed when a dataset omits the field (`data`).
+- `datasets.<ds>` — the store each dataset resolves to (its `store` field, or the default).
+- `roots.base` — store-root keys that MUST be present in `[_STORAGE]`.
+- `roots.host_patterns` / `roots.profiles` — `_HOST` / `_PROFILE` override keys present.
+
+### Byte-identity (cross-tool)
+
+The `byte-identity` capability asserts that a logical manifest serializes to
+byte-identical output across tools (canonical lexicographic key ordering at every level,
+including keys inside inline `{ }` tables). This check is run by the implementation
+runners — each serializes the same fixture and the outputs are diffed byte-for-byte —
+rather than by an in-repo expected-bytes file, which would couple to one writer's exact
+formatting.
 
 ## How a runner implements conformance tests
 

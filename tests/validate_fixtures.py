@@ -18,7 +18,10 @@ import tomllib
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
 
 # From SCHEMA.md §Conformance levels
-KNOWN_CAPABILITIES = {"lang-read", "lang-write", "shell-fetch", "delegation"}
+KNOWN_CAPABILITIES = {
+    "lang-read", "lang-write", "shell-fetch", "delegation",
+    "storage", "mount", "byte-identity", "binding-args",
+}
 
 FETCH_RUNGS = {"own-fetcher", "shell", "delegation", "uri", "error"}
 LOAD_RUNGS = {"per-dataset", "manifest-format-default", "built-in", "error"}
@@ -30,6 +33,14 @@ NULL_REF_LOAD_RUNGS = {"built-in", "error"}
 
 def _err(errors, msg):
     errors.append(msg)
+
+
+def _ref_of(binding):
+    """A binding is either a bare `module:function` string or a `{ ref, args }`
+    table (parameterized binding). Return its `module:function` ref either way."""
+    if isinstance(binding, dict):
+        return binding.get("ref")
+    return binding
 
 
 def validate(toml_path, json_path):
@@ -93,20 +104,20 @@ def validate(toml_path, json_path):
                     lang_ds = ds.get("_LANG", {}).get(lang, {})
                     if "fetcher" not in lang_ds:
                         _err(errors, f"resolution[{lang}][{ds_name}].fetcher: rung 'own-fetcher' but manifest has no [_LANG.{lang}].fetcher")
-                    elif ref is not None and lang_ds["fetcher"] != ref:
-                        _err(errors, f"resolution[{lang}][{ds_name}].fetcher: ref mismatch (expected '{ref}', manifest has '{lang_ds['fetcher']}')")
+                    elif ref is not None and _ref_of(lang_ds["fetcher"]) != ref:
+                        _err(errors, f"resolution[{lang}][{ds_name}].fetcher: ref mismatch (expected '{ref}', manifest has '{_ref_of(lang_ds['fetcher'])}')")
                 elif rung == "shell":
                     shell_ds = ds.get("_LANG", {}).get("shell", {})
                     if "fetcher" not in shell_ds:
                         _err(errors, f"resolution[{lang}][{ds_name}].fetcher: rung 'shell' but manifest has no [_LANG.shell].fetcher")
-                    elif ref is not None and shell_ds["fetcher"] != ref:
+                    elif ref is not None and _ref_of(shell_ds["fetcher"]) != ref:
                         _err(errors, f"resolution[{lang}][{ds_name}].fetcher: shell ref mismatch")
                 elif rung == "per-dataset":
                     lang_ds = ds.get("_LANG", {}).get(lang, {})
                     if "loader" not in lang_ds:
                         _err(errors, f"resolution[{lang}][{ds_name}].loader: rung 'per-dataset' but manifest has no [_LANG.{lang}].loader")
-                    elif ref is not None and lang_ds["loader"] != ref:
-                        _err(errors, f"resolution[{lang}][{ds_name}].loader: ref mismatch (expected '{ref}', manifest has '{lang_ds['loader']}')")
+                    elif ref is not None and _ref_of(lang_ds["loader"]) != ref:
+                        _err(errors, f"resolution[{lang}][{ds_name}].loader: ref mismatch (expected '{ref}', manifest has '{_ref_of(lang_ds['loader'])}')")
                 elif rung == "manifest-format-default":
                     top_loaders = manifest.get("_LANG", {}).get(lang, {}).get("loaders", {})
                     fmt = ds.get("format")
@@ -155,6 +166,48 @@ def validate(toml_path, json_path):
                 lang = entry[len("_LANG."):]
                 if lang not in ds_lang:
                     _err(errors, f"preserve_verbatim.lang_namespaces.per_dataset.{ds_name}: '{entry}' not in manifest")
+
+    # --- storage (optional; present for `storage`-capability fixtures) ---
+    storage = expected.get("storage")
+    if storage is not None:
+        default_store = storage.get("default_store", "data")
+        for ds_name, store_val in storage.get("datasets", {}).items():
+            if ds_name not in manifest:
+                _err(errors, f"storage.datasets: '{ds_name}' not in manifest")
+                continue
+            actual = manifest[ds_name].get("store", default_store)
+            if actual != store_val:
+                _err(errors, f"storage.datasets[{ds_name}]: expected store '{store_val}', manifest has '{actual}'")
+        roots = storage.get("roots", {})
+        st = manifest.get("_STORAGE", {})
+        for key in roots.get("base", []):
+            if key not in st:
+                _err(errors, f"storage.roots.base: '{key}' not in [_STORAGE]")
+        host = st.get("_HOST", {})
+        for pat in roots.get("host_patterns", []):
+            if pat not in host:
+                _err(errors, f"storage.roots.host_patterns: '{pat}' not in [_STORAGE._HOST]")
+        prof = st.get("_PROFILE", {})
+        for name in roots.get("profiles", []):
+            if name not in prof:
+                _err(errors, f"storage.roots.profiles: '{name}' not in [_STORAGE._PROFILE]")
+
+    # --- binding_args (optional; present for `binding-args`-capability fixtures) ---
+    binding_args = expected.get("binding_args")
+    if binding_args is not None:
+        for lang, datasets in binding_args.items():
+            for ds_name, roles in datasets.items():
+                if ds_name not in manifest:
+                    _err(errors, f"binding_args[{lang}]: '{ds_name}' not in manifest")
+                    continue
+                lang_ds = manifest[ds_name].get("_LANG", {}).get(lang, {})
+                for role, args in roles.items():
+                    binding = lang_ds.get(role)
+                    if not isinstance(binding, dict):
+                        _err(errors, f"binding_args[{lang}][{ds_name}].{role}: manifest binding is not a `{{ ref, args }}` table")
+                        continue
+                    if binding.get("args") != args:
+                        _err(errors, f"binding_args[{lang}][{ds_name}].{role}: args mismatch (expected {args}, manifest has {binding.get('args')})")
 
     if errors:
         raise AssertionError("\n  " + "\n  ".join(errors))

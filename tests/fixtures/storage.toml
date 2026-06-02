@@ -1,0 +1,30 @@
+[_META]
+schema = 1
+
+[_STORAGE]
+cache = "~/.cache/Datasets"
+data  = "~/data/Datasets"
+repo  = "datasets"
+
+[_STORAGE._HOST."login*.hpc.edu"]
+data  = "/scratch/$USER/Datasets"
+cache = "/dev/shm/$USER/cache"
+
+[_STORAGE._PROFILE.cluster]
+data = "/work/proj/Datasets"
+
+# Default store is `data`; this expensive sim is protected (persistent).
+[bigsim]
+uri    = "https://example.com/bigsim.nc"
+format = "nc"
+
+# Disposable, re-fetchable scratch input.
+[scratch_run]
+uri    = "https://example.com/scratch_run.nc"
+format = "nc"
+store  = "cache"
+
+# A project-tracked, produced-by-hand artifact living in the repo tree.
+[derived_table]
+format = "csv"
+store  = "repo"

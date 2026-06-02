@@ -1,0 +1,24 @@
+{
+  "capabilities": ["storage"],
+  "resolution": {},
+  "preserve_verbatim": {
+    "unknown_structural": [],
+    "lang_namespaces": {
+      "top_level": [],
+      "per_dataset": {}
+    }
+  },
+  "storage": {
+    "default_store": "data",
+    "datasets": {
+      "bigsim": "data",
+      "scratch_run": "cache",
+      "derived_table": "repo"
+    },
+    "roots": {
+      "base": ["cache", "data", "repo"],
+      "host_patterns": ["login*.hpc.edu"],
+      "profiles": ["cluster"]
+    }
+  }
+}

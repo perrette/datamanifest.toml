@@ -1,0 +1,51 @@
+{
+  "capabilities": ["binding-args", "lang-read", "lang-write"],
+  "resolution": {
+    "python": {
+      "esm_5x5": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "per-dataset", "ref": "mypkg.load:esm"}
+      },
+      "esm_10x10": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "manifest-format-default", "ref": "xarray:open_dataset"}
+      }
+    },
+    "julia": {
+      "esm_5x5": {
+        "fetcher": {"rung": "own-fetcher", "ref": "MyPkg:build_esm"},
+        "loader":  {"rung": "per-dataset", "ref": "MyPkg:load_esm"}
+      },
+      "esm_10x10": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "per-dataset", "ref": "MyPkg:load_esm"}
+      }
+    }
+  },
+  "preserve_verbatim": {
+    "unknown_structural": [],
+    "lang_namespaces": {
+      "top_level": ["_LANG.julia", "_LANG.python"],
+      "per_dataset": {
+        "esm_5x5": ["_LANG.julia", "_LANG.python"],
+        "esm_10x10": ["_LANG.julia"]
+      }
+    }
+  },
+  "binding_args": {
+    "julia": {
+      "esm_5x5": {
+        "fetcher": {"resolution": "high", "tag": "$version"},
+        "loader":  {"grid": "5x5", "skip_models": ["CESM.*", "FGOALS.*"]}
+      },
+      "esm_10x10": {
+        "loader": {"grid": "10x10"}
+      }
+    },
+    "python": {
+      "esm_5x5": {
+        "loader": {"grid": "5x5"}
+      }
+    }
+  }
+}
