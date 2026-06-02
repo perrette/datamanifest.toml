@@ -99,7 +99,7 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `key` | string | `""` | Storage key (relative path under the datasets folder). Derived from host + path + version when absent. |
 | `local_path` | string | `""` | User-managed location. If absolute, used verbatim; if relative, resolved against the project root. Bypasses download. |
 | `store` | string | `"data"` | Named store the dataset is materialized into — `data` (persistent, default), `cache` (disposable), `repo` (project-tracked), or `mount` (transient, not materialized). See Storage. Honored under the `storage` capability (`mount` additionally requires `mount`); other tools preserve it verbatim. |
-| `sha256` | string | `""` | Expected SHA-256 of the downloaded file/folder. Auto-filled on first successful download; verified thereafter. |
+| `sha256` | string | `""` | Expected SHA-256 of the downloaded file/folder. Auto-filled on first successful download and verified at fetch time; **not** re-verified on every load (re-verification is opt-in). |
 | `skip_checksum` | bool | `false` | Disable checksum verification for this dataset. |
 | `skip_download` | bool | `false` | Treat the dataset as externally provided; the documented `uri` is returned as the path and no download is attempted. |
 | `extract` | bool | `false` | After download, extract the archive (`zip` / `tar` / `tar.gz`) and use the extracted directory as the dataset path. |
@@ -202,7 +202,10 @@ whichever store is selected.
 | `mount` | mount | transient | Accessed in place via a mounted/remote filesystem; never materialized. Requires the `mount` capability. |
 
 An implementation with the `storage` capability MUST apply the materialization and
-retention semantics above for the stores it honors.
+retention semantics above for the stores it honors. The `mount` store's access mechanics
+(how a mount is established; `key` and load semantics for a non-materialized dataset) are
+**not specified in spec-v1.1** — an implementation SHOULD NOT advertise the `mount`
+capability until a future revision defines them.
 
 ### Root locations and `[_STORAGE]`
 
@@ -239,13 +242,23 @@ Normative rules:
     `~/Library/Caches` on macOS; `%LOCALAPPDATA%\…\Cache` on Windows) + `/datamanifest/Datasets`;
   - `repo` → `<project_root>/datasets`.
 
-  (These follow the `platformdirs` `user_data_dir` / `user_cache_dir` conventions.)
+  **Python's `platformdirs` is the normative reference**: `data` =
+  `platformdirs.user_data_dir("datamanifest")` + `/Datasets`, `cache` =
+  `platformdirs.user_cache_dir("datamanifest")` + `/Datasets`. Every other implementation
+  MUST resolve to the identical path `platformdirs` produces for that OS.
 - **Read resolution MUST cover these canonical locations** (and any explicit `[_STORAGE]`
   / `_HOST` / `_PROFILE` paths), so a dataset materialized by one tool is found by a peer
   tool. An explicit path, where given, replaces the corresponding default and MUST be
   honored identically by every tool.
-- The precedence by which `_HOST` / `_PROFILE` / environment overrides combine is
-  implementation-defined; the explicit and default paths they resolve to are not.
+- **Read resolution searches stores in a fixed, normative order** — `repo`, then `data`,
+  then `cache` — using the first store where `<root>/<key>` exists, so peer tools resolve
+  an ambiguous key identically.
+- **Per-store root precedence (normative).** Each store's root is the first that applies:
+  (1) the `DATAMANIFEST_<STORE>_DIR` environment variable (`DATAMANIFEST_DATA_DIR`,
+  `DATAMANIFEST_CACHE_DIR`); (2) the `_PROFILE.<name>` entry when `DATAMANIFEST_PROFILE`
+  is set; (3) the first matching `_HOST.<pattern>` entry; (4) the base `[_STORAGE]` entry;
+  (5) the language-independent default above. Every tool MUST honor these variable names
+  and this precedence, so a single environment moves all tools to the same path.
 
 > **Note — the `cache` *store* is not the `@cached` *mechanism*.** `store = "cache"` is a
 > storage tier (a disposable location) and is independent of *how* a dataset is produced.
@@ -253,6 +266,23 @@ Normative rules:
 > *function results* — a separate, non-normative mechanism that registers
 > function-computed datasets in their own index (e.g. a `cached.toml`). Any dataset,
 > fetched or produced, may use any store.
+
+### Concurrent access and completeness
+
+A store may be shared between tools and between concurrent processes (e.g. HPC jobs), so
+materialization MUST be safe under concurrency, and peer tools sharing a store MUST agree
+on these conventions:
+
+- **Atomic publish.** Materialize into a temporary path within the store and atomically
+  rename it into place (`<key>.tmp` → `<key>`), so a killed process never leaves a partial
+  entry that looks complete.
+- **Completion marker.** An entry is *complete* iff its marker exists —
+  `<key>/.complete` for a directory, `<key>.complete` for a file. Readers MUST treat an
+  entry without its marker as absent (re-fetch); a writer MUST create the marker only
+  after a successful, verified materialization.
+- **Lock.** A writer SHOULD hold an exclusive lock `<key>.lock` (a pidfile; a lock whose
+  PID is dead and older than a grace period MAY be reclaimed) while materializing, so
+  concurrent workers neither recompute nor clobber the same entry.
 
 ## Preservation contract
 

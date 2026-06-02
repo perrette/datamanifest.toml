@@ -19,7 +19,12 @@ verbatim), tracked on the spec-document axis. New capabilities gate it.
   genuinely share a store. Read resolution MUST cover the canonical locations.
 - **New capabilities.** `storage` (honor `store` + `[_STORAGE]` resolution) and `mount`
   (the transient mounted store). Tools without `storage` preserve `store`/`[_STORAGE]`
-  verbatim.
+  verbatim. `mount` mechanics are not yet specified; tools should not advertise it yet.
+- **Normative resolution & concurrency.** Fixed read order (`repo`→`data`→`cache`),
+  shared env-var names (`DATAMANIFEST_DATA_DIR` / `_CACHE_DIR` / `DATAMANIFEST_PROFILE`)
+  and precedence, and a cross-tool concurrency convention (atomic publish, `.complete`
+  marker, `.lock` pidfile) so peer tools share a store safely. `platformdirs` is the
+  reference for default paths. `sha256` is verified at fetch, not re-verified on load.
 
 ## v1 (schema `_META.schema = 1`)
 

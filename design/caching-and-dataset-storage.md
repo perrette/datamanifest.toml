@@ -524,3 +524,9 @@ implementation-defined.
   `.tmp→rename` + completion marker), used by fetch / extract / produce alike;
   ② the multi-root resolver + `store=` / `[_STORAGE]`; ③ the `@cached` decorator on top;
   ④ (later) `cached.toml` + GC; (later) `mount` store; (later) cloud backends.
+- **Handoff scope for an implementing agent:** items **①②** only — the storage format
+  (`store` + `[_STORAGE]`), the resolver (fixed read order, env-var/precedence,
+  `platformdirs` defaults), and the safe-materialization primitive — per `SCHEMA.md`
+  spec-v1.1. Do **not** implement `mount` (mechanics unspecified) or
+  `@cached`/`cached.toml`/GC (③④ — need an API-design pass first). `platformdirs` is the
+  reference for default paths; Julia matches its output.
