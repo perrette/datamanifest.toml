@@ -57,12 +57,11 @@ An array of capability tags from SCHEMA.md's Conformance-levels table:
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write |
 | `shell-fetch` | Execute `_LANG.shell.fetcher` command templates in the fetch ladder |
 | `delegation` | Opt-in peer-CLI delegation (fetch-ladder rung 3) |
-| `storage` | Honor the `store` field and `[_STORAGE]` root resolution |
-| `mount` | Support the `mount` store (mechanics unspecified in v1.1) |
+| `storage` | Honor the `store` / `default` `$`-folder selectors and `[_STORAGE]` folder-variable resolution |
 | `byte-identity` | Emit canonical lexicographic key ordering (cross-tool byte-identical output) |
 | `binding-args` | Execute the `{ ref, args }` table form of a binding |
-| `cache-produce` | Produced (function-backed) datasets keyed by parameter hash + `config.toml`/`metadata.toml` sidecars |
-| `cache-gc` | The `cached.toml` produced-dataset index, usage log, and root-reachability `gc` |
+| `cache-produce` | Companion-layer produced (function-backed) datasets keyed by parameter hash + `config.toml`/`metadata.toml` sidecars |
+| `cache-gc` | Companion-layer `cached.toml` produced-dataset index, usage log, and root-reachability `gc` |
 
 A runner filters fixtures to those whose `capabilities` array is a subset of the
 implementation's declared capability set. Fixtures with unsupported capabilities are
@@ -129,14 +128,22 @@ bare-string form have no entry here.
 
 ### `storage` (optional)
 
-Present for `storage`-capability fixtures. Asserts store selection and `[_STORAGE]`
-structure (but not absolute on-disk paths, which are machine-dependent — `platformdirs` /
-env / host):
+Present for `storage`-capability fixtures. Asserts selector resolution and the
+`[_STORAGE]` folder-variable namespace (but not absolute on-disk paths, which are
+machine-dependent — `platformdirs` / env / host). In the spec-v2 folder model, `store` and
+`default` are `$`-folder **selectors** (a `$`-reference, optionally with a sub-path); a
+bare folder name is no longer a valid selector (hard migration).
 
-- `default_store` — the `store` assumed when a dataset omits the field (`data`).
-- `datasets.<ds>` — the store each dataset resolves to (its `store` field, or the default).
-- `roots.base` — store-root keys that MUST be present in `[_STORAGE]`.
-- `roots.host_patterns` / `roots.profiles` — `_HOST` / `_PROFILE` override keys present.
+- `default` — the project-wide `[_STORAGE].default` selector (`$`-form; itself defaults to
+  `$data`) — the selector a dataset assumes when it omits `store`.
+- `datasets.<ds>` — the `$`-folder selector each dataset resolves to (its `store` field, or
+  the default). The validator also asserts it is `$`-form.
+- `local_paths.<ds>` — the raw `local_path` path expression for datasets that bypass the
+  keyed `<root>/<key>` layout.
+- `folders.builtin` — the built-in folder names (`data`, `cache`, `repo`).
+- `folders.user` — user-defined folder variables that MUST be defined in `[_STORAGE]`
+  (bare keys, excluding the reserved `default` / `_HOST` / `_PROFILE`).
+- `folders.host_patterns` / `folders.profiles` — `_HOST` / `_PROFILE` override keys present.
 
 ### `config_sidecar` (optional)
 

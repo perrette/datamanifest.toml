@@ -2,29 +2,39 @@
 schema = 1
 
 [_STORAGE]
-cache = "~/.cache/Datasets"
-data  = "~/data/Datasets"
-repo  = "datasets"
+default = "$data"                       # project-wide default selector ($-form)
+scratch = "$TMPDIR/datasets"            # user-defined folder variable (path expression)
 
 [_STORAGE._HOST."login*.hpc.edu"]
-data  = "/scratch/$USER/Datasets"
-cache = "/dev/shm/$USER/cache"
+scratch = "/scratch/$USER/datasets"     # same variable, host-specific resolution
+data    = "/work/$USER/Datasets"        # override a built-in's location, host-specific
 
 [_STORAGE._PROFILE.cluster]
 data = "/work/proj/Datasets"
 
-# Default store is `data`; this expensive sim is protected (persistent).
+# Store omitted -> the project default selector ($data); this expensive sim is protected.
 [bigsim]
 uri    = "https://example.com/bigsim.nc"
 format = "nc"
 
-# Disposable, re-fetchable scratch input.
+# Disposable, re-fetchable input on the OS-reclaimable cache folder.
 [scratch_run]
 uri    = "https://example.com/scratch_run.nc"
 format = "nc"
-store  = "cache"
+store  = "$cache"
 
-# A project-tracked, produced-by-hand artifact living in the repo tree.
+# Keyed under the host-resolved user-defined scratch folder.
+[big]
+uri    = "https://example.com/big.nc"
+format = "nc"
+store  = "$scratch"
+
+# Sub-path selector: keyed under <cache_root>/derived/<key>.
 [derived_table]
 format = "csv"
-store  = "repo"
+store  = "$cache/derived"
+
+# Explicit host-specific exact path via a folder variable (bypasses the keyed layout).
+[pinned]
+local_path = "$scratch/exact/file.nc"
+format     = "nc"

@@ -1,24 +1,55 @@
 # Changelog
 
-## spec-v2 (schema `_META.schema = 1`, additive)
+## spec-v2 (schema `_META.schema = 1`)
 
-Promotes the produce-or-load (`@cached`) design
-(`design/caching-and-dataset-storage.md` §6.D) into the normative spec. Additive:
-it adds **no field to the hand-authored `datasets.toml`** and does not change its
-`_META.schema` (still **1**). A produced dataset reuses the existing engine —
-storage model, safe-materialization, loaders — but is **not declared in
-`datasets.toml`**; its only on-disk record is the machine-generated sidecars and
-the `cached.toml` index, each carrying its own `_META.schema = 1`. Gated by two
-independent capabilities so a tool may ship neither, one, or both.
+Two changes, both on the spec-document axis (no `_META.schema` bump — see
+`design/storage-model-revision.md`):
 
-### New features
+1. **Storage model revision.** Stores-with-policy become a `$`-folder-variable
+   namespace — *locations only, no lifetime policy in the core*. This **revises** the
+   spec-v1.1 `store`/`[_STORAGE]` semantics (the `store` value-grammar changes; bare
+   names are hard-migrated to `$`-form), gated by the `storage` capability.
+2. **Produce-or-load as a companion layer.** Promotes the `@cached` design
+   (`design/caching-and-dataset-storage.md` §6.D) as a cross-tool **format** spec, but
+   the layer itself lives in a **companion package** (one per language), not the core.
+   Additive over a `datasets.toml`: **no new hand-authored field**, no schema change; a
+   produced dataset is recorded only in machine-generated sidecars + the `cached.toml`
+   index (each carrying its own `_META.schema = 1`). `cache-produce` / `cache-gc` are
+   declared by the companion, not the core; the core keeps no GC and no disposability.
+
+### Storage model revision (`storage`)
+
+- **Folders are a `$`-variable namespace.** `[_STORAGE]` holds **folder variables** —
+  built-in `$data` / `$cache` / `$repo` plus any user-defined key (`scratch = "…"` →
+  `$scratch`) — and the new project-wide `default` selector. Built-ins resolve to
+  dataset-root locations: `$data` = `user_data_dir("datamanifest")/Datasets`, `$cache` =
+  `user_cache_dir("datamanifest")/Datasets`, `$repo` = `<project_root>/datasets` (the exact
+  v1.1 on-disk paths — no re-download).
+- **Two field kinds.** *Selectors* (`default`, a dataset's `store`) are `$`-folder
+  references, optionally with a sub-path (`$cache/sub`), keying the dataset at
+  `<resolved-folder>[/sub]/<key>`; `store` defaults to `default`, `default` to `$data`.
+  *Path expressions* (`[_STORAGE]` values, `local_path`) are full paths interpolating
+  `$`-folders, `$USER`/env, and `~`.
+- **`$`-references only (hard migration).** Bare `store = "data"` (the v1.1 form) is no
+  longer valid; a spec-v2 `storage` tool MUST reject it. Bare keys appear only as folder
+  *definitions* in `[_STORAGE]`.
+- **One host-aware resolution ladder for every variable** (built-in and user-defined):
+  `DATAMANIFEST_<NAME>_DIR` env → `_PROFILE.<name>` → `_HOST.<glob>.<name>` →
+  `[_STORAGE].<name>` → built-in default. Host-specificity lives entirely in resolving
+  the variable — there is **no** per-dataset `_HOST` map; a machine-specific exact path is
+  a `local_path` interpolating a host-resolved variable.
+- **`mount` removed from the model.** A locations-only model has no home for
+  never-materialized in-place access; spec-v2 defines no `mount` capability. In-place
+  access is deferred to a future revision — see `ROADMAP.md`.
+
+### Produce-or-load (companion-layer) features
 
 - **Produced datasets.** A dataset whose bytes come from running a project
   function rather than a `uri`. It has **no `datasets.toml` entry** — it
   originates from the `@cached` surface and is recorded only in machine-generated
   files. `cachetype` is not a `datasets.toml` field; it is a namespace that
   appears only in those records (the `cached.toml` entry, the `config.toml`
-  `_META`, and the on-disk path). Defaults to `store = "cache"` and is keyed by a
+  `_META`, and the on-disk path). Defaults to `store = "$cache"` and is keyed by a
   **parameter hash** rather than host/path/version. Unifies external-vs-produced
   into one "recipe + key + store + policy" object — the only new axis is
   parameter-hash keying.
@@ -37,13 +68,15 @@ independent capabilities so a tool may ship neither, one, or both.
   produced datasets by portable key (`cachetype` + `hash`), kept out of the
   hand-authored `datasets.toml`. Gitignored per-machine by default; opt-in commit
   for shared reproducibility.
-- **Garbage collection (`cache-gc`).** `datamanifest gc` is a root-reachability
-  collector: roots are still-existing `datasets.toml` (incl. `cache`-store
+- **Garbage collection (`cache-gc`).** The companion's `gc` is a root-reachability
+  collector: roots are still-existing `datasets.toml` (incl. `$cache`-folder
   entries) and `cached.toml` files, discovered via a depot-level usage log. An
-  artifact is collectable iff no live root references its key and it is older than
-  a grace age; the per-artifact back-pointer is audit-only.
+  artifact under `$cache` is collectable iff no live root references its key and it is
+  older than a grace age; the per-artifact back-pointer is audit-only. The **core keeps
+  no GC**.
 - **New capabilities.** `cache-produce` (produced datasets + sidecars) and
-  `cache-gc` (the `cached.toml` index + usage log + `gc`).
+  `cache-gc` (the `cached.toml` index + usage log + `gc`) — both declared by the
+  **companion package**, not the core fetch tool.
 
 ### Explicitly deferred
 
@@ -51,7 +84,11 @@ independent capabilities so a tool may ship neither, one, or both.
   on-disk formats + GC rule are).
 - Produced-artifact serialization format is a per-tool/per-`format` choice (no
   cross-language loading implied).
-- `mount` store mechanics and cloud/`fsspec` backends remain reserved/deferred.
+- Cloud / `fsspec` / CAS backends remain optional per-language extras, not a spec
+  contract. In-place / mounted access (the former `mount` store) is deferred past
+  spec-v2 — see `ROADMAP.md`.
+- Where the companion package keeps its own app-internal state is a companion concern,
+  not part of this cross-tool format spec.
 
 ## spec-v1.1 (schema `_META.schema = 1`, additive)
 

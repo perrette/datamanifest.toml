@@ -22,9 +22,13 @@ FIXTURES = pathlib.Path(__file__).parent / "fixtures"
 # From SCHEMA.md §Conformance levels
 KNOWN_CAPABILITIES = {
     "lang-read", "lang-write", "shell-fetch", "delegation",
-    "storage", "mount", "byte-identity", "binding-args",
+    "storage", "byte-identity", "binding-args",
     "cache-produce", "cache-gc",
 }
+
+# Reserved keys under [_STORAGE] that are not folder-variable definitions.
+STORAGE_RESERVED = {"default", "_HOST", "_PROFILE"}
+BUILTIN_FOLDERS = {"data", "cache", "repo"}
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -183,29 +187,55 @@ def validate(toml_path, json_path):
                     _err(errors, f"preserve_verbatim.lang_namespaces.per_dataset.{ds_name}: '{entry}' not in manifest")
 
     # --- storage (optional; present for `storage`-capability fixtures) ---
+    # spec-v2 folder model: `store`/`default` are $-folder *selectors*; [_STORAGE]
+    # is a namespace of folder variables (built-in data/cache/repo + user-defined)
+    # plus the reserved `default` selector and _HOST/_PROFILE override sub-tables.
     storage = expected.get("storage")
     if storage is not None:
-        default_store = storage.get("default_store", "data")
-        for ds_name, store_val in storage.get("datasets", {}).items():
+        st = manifest.get("_STORAGE", {})
+        # `default` selector ($-form), itself defaulting to "$data"
+        default_sel = storage.get("default", "$data")
+        manifest_default = st.get("default", "$data")
+        if manifest_default != default_sel:
+            _err(errors, f"storage.default: expected '{default_sel}', [_STORAGE] has '{manifest_default}'")
+        # selectors MUST be $-references (hard migration — no bare legacy names)
+        for ds_name, sel in storage.get("datasets", {}).items():
             if ds_name not in manifest:
                 _err(errors, f"storage.datasets: '{ds_name}' not in manifest")
                 continue
-            actual = manifest[ds_name].get("store", default_store)
-            if actual != store_val:
-                _err(errors, f"storage.datasets[{ds_name}]: expected store '{store_val}', manifest has '{actual}'")
-        roots = storage.get("roots", {})
-        st = manifest.get("_STORAGE", {})
-        for key in roots.get("base", []):
-            if key not in st:
-                _err(errors, f"storage.roots.base: '{key}' not in [_STORAGE]")
+            if not sel.startswith("$"):
+                _err(errors, f"storage.datasets[{ds_name}]: selector '{sel}' must be a $-reference")
+            actual = manifest[ds_name].get("store", default_sel)
+            if isinstance(actual, str) and actual and not actual.startswith("$"):
+                _err(errors, f"storage.datasets[{ds_name}]: manifest store '{actual}' is a bare name (spec-v1.1 form); must be $-form")
+            if actual != sel:
+                _err(errors, f"storage.datasets[{ds_name}]: expected selector '{sel}', manifest has '{actual}'")
+        # local_path datasets (bypass the keyed layout)
+        for ds_name, lp in storage.get("local_paths", {}).items():
+            if ds_name not in manifest:
+                _err(errors, f"storage.local_paths: '{ds_name}' not in manifest")
+                continue
+            actual = manifest[ds_name].get("local_path")
+            if actual != lp:
+                _err(errors, f"storage.local_paths[{ds_name}]: expected '{lp}', manifest has '{actual!r}'")
+        # folder-variable namespace
+        folders = storage.get("folders", {})
+        for name in folders.get("builtin", []):
+            if name not in BUILTIN_FOLDERS:
+                _err(errors, f"storage.folders.builtin: '{name}' is not a built-in folder {sorted(BUILTIN_FOLDERS)}")
+        for name in folders.get("user", []):
+            if name in STORAGE_RESERVED or name in BUILTIN_FOLDERS:
+                _err(errors, f"storage.folders.user: '{name}' is reserved or built-in, not a user folder")
+            elif name not in st:
+                _err(errors, f"storage.folders.user: '{name}' not defined in [_STORAGE]")
         host = st.get("_HOST", {})
-        for pat in roots.get("host_patterns", []):
+        for pat in folders.get("host_patterns", []):
             if pat not in host:
-                _err(errors, f"storage.roots.host_patterns: '{pat}' not in [_STORAGE._HOST]")
+                _err(errors, f"storage.folders.host_patterns: '{pat}' not in [_STORAGE._HOST]")
         prof = st.get("_PROFILE", {})
-        for name in roots.get("profiles", []):
+        for name in folders.get("profiles", []):
             if name not in prof:
-                _err(errors, f"storage.roots.profiles: '{name}' not in [_STORAGE._PROFILE]")
+                _err(errors, f"storage.folders.profiles: '{name}' not in [_STORAGE._PROFILE]")
 
     # --- binding_args (optional; present for `binding-args`-capability fixtures) ---
     binding_args = expected.get("binding_args")
@@ -266,7 +296,7 @@ def validate(toml_path, json_path):
             for field in ("cachetype", "hash", "ref"):
                 if field in exp and entry.get(field) != exp[field]:
                     _err(errors, f"cached_index[{name}]: {field} mismatch (expected {exp[field]!r}, manifest has {entry.get(field)!r})")
-            if "store" in exp and entry.get("store", "cache") != exp["store"]:
+            if "store" in exp and entry.get("store", "$cache") != exp["store"]:
                 _err(errors, f"cached_index[{name}]: store mismatch (expected {exp['store']!r}, manifest has {entry.get('store')!r})")
             if not _HEX64.match(str(entry.get("hash", ""))):
                 _err(errors, f"cached_index[{name}]: hash is not 64 lowercase hex chars")

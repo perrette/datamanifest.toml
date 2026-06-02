@@ -40,8 +40,9 @@ A v1 manifest is a TOML document with:
 - **One table per dataset**, keyed by the dataset name. Dataset tables hold the
   language-agnostic contract fields and an optional `_LANG` sub-table for per-dataset
   bindings.
-- **`[_STORAGE]`** — optional storage configuration: each named store's root location
-  (`data`, `cache`, `repo`), with `_HOST` / `_PROFILE` override sub-tables. See Storage.
+- **`[_STORAGE]`** — optional storage configuration: a host-aware namespace of **folder
+  variables** (built-in `data`, `cache`, `repo` plus user-defined keys) and the
+  project-wide `default` selector, with `_HOST` / `_PROFILE` override sub-tables. See Storage.
 - **Legacy `[_LOADERS]`** — preserved for backward compatibility; see Deprecations.
 
 Example:
@@ -97,8 +98,8 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `aliases` | array of string | `[]` | Alternative names this dataset can be looked up by. |
 | `description` | string | `""` | Human-readable description (replaces TOML comments). |
 | `key` | string | `""` | Storage key (relative path under the datasets folder). Derived from host + path + version when absent. |
-| `local_path` | string | `""` | User-managed location. If absolute, used verbatim; if relative, resolved against the project root. Bypasses download. |
-| `store` | string | `"data"` | Named store the dataset is materialized into — `data` (persistent, default), `cache` (disposable), `repo` (project-tracked), or `mount` (transient, not materialized). See Storage. Honored under the `storage` capability (`mount` additionally requires `mount`); other tools preserve it verbatim. |
+| `local_path` | string | `""` | **Path expression** for a user-managed exact location; may interpolate `$`-folder variables, `$USER`/env, and `~`. After interpolation: absolute → used verbatim; relative → resolved against the project root. Bypasses the keyed `<root>/<key>` layout and download. See Storage. |
+| `store` | string | `default` | **Selector** choosing the folder the dataset is materialized into: a `$`-folder reference, optionally with a sub-path (`$data`, `$scratch`, `$cache/sub`). The dataset is keyed under it as `<resolved-folder>/<key>`. Omitted ⇒ the project-wide `[_STORAGE].default` selector (itself `$data`). See Storage. Honored under the `storage` capability; other tools preserve it verbatim. |
 | `sha256` | string | `""` | Expected SHA-256 of the downloaded file/folder. Auto-filled on first successful download and verified at fetch time; **not** re-verified on every load (re-verification is opt-in). |
 | `skip_checksum` | bool | `false` | Disable checksum verification for this dataset. |
 | `skip_download` | bool | `false` | Treat the dataset as externally provided; the documented `uri` is returned as the path and no download is attempted. |
@@ -228,55 +229,95 @@ then loads with its own format default.
 
 ## Storage
 
-A dataset's bytes are materialized into one of several named **stores**. The `store`
-field selects which; the optional top-level `[_STORAGE]` table configures where each
-store lives. Storage is a portable *policy* layer: a `store` value carries the same
-meaning in every implementation, and default root locations are language-independent so
-peer tools share the same on-disk store without configuration.
+A dataset's bytes are materialized at `<resolved-folder>/<key>`. A dataset's `store`
+**selector** chooses the folder; the optional top-level `[_STORAGE]` table is a host-aware
+namespace of **folder variables** that resolve those selectors to concrete paths. Storage
+is a portable *location* layer: a selector carries the same meaning in every
+implementation, and the built-in folders resolve to language-independent default paths so
+peer tools share the same on-disk location without configuration.
 
-### Stores and policies
+The core knows **locations only — no lifetime policy.** `data` and `cache` are distinct
+*places* (one persistent, one on the OS-reclaimable cache dir), but the core enforces
+nothing about how long bytes persist. Disposability and garbage collection of *produced*
+datasets are the concern of the companion produce-or-load layer (see *Produced datasets and
+caching*), not of the core fetch engine.
 
-Every store has two policy axes:
+### Folder variables
 
-- **Materialization** — `local` (bytes are copied to `<root>/<key>`) or `mount` (the
-  dataset is accessed in place through a mounted/remote filesystem and is never copied).
-- **Retention** (meaningful only for `local`) — how long the materialized bytes persist.
+A **folder** is a named location, referenced as a `$`-variable. There is one namespace,
+with three built-in members and any number of user-defined ones:
 
-Four stores are defined; `store` defaults to `data`. A dataset's storage **key** (see
-`key`) is independent of its store, so the same dataset resolves to `<root>/<key>` under
-whichever store is selected.
+| Folder | Default location | Nature |
+|---|---|---|
+| `$data` | `platformdirs.user_data_dir("datamanifest")` + `/Datasets` | persistent, protected |
+| `$cache` | `platformdirs.user_cache_dir("datamanifest")` + `/Datasets` | OS-reclaimable *location* — no core lifetime policy |
+| `$repo` | `<project_root>/datasets` | project-relative; travels with the repo |
 
-| `store` | materialization | retention | semantics |
-|---|---|---|---|
-| `data` *(default)* | local | persistent | Protected, long-lived data; not subject to automatic deletion. |
-| `cache` | local | disposable | Reconstructible cache; MAY be reclaimed by the OS or by a tool's garbage collector. |
-| `repo` | local | tracked | Lives inside the project tree; its lifetime is the repository's. |
-| `mount` | mount | transient | Accessed in place via a mounted/remote filesystem; never materialized. Requires the `mount` capability. |
+- **Built-in folders** are exactly those with an unambiguous OS convention. Temp / scratch
+  / state directories have no single canonical home (`/tmp` vs `$TMPDIR` vs
+  `/scratch/$USER` vs the runtime dir) and are therefore **not** built-in; express them as
+  user-defined folder variables instead.
+- **User-defined folders** are any other key under `[_STORAGE]` (e.g. `scratch = "…"`
+  defines `$scratch`). The reserved keys `default`, `_HOST`, and `_PROFILE` are not folder
+  variables.
+- **Definition vs reference.** A folder is *defined* with a **bare** key in `[_STORAGE]`
+  (`scratch = "/scratch/$USER/datasets"`); it is *referenced* with **`$`**
+  (`store = "$scratch"`). References always use `$` — there are no bare folder names
+  anywhere (selectors included), which removes any ambiguity between a folder alias and a
+  literal string.
 
-An implementation with the `storage` capability MUST apply the materialization and
-retention semantics above for the stores it honors. The `mount` store's access mechanics
-(how a mount is established; `key` and load semantics for a non-materialized dataset) are
-**not specified in spec-v1.1** — an implementation SHOULD NOT advertise the `mount`
-capability until a future revision defines them.
+**Default root locations are language-independent.** A conforming tool MUST resolve the
+built-in folders to the OS-convention paths above and MUST NOT substitute a language-native
+location (e.g. a package depot), so Python and Julia resolve the same dataset to the
+**same path**. **Python's `platformdirs` is the normative reference**: `$data` =
+`platformdirs.user_data_dir("datamanifest")` + `/Datasets`, `$cache` =
+`platformdirs.user_cache_dir("datamanifest")` + `/Datasets`. `user_data_dir` already
+appends the `datamanifest` app segment — `$XDG_DATA_HOME/datamanifest` (default
+`~/.local/share/datamanifest`) on Linux, `~/Library/Application Support/datamanifest` on
+macOS, `%LOCALAPPDATA%\datamanifest` on Windows — and likewise `user_cache_dir`
+(`$XDG_CACHE_HOME/datamanifest`, default `~/.cache/datamanifest`, on Linux). Every other
+implementation MUST resolve to the identical path `platformdirs` produces for that OS.
+(Datasets thus live under `<app-dir>/Datasets/<key>`, leaving the rest of `<app-dir>` free
+for a tool's own app-internal files — e.g. HTTP request metadata — without collision.)
 
-### Root locations and `[_STORAGE]`
+### Two field kinds
 
-The optional top-level structural table `[_STORAGE]` configures each store's root. Keys
-are store names; values are paths (`~` and `$VAR` expanded). A `repo` value is resolved
-relative to the project root; absolute values are used verbatim. Per-host and per-profile
+Every storage-related value is one of two kinds:
+
+- **Selectors** — `[_STORAGE].default` (project-wide; **new in spec-v2**) and a dataset's
+  `store`. A selector is a `$`-folder reference, optionally followed by a literal sub-path:
+  `default = "$data"`, `store = "$scratch"`, `store = "$cache/sub"`. A selector
+  `$<folder>[/<subpath>]` resolves to `<resolved-folder>[/<subpath>]`, and the dataset's
+  bytes land at `<resolved-folder>[/<subpath>]/<key>`. A dataset's `store` defaults to the
+  project's `default`; `default` itself defaults to `$data`. The dataset's storage **key**
+  (see `key`) is independent of its selector, so the same dataset resolves to
+  `<root>/<key>` under whichever folder is selected.
+- **Path expressions** — `[_STORAGE]` folder-variable values and `local_path`. A path
+  expression is a full path that may interpolate `$`-folder variables, `$USER`/env vars,
+  and `~`. `local_path` bypasses the keyed `<root>/<key>` layout (it is an exact location).
+
+Selectors reference a *folder variable* only (so the `<root>/<key>` layout is
+well-defined); path expressions may interpolate anything. In a path expression `$NAME` /
+`${NAME}` expands to the folder variable `NAME` if one is defined, otherwise to the
+environment variable `NAME`; `~` expands to the home directory. A user-defined folder
+variable MUST NOT reference itself.
+
+### Host-aware resolution (`[_STORAGE]`)
+
+`[_STORAGE]` defines folder variables and the `default` selector; per-host and per-profile
 overrides are expressed as sub-tables:
 
 ```toml
 [_STORAGE]
-data  = "~/data/Datasets"
-cache = "~/.cache/Datasets"
-repo  = "datasets"
+default = "$data"                       # project-wide default selector ($-form)
+scratch = "$TMPDIR/datasets"            # user-defined folder variable (host-independent here)
 
-[_STORAGE._HOST."login*.hpc.edu"]   # matched against the hostname (glob/regex)
-data  = "/scratch/$USER/Datasets"
+[_STORAGE._HOST."login*.hpc.edu"]       # matched against the hostname (glob/regex)
+scratch = "/scratch/$USER/datasets"     # same variable, host-specific resolution
+data    = "/work/$USER/Datasets"        # override a built-in's location, host-specific
 
-[_STORAGE._PROFILE.cluster]          # selected by an implementation-defined profile signal
-data  = "/work/proj/Datasets"
+[_STORAGE._PROFILE.cluster]             # selected by an implementation-defined profile signal
+data = "/work/proj/Datasets"
 ```
 
 Normative rules:
@@ -284,56 +325,57 @@ Normative rules:
 - `[_STORAGE]` and its `_HOST` / `_PROFILE` sub-tables are **defined structural keys**:
   every conforming tool MUST parse them identically and preserve them verbatim on write
   (a tool without the `storage` capability treats the whole table as a preserved unknown).
-- **Default root locations are language-independent.** When a store's root is not set
-  explicitly, a conforming tool MUST resolve it to the OS-convention path below and MUST
-  NOT substitute a language-native location (e.g. a package depot), so that Python and
-  Julia resolve the same dataset to the **same path**:
-  - `data` → OS user *data* dir (`$XDG_DATA_HOME`, default `~/.local/share`, on Linux;
-    `~/Library/Application Support` on macOS; `%LOCALAPPDATA%` on Windows) + `/datamanifest/Datasets`;
-  - `cache` → OS user *cache* dir (`$XDG_CACHE_HOME`, default `~/.cache`, on Linux;
-    `~/Library/Caches` on macOS; `%LOCALAPPDATA%\…\Cache` on Windows) + `/datamanifest/Datasets`;
-  - `repo` → `<project_root>/datasets`.
+- **Selectors MUST be `$`-references.** A bare folder name (the spec-v1.1 form,
+  `store = "data"`) is **not** a valid selector; a spec-v2 `storage` tool MUST reject it.
+  This is a hard migration — there is no legacy-alias read of bare names. (Bare keys appear
+  only as folder *definitions* in `[_STORAGE]`.)
+- **Host-specificity is always a property of a folder variable's resolution**, never a
+  per-dataset host map. A machine-specific exact path is a `local_path` that interpolates a
+  host-resolved variable (`local_path = "$scratch/exact/file.nc"`); there is **no**
+  per-dataset `_HOST` table.
+- **Resolution ladder (normative).** Every folder variable — built-in and user-defined
+  alike — resolves through the same ladder; the first rung that applies wins:
+  1. the `DATAMANIFEST_<NAME>_DIR` environment variable (`<NAME>` upper-cased:
+     `DATAMANIFEST_DATA_DIR`, `DATAMANIFEST_CACHE_DIR`, `DATAMANIFEST_SCRATCH_DIR`, …);
+  2. the `[_STORAGE._PROFILE.<profile>].<name>` entry when `DATAMANIFEST_PROFILE` is set;
+  3. the first matching `[_STORAGE._HOST.<pattern>].<name>` entry (hostname glob/regex);
+  4. the base `[_STORAGE].<name>` definition;
+  5. the built-in default (the table above) for `data` / `cache` / `repo`. A user-defined
+     name with no definition on any rung is an error.
 
-  **Python's `platformdirs` is the normative reference**: `data` =
-  `platformdirs.user_data_dir("datamanifest")` + `/Datasets`, `cache` =
-  `platformdirs.user_cache_dir("datamanifest")` + `/Datasets`. Every other implementation
-  MUST resolve to the identical path `platformdirs` produces for that OS.
-- **Read resolution MUST cover these canonical locations** (and any explicit `[_STORAGE]`
-  / `_HOST` / `_PROFILE` paths), so a dataset materialized by one tool is found by a peer
-  tool. An explicit path, where given, replaces the corresponding default and MUST be
-  honored identically by every tool.
-- **Read resolution searches stores in a fixed, normative order** — `repo`, then `data`,
-  then `cache` — using the first store where `<root>/<key>` exists, so peer tools resolve
-  an ambiguous key identically.
+  Host-specificity therefore lives entirely in *resolving the variable* — defined once,
+  centrally — and applies uniformly to `store` selectors and `local_path` interpolation.
+  Every tool MUST honor these variable names and this precedence, so a single environment
+  moves all tools to the same path.
+- **Read resolution.** A dataset is materialized at, and read from, its resolved `store`
+  selector (`<resolved-folder>[/<subpath>]/<key>`). If the entry is absent there, a tool
+  SHOULD additionally probe the **built-in** folders in the fixed order `repo`, `data`,
+  `cache` and use the first where `<root>/<key>` exists, so a dataset materialized under a
+  different folder (or by a peer tool) still resolves. Explicit paths, where given, replace
+  the corresponding default and MUST be honored identically by every tool.
 - **Legacy read-only location (non-normative, transitional).** Implementations whose
   pre-spec-v1.1 default datasets folder was the un-namespaced `$XDG_CACHE_HOME/Datasets`
   (i.e. without the `datamanifest/` segment that `platformdirs` adds) SHOULD probe that
   path **last** and **read-only**, so datasets downloaded by older versions still resolve.
-  New writes MUST go to the resolved store root, never to the legacy path; the probe is
-  skipped when `DATAMANIFEST_DATA_DIR` is set (an explicit user choice). A tool SHOULD warn
-  once when it reads from the legacy path. This is a back-compat aid for the v1.1 default
-  move, not part of the normative cross-tool contract.
-- **Per-store root precedence (normative).** Each store's root is the first that applies:
-  (1) the `DATAMANIFEST_<STORE>_DIR` environment variable (`DATAMANIFEST_DATA_DIR`,
-  `DATAMANIFEST_CACHE_DIR`); (2) the `_PROFILE.<name>` entry when `DATAMANIFEST_PROFILE`
-  is set; (3) the first matching `_HOST.<pattern>` entry; (4) the base `[_STORAGE]` entry;
-  (5) the language-independent default above. Every tool MUST honor these variable names
-  and this precedence, so a single environment moves all tools to the same path.
+  New writes MUST go to the resolved folder, never to the legacy path; the probe is skipped
+  when `DATAMANIFEST_DATA_DIR` is set (an explicit user choice). A tool SHOULD warn once
+  when it reads from the legacy path. This is a back-compat aid, not part of the normative
+  cross-tool contract.
 
-> **Note — the `cache` *store* is not the `@cached` *mechanism*.** `store = "cache"` is a
-> storage tier (a disposable location) and is independent of *how* a dataset is produced.
-> In particular it is unrelated to a tool's produce-or-load (`@cached`) caching of
-> *function results* — a separate, non-normative mechanism that registers
-> function-computed datasets in their own index (e.g. a `cached.toml`). Any dataset,
-> fetched or produced, may use any store.
+> **Note — the `$cache` *folder* is not the `@cached` *mechanism*.** `store = "$cache"`
+> selects a *location* (the OS-reclaimable cache dir) and is independent of *how* a dataset
+> is produced. In particular it is unrelated to the companion produce-or-load (`@cached`)
+> layer that caches *function results* and registers them in its own `cached.toml` index
+> (see *Produced datasets and caching*). Any dataset, fetched or produced, may use any
+> folder.
 
 ### Concurrent access and completeness
 
-A store may be shared between tools and between concurrent processes (e.g. HPC jobs), so
-materialization MUST be safe under concurrency, and peer tools sharing a store MUST agree
+A folder may be shared between tools and between concurrent processes (e.g. HPC jobs), so
+materialization MUST be safe under concurrency, and peer tools sharing a folder MUST agree
 on these conventions:
 
-- **Atomic publish.** Materialize into a temporary path within the store and atomically
+- **Atomic publish.** Materialize into a temporary path within the folder and atomically
   rename it into place (`<key>.tmp` → `<key>`), so a killed process never leaves a partial
   entry that looks complete.
 - **Completion marker.** An entry is *complete* iff its marker exists —
@@ -344,18 +386,25 @@ on these conventions:
   PID is dead and older than a grace period MAY be reclaimed) while materializing, so
   concurrent workers neither recompute nor clobber the same entry.
 
-## Produced datasets and caching (spec-v2)
+## Produced datasets and caching (spec-v2, companion layer)
 
-> **Spec-v2, additive.** This section graduates the produce-or-load (`@cached`)
-> design (`design/caching-and-dataset-storage.md` §6.D) into the normative spec. It
-> is **additive**: it adds **no field to the hand-authored `datasets.toml`** and does
-> not change its `_META.schema` (still **1**). A produced dataset reuses the existing
-> **engine** — the storage model, the safe-materialization primitive, and the load
-> ladder — but is **not declared in `datasets.toml`**; its only on-disk record is the
-> machine-generated `config.toml` / `metadata.toml` sidecars and the `cached.toml`
-> index, each carrying its own `_META.schema = 1`. The model is gated by two
-> independent capabilities, `cache-produce` and `cache-gc`, so a tool may ship
-> neither, one, or both.
+> **Spec-v2 — a companion-layer format, not a core capability.** The produce-or-load
+> (`@cached`) layer lives **outside the core fetch engine**, in a **companion package**
+> (one per language) that *depends on* datamanifest and reuses its engine
+> (safe-materialization, folder resolution, loaders). This section is the cross-tool
+> **format** spec for that layer — it stays in this document so both languages' companions
+> agree on the on-disk shape — but the `cache-produce` / `cache-gc` capabilities are
+> declared by the **companion tool**, never by the core fetch tool, and **the core keeps no
+> garbage collection and no disposability policy**.
+>
+> The format is **additive over a `datasets.toml`**: it adds **no field to the
+> hand-authored `datasets.toml`** and does not change its `_META.schema` (still **1**). A
+> produced dataset reuses the existing **engine** — the storage model, the
+> safe-materialization primitive, and the load ladder — but is **not declared in
+> `datasets.toml`**; its only on-disk record is the machine-generated `config.toml` /
+> `metadata.toml` sidecars and the `cached.toml` index, each carrying its own
+> `_META.schema = 1`. The format is gated by two independent capabilities, `cache-produce`
+> and `cache-gc`, so a companion may ship neither, one, or both.
 
 A **produced dataset** is one whose bytes come from running a project function rather
 than downloading a `uri`. It is the same "recipe + key + store + policy" object as a
@@ -384,7 +433,7 @@ two concerns share the *engine*, not the *manifest*. This keeps `datasets.toml` 
 A produced dataset is identified **by its keyword parameters**, not by content: its
 storage **key** is `<cachetype>/<param-hash>`, its parameters *are* the hash inputs,
 and the `config.toml` sidecar is the re-checkable record of those inputs (it is not
-content-pinned by a manifest `sha256`). It defaults to **`store = "cache"`** (the
+content-pinned by a manifest `sha256`). It defaults to **`store = "$cache"`** (the
 producing mechanism sets the default; an explicit override still wins), because a
 produced artifact is the textbook reconstructible cache.
 
@@ -521,7 +570,7 @@ cachetype = "esm_20c_anomaly"
 hash      = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
 ref       = "lgmpre.data:load_20c_esm_anomaly"   # the producing function
 format    = "nc"
-store     = "cache"
+store     = "$cache"
 ```
 
 - `cached.toml` is a **defined structural sibling format**, with its own
@@ -535,26 +584,28 @@ store     = "cache"
 
 ### Garbage collection
 
-Because produced artifacts accumulate, a tool MAY implement `datamanifest gc`
-(`cache-gc`). GC is a **root-reachability** collector (cf. Julia depot `Pkg.gc`,
-Nix GC roots, Hugging Face cache refs):
+Because produced artifacts accumulate, the **companion tool** MAY implement a `gc`
+command (`cache-gc`). GC is a property of the companion layer, **not the core**, and is a
+**root-reachability** collector (cf. Julia depot `Pkg.gc`, Nix GC roots, Hugging Face
+cache refs):
 
 - **Roots are the two index files.** A still-existing `datasets.toml` roots every
-  *declared/fetched* dataset it lists, including `store = "cache"` entries (they
+  *declared/fetched* dataset it lists, including `store = "$cache"` entries (they
   are re-fetchable, rooted by their manifest entry). A still-existing
   `cached.toml` roots every *produced* dataset it lists.
 - **A depot-level usage log** (the known set of `datasets.toml` / `cached.toml`
   paths + a last-seen timestamp for each, analogous to Julia's
   `manifest_usage.toml`) lets `gc` discover the live root set without scanning
-  the whole filesystem. A tool records a manifest/index path in the usage log
+  the whole filesystem. The companion records a manifest/index path in the usage log
   whenever it reads it.
-- **Collectable rule (normative).** An artifact under a `cache` root is
+- **Collectable rule (normative).** An artifact under the `$cache` folder is
   collectable **iff** no still-existing root references its key, **and** it is
   older than a configurable grace age. The per-artifact `metadata.toml`
   back-pointer is **audit only** — never the deletion authority (it goes stale
   and cannot express multiple references).
-- A `data`- or `repo`-store dataset is never collected by `gc` (only the `cache`
-  store is reclaimable).
+- A dataset under the `$data` or `$repo` folder is never collected by `gc` (only the
+  `$cache` folder is reclaimable). GC never deletes from `datasets.toml`-declared
+  locations; it only reclaims unreferenced produced artifacts under `$cache`.
 
 ### What spec-v2 does not specify
 
@@ -565,9 +616,9 @@ Nix GC roots, Hugging Face cache refs):
 - **The artifact serialization format** (`jls`/`jld2`/`pickle`/…) is a per-tool,
   per-`format` choice (the existing `format` + loader concern); produced
   artifacts are not assumed cross-language-loadable.
-- **`mount` store mechanics** remain reserved and unspecified (deferred past
-  spec-v2, as in v1.1) — `store = "mount"` and `[_STORAGE]` are still parsed and
-  preserved verbatim, but no tool should advertise `mount` yet.
+- **In-place / mounted access** (the former `mount` store) is out of scope: spec-v2 folders
+  are *locations only*, with no materialization axis. It is deferred to a future revision —
+  see `ROADMAP.md` — not part of this spec; no `mount` capability is defined.
 - **Cloud / `fsspec` / CAS backends** are not a core model; if a tool adds them,
   they are optional per-language extras behind the recipe interface, not a spec
   contract.
@@ -604,12 +655,11 @@ fixture-suite tests tagged for those capabilities.
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write (full lossless round-trip). |
 | `shell-fetch` | Execute the `[<ds>._LANG.shell].fetcher` command template in the fetch ladder. |
 | `delegation` | Opt-in peer-CLI delegation in the fetch ladder (rung 3). |
-| `storage` | Honor the `store` field and `[_STORAGE]` resolution; materialize datasets into the selected local store at its canonical or configured root (see Storage). |
-| `mount` | Support the `mount` store — transient, non-materialized in-place access via a mounted/remote filesystem. |
+| `storage` | Honor the `store` / `default` `$`-folder selectors and `[_STORAGE]` folder-variable resolution; materialize datasets into the selected folder at its canonical or configured root (see Storage). |
 | `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, or Julia `write(...; canonical=true)`). |
 | `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
-| `cache-produce` | Produce-or-load: function-backed (produced) datasets with parameter-hash keying, the `config.toml` / `metadata.toml` sidecars, and `store = "cache"` defaulting (spec-v2 §Produced datasets). |
-| `cache-gc` | The `cached.toml` produced-dataset index, the depot-level usage log, and root-reachability `datamanifest gc` (spec-v2 §Garbage collection). |
+| `cache-produce` | **Companion-layer** produce-or-load: function-backed (produced) datasets with parameter-hash keying, the `config.toml` / `metadata.toml` sidecars, and `store = "$cache"` defaulting (spec-v2 §Produced datasets). Declared by the companion package, not the core fetch tool. |
+| `cache-gc` | **Companion-layer** `cached.toml` produced-dataset index, the depot-level usage log, and root-reachability `gc` (spec-v2 §Garbage collection). Declared by the companion package; the core keeps no GC. |
 
 Capabilities are independent — a partial implementation may ship `lang-read` and
 `lang-write` without `shell-fetch` or `delegation`. The spec and its fixture suite are

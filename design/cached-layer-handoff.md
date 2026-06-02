@@ -1,5 +1,14 @@
 # `@cached` / produce-or-load layer — resolved design + implementation hand-off (spec-v2)
 
+> **Update 2026-06-03 — scope revised (read first).** The produce-or-load layer is
+> moving **out of the core** into a **companion package** (one per language) that
+> *depends on* datamanifest and reuses its engine; the cross-tool format spec stays
+> in this repo, reframed. The "in-core, thin layer" framing below is **superseded** —
+> see `design/storage-model-revision.md`. The reuse analysis, the LGMIO reference, the
+> resolved open questions, and the salvageable `cache.py` all still stand; only the
+> *home* of the implementation changes (core → companion). The materialized in-core
+> `cached-layer` roadmaps are **on hold** pending re-targeting at the companion packages.
+
 **Status:** **design resolved.** This supersedes the earlier "paused, take-2"
 hand-off. The scope question ("does the caching layer belong in `datamanifest`
 at all?") has been answered, the residual conflation in the first spec-v2 attempt
