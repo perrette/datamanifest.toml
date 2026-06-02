@@ -211,6 +211,38 @@ and is bumped only on breaking structural changes. The spec-document version (gi
 e.g. `spec-v1.0`) tracks prose and fixture evolution independently. An implementation
 conforms to "schema N, spec ≥ vX" — these two axes are independent.
 
+## Peer-CLI contract
+
+The `delegation` capability (fetch-ladder rung 3) requires an agreed invocation
+interface between peer tools. This section is normative for any implementation that
+ships delegation.
+
+### Invocation
+
+```
+datamanifest fetch <name> --datasets-toml <path> [--datasets-folder <dir>]
+```
+
+- `<name>` — the dataset key as it appears in the manifest.
+- `--datasets-toml <path>` — absolute or project-relative path to the manifest file.
+- `--datasets-folder <dir>` — (optional) directory that holds the shared download
+  cache. If omitted, the tool's default cache location applies.
+
+The peer tool resolves its own `[<dataset>._LANG.<lang>].fetcher` (using its own
+fetch ladder), writes the result into the shared cache, verifies `sha256` if
+present, and **exits non-zero on any failure**. It produces **no dataset bytes on
+stdout** — the artifact lands in the cache on disk and the calling tool reads it
+from there.
+
+### Discovery and availability
+
+Each language's CLI is discoverable on `PATH` under a language-specific name, e.g.
+`datamanifest` (Python), `DataManifest` or `datamanifest-julia` (Julia). Before
+delegating, a tool MUST probe that the peer CLI (and its runtime) is installed and
+usable; if the probe fails, the delegation rung is silently skipped and the ladder
+advances to rung 4 (`uri` download). Probe commands and PATH names are left to each
+implementation to document.
+
 ## Deprecations
 
 The following v0 forms are still read for backward compatibility but SHOULD NOT be
