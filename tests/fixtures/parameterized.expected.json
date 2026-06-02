@@ -35,16 +35,16 @@
   "binding_args": {
     "julia": {
       "esm_5x5": {
-        "fetcher": {"resolution": "high", "tag": "$version"},
-        "loader":  {"grid": "5x5", "skip_models": ["CESM.*", "FGOALS.*"]}
+        "fetcher": {"args": ["$download_path"], "kwargs": {"resolution": "high", "tag": "$version"}},
+        "loader":  {"args": ["$path"], "kwargs": {"grid": "5x5", "skip_models": ["CESM.*", "FGOALS.*"]}}
       },
       "esm_10x10": {
-        "loader": {"grid": "10x10"}
+        "loader": {"args": ["$path"], "kwargs": {"grid": "10x10"}}
       }
     },
     "python": {
       "esm_5x5": {
-        "loader": {"grid": "5x5"}
+        "loader": {"kwargs": {"grid": "5x5"}}
       }
     }
   }

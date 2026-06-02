@@ -34,11 +34,14 @@ executable spec.
      `<key>.tmp` → atomic rename → create `.complete` marker; hold a `<key>.lock` pidfile
      while writing. Readers treat a missing marker as absent (re-fetch).
 3. **Parameterized bindings (`binding-args` capability).** A per-dataset `fetcher`/`loader`
-   may be a `{ ref, args }` table. `args` is a keyword table (plain data) passed in
-   addition to the standard call kwargs; arg keys must not collide with standard ones;
-   string values support shell-style `$var` substitution. **Keyword-only — no positional
-   args.** If a tool executes the language but does not implement `binding-args`, it MUST
-   **error** on an `args` table, never call without it.
+   may be a `{ ref, args, kwargs }` table. `args` = ordered positional array, `kwargs` =
+   keyword table; both plain data. The tool calls `ref(*args; kwargs...)` **explicitly**
+   (no auto-injection); runtime values come via shell-style `$var` substitution in string
+   values (`$download_path` for fetchers, `$path` for loaders, plus `$key`/`$version`/…).
+   Values with no TOML type (e.g. a Julia `Symbol`) are plain strings — the function
+   accepts the string or coerces at its boundary. If a tool executes the language but does
+   not implement `binding-args`, it MUST **error** on `args`/`kwargs`, never call without
+   them.
 4. **Theme A integrity behavior** (implementation, not format): verify `sha256` once at
    fetch; do **not** re-hash on every load (re-verify is opt-in). Decide whether to land
    this in this pass or a follow-up.

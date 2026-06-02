@@ -114,8 +114,8 @@ Executable bindings live under a structural `_LANG` namespace, keyed by language
 All executable references are **`module:function` references** — never inline code, in
 any language. A local module is importable because the manifest's directory (the project
 root) is on the language tool's import path by convention. There are no `includes` or
-`modules` fields in v1. A binding may additionally carry **arguments as data** (an `args`
-table); these are passed to the referenced function as keyword arguments and are never
+`modules` fields in v1. A binding may additionally carry **arguments as data**
+(`args` / `kwargs`); these are passed to the referenced function and are never
 interpreted as code (see Parameterized bindings).
 
 ### Per-dataset bindings
@@ -130,7 +130,7 @@ bindings).
 | `fetcher` | string \| table | `module:function` ref (or `{ ref, args }` table) called to produce the dataset bytes, instead of (or in addition to) downloading the `uri`. |
 | `loader` | string \| table | `module:function` ref (or `{ ref, args }` table) called to load the dataset into memory, overriding the format default. |
 
-#### Parameterized bindings (`ref` + `args`)
+#### Parameterized bindings (`ref` + `args` / `kwargs`)
 
 A binding may be written as a table so one function is reused across datasets that differ
 only in arguments — the same loader called with `grid = "5x5"` for one dataset and
@@ -138,36 +138,44 @@ only in arguments — the same loader called with `grid = "5x5"` for one dataset
 
 ```toml
 [esm_5x5._LANG.julia.loader]
-ref  = "MyPkg:load_esm"
-args = { grid = "5x5", skip_models = ["CESM.*", "FGOALS.*"] }
+ref    = "MyPkg:load_esm"
+args   = ["$path"]                                     # positional, in order
+kwargs = { grid = "5x5", skip_models = ["CESM.*"] }    # keyword
 
 [esm_10x10._LANG.julia.loader]
-ref  = "MyPkg:load_esm"
-args = { grid = "10x10" }
+ref    = "MyPkg:load_esm"
+args   = ["$path"]
+kwargs = { grid = "10x10" }
 ```
 
 | Key | Type | Semantics |
 |---|---|---|
 | `ref` | string | The `module:function` reference (required). |
-| `args` | table | Keyword arguments passed to the resolved function (optional). |
+| `args` | array | Positional arguments, in order (optional). |
+| `kwargs` | table | Keyword arguments (optional). |
 
-- `args` is **plain data** (string, number, bool, array, table) — never code. Its keys
-  become the function's keyword parameters; values map to each language's native types.
-- Arguments are passed **in addition to** the tool's standard call convention (a loader's
-  dataset path; a fetcher's `download_path` / `uri` / `key` / …). An `args` key MUST NOT
-  collide with a standard parameter name.
-- **String values may contain `$var` substitutions** — the same variables available to
-  the `shell` fetcher (`$key`, `$version`, `$doi`, `$format`, `$branch`, `$uri`,
-  `$project_root`, and `$download_path` for fetchers) — substituted before the call.
+- `args` and `kwargs` are **plain data** (string, number, bool, array, table) — never
+  code. `args` is an ordered list of positional values; `kwargs` keys become keyword
+  parameters. Values map to each language's native types.
+- The table form is **explicit**: the tool calls `ref(*args; kwargs...)` and does **not**
+  auto-inject any standard value. Runtime values are referenced by **`$var` substitution**
+  in string values — the same variables the `shell` fetcher exposes (`$key`, `$version`,
+  `$doi`, `$format`, `$branch`, `$uri`, `$project_root`; `$download_path` for fetchers,
+  `$path` — the resolved dataset path — for loaders). (The bare-string form keeps the
+  tool's conventional call: a loader receives the dataset path, a fetcher the standard
+  fetch kwargs.)
+- **Type mapping is language-neutral.** A value with no TOML type — e.g. a Julia `Symbol`
+  — is written as its plain string form (`weighting_method = "model"` for `:model`); the
+  target function accepts the string (or coerces it at its boundary). A binding's
+  arguments MUST be representable as TOML data.
 - A tool that executes `<lang>` bindings but does not implement the `binding-args`
-  capability MUST **error** when it encounters an `args` table, rather than silently
-  calling the function without it (which would change results). The bare-string form
+  capability MUST **error** when it encounters `args`/`kwargs`, rather than silently
+  calling the function without them (which would change results). The bare-string form
   requires no such capability.
-- For canonical serialization, `args` keys are emitted in the same lexicographic order as
-  all other keys (including inside an inline `{ }` table). This is safe because the
-  arguments are **keyword** parameters (order-independent); **positional** arguments are
-  intentionally not supported, since their order could not be normalized without breaking
-  byte-identity.
+- For canonical serialization, `kwargs` keys are emitted in lexicographic order like all
+  other keys (including inside an inline `{ }` table); `args` is an **ordered array**, so
+  its element order is preserved as data (arrays are never reordered). Both are therefore
+  byte-identical across tools.
 
 ### `shell` execution context
 
@@ -362,7 +370,7 @@ fixture-suite tests tagged for those capabilities.
 | `storage` | Honor the `store` field and `[_STORAGE]` resolution; materialize datasets into the selected local store at its canonical or configured root (see Storage). |
 | `mount` | Support the `mount` store — transient, non-materialized in-place access via a mounted/remote filesystem. |
 | `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest serializes to byte-identical output across tools (verified by the cross-tool fixture). |
-| `binding-args` | Execute the table form of a binding (`{ ref, args }`): pass the `args` keyword table (with `$var` substitution in string values) to the resolved fetcher/loader. |
+| `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
 
 Capabilities are independent — a partial implementation may ship `lang-read` and
 `lang-write` without `shell-fetch` or `delegation`. The spec and its fixture suite are

@@ -25,12 +25,14 @@ verbatim), tracked on the spec-document axis. New capabilities gate it.
   manifest serializes to byte-identical output across tools. New `byte-identity`
   capability + a planned cross-tool fixture guard it. (Previously each tool sorted
   differently — Python by dataclass field order, Julia alphabetically — causing churn.)
-- **Parameterized bindings.** A per-dataset `fetcher`/`loader` may be a `{ ref, args }`
-  table instead of a bare string, so one function is reused across datasets that differ
-  only in arguments. `args` is a TOML keyword table (data, not code; keyword-only, so it
-  sorts canonically), with `$var` substitution in string values as in shell templates.
-  New `binding-args` capability; a tool that runs the language but lacks it MUST error on
-  `args` rather than ignore it.
+- **Parameterized bindings.** A per-dataset `fetcher`/`loader` may be a
+  `{ ref, args, kwargs }` table instead of a bare string, so one function is reused across
+  datasets that differ only in arguments. `args` is an ordered positional array, `kwargs`
+  a keyword table — both plain data, never code — and the tool calls `ref(*args; kwargs)`
+  explicitly (no auto-injection), with shell-style `$var` substitution in string values.
+  Values with no TOML type (e.g. a Julia `Symbol`) are written as plain strings. New
+  `binding-args` capability; a tool that runs the language but lacks it MUST error on
+  `args`/`kwargs` rather than ignore them.
 - **Normative resolution & concurrency.** Fixed read order (`repo`→`data`→`cache`),
   shared env-var names (`DATAMANIFEST_DATA_DIR` / `_CACHE_DIR` / `DATAMANIFEST_PROFILE`)
   and precedence, and a cross-tool concurrency convention (atomic publish, `.complete`

@@ -111,16 +111,17 @@ foreign set and must always be preserved verbatim.
 ### Parameterized bindings and `resolution`
 
 A per-dataset `fetcher`/`loader` may be a bare `module:function` string **or** a
-`{ ref, args }` table (a parameterized binding). In `resolution`, `"ref"` is the
-`module:function` string in either case (the table's `ref`). The `args` are asserted
+`{ ref, args, kwargs }` table (a parameterized binding). In `resolution`, `"ref"` is the
+`module:function` string in either case (the table's `ref`). The arguments are asserted
 separately, under `binding_args`.
 
 ### `binding_args` (optional)
 
 Present for `binding-args`-capability fixtures. For each `<lang>` → `<dataset>` →
 `<role>` (`fetcher`|`loader`) whose binding uses the table form, gives the exact `args`
-table the resolved function MUST receive (before any `$var` substitution). Bindings using
-the bare-string form have no entry here.
+(positional, ordered array) and/or `kwargs` (keyword table) the resolved function MUST
+receive (before any `$var` substitution). Either may be omitted; bindings using the
+bare-string form have no entry here.
 
 ### `storage` (optional)
 

@@ -201,13 +201,15 @@ def validate(toml_path, json_path):
                     _err(errors, f"binding_args[{lang}]: '{ds_name}' not in manifest")
                     continue
                 lang_ds = manifest[ds_name].get("_LANG", {}).get(lang, {})
-                for role, args in roles.items():
+                for role, exp in roles.items():
                     binding = lang_ds.get(role)
                     if not isinstance(binding, dict):
-                        _err(errors, f"binding_args[{lang}][{ds_name}].{role}: manifest binding is not a `{{ ref, args }}` table")
+                        _err(errors, f"binding_args[{lang}][{ds_name}].{role}: manifest binding is not a `{{ ref, args, kwargs }}` table")
                         continue
-                    if binding.get("args") != args:
-                        _err(errors, f"binding_args[{lang}][{ds_name}].{role}: args mismatch (expected {args}, manifest has {binding.get('args')})")
+                    if "args" in exp and binding.get("args", []) != exp["args"]:
+                        _err(errors, f"binding_args[{lang}][{ds_name}].{role}: args mismatch (expected {exp['args']}, manifest has {binding.get('args')})")
+                    if "kwargs" in exp and binding.get("kwargs", {}) != exp["kwargs"]:
+                        _err(errors, f"binding_args[{lang}][{ds_name}].{role}: kwargs mismatch (expected {exp['kwargs']}, manifest has {binding.get('kwargs')})")
 
     if errors:
         raise AssertionError("\n  " + "\n  ".join(errors))
