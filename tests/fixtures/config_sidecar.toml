@@ -1,0 +1,22 @@
+# A `config.toml` cache sidecar (spec-v2): the self-describing, re-hashable record
+# written next to a produced artifact at <cache_root>/<cachetype>/<hash>/.
+#
+# This is deliberately NOT a datasets.toml. Produced (function-backed) datasets are
+# never declared in datasets.toml; they originate from a @cached-decorated function
+# and leave an on-disk footprint only in machine-generated records — this sidecar and
+# the cached.toml index (see the `cached_index` fixture). A `cache-produce` tool
+# recomputes the SHA-256 of the canonical JSON of the key table (every non-`_META`
+# key) and MUST find it equal to `_META.hash`.
+#
+# The key table lives at the root and is written FIRST: in TOML, root-table keys must
+# precede any table header, so `[_META]` comes last. Reading back, the key table is
+# every root key except the `[_META]` block.
+
+# --- hash-affecting parameters (the key table) ---
+grid        = "5x5"
+skip_models = ["CESM.*", "FGOALS.*"]
+
+[_META]
+schema    = 1
+cachetype = "esm_20c_anomaly"
+hash      = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"

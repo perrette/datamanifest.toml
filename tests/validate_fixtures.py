@@ -10,8 +10,10 @@ Checks:
 Uses only Python stdlib: tomllib, json, pathlib.
 """
 
+import hashlib
 import json
 import pathlib
+import re
 import sys
 import tomllib
 
@@ -21,7 +23,20 @@ FIXTURES = pathlib.Path(__file__).parent / "fixtures"
 KNOWN_CAPABILITIES = {
     "lang-read", "lang-write", "shell-fetch", "delegation",
     "storage", "mount", "byte-identity", "binding-args",
+    "cache-produce", "cache-gc",
 }
+
+_HEX64 = re.compile(r"^[0-9a-f]{64}$")
+
+
+def _canonical_json(obj):
+    """JCS-style canonical JSON: sorted keys, no insignificant whitespace,
+    UTF-8 with minimal escaping. The normative hash input (SCHEMA.md spec-v2)."""
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _param_hash(key_table):
+    return hashlib.sha256(_canonical_json(key_table).encode("utf-8")).hexdigest()
 
 FETCH_RUNGS = {"own-fetcher", "shell", "delegation", "uri", "error"}
 LOAD_RUNGS = {"per-dataset", "manifest-format-default", "built-in", "error"}
@@ -210,6 +225,51 @@ def validate(toml_path, json_path):
                         _err(errors, f"binding_args[{lang}][{ds_name}].{role}: args mismatch (expected {exp['args']}, manifest has {binding.get('args')})")
                     if "kwargs" in exp and binding.get("kwargs", {}) != exp["kwargs"]:
                         _err(errors, f"binding_args[{lang}][{ds_name}].{role}: kwargs mismatch (expected {exp['kwargs']}, manifest has {binding.get('kwargs')})")
+
+    # --- config_sidecar (optional; present for `cache-produce` fixtures) ---
+    # The fixture .toml is itself a `config.toml` cache sidecar — NOT a datasets.toml.
+    # Produced datasets are never declared in datasets.toml; this self-describing
+    # sidecar is their on-disk record. `_META` carries `cachetype` + `hash`; every
+    # other top-level key is part of the re-hashable key table. A `cache-produce` tool
+    # recomputes the param hash from that key table and MUST find it equals `_META.hash`.
+    config_sidecar = expected.get("config_sidecar")
+    if config_sidecar is not None:
+        meta = manifest.get("_META", {})
+        # the key table is the sidecar minus its _META block
+        manifest_kt = {k: v for k, v in manifest.items() if k != "_META"}
+        exp_kt = config_sidecar.get("key_table", {})
+        if manifest_kt != exp_kt:
+            _err(errors, f"config_sidecar: key_table mismatch (expected {exp_kt}, sidecar has {manifest_kt})")
+        if meta.get("cachetype", "") != config_sidecar.get("cachetype", ""):
+            _err(errors, f"config_sidecar: cachetype mismatch (expected {config_sidecar.get('cachetype')!r}, _META has {meta.get('cachetype')!r})")
+        # param hash = SHA-256 of canonical JSON of the key table (normative)
+        computed = _param_hash(exp_kt)
+        if config_sidecar.get("param_hash") != computed:
+            _err(errors, f"config_sidecar: param_hash mismatch (expected {config_sidecar.get('param_hash')}, canonical-JSON SHA-256 is {computed})")
+        # the sidecar's recorded hash MUST match the recomputed hash (re-hashable)
+        if meta.get("hash") != computed:
+            _err(errors, f"config_sidecar: _META.hash {meta.get('hash')!r} != recomputed {computed}")
+        if not _HEX64.match(str(meta.get("hash", ""))):
+            _err(errors, "config_sidecar: _META.hash is not 64 lowercase hex chars")
+        ct = config_sidecar.get("cachetype")
+        if "key" in config_sidecar and config_sidecar["key"] != f"{ct}/{computed}":
+            _err(errors, f"config_sidecar: key mismatch (expected {config_sidecar['key']}, derived {ct}/{computed})")
+
+    # --- cached_index (optional; present for `cache-gc` fixtures) ---
+    cached_index = expected.get("cached_index")
+    if cached_index is not None:
+        for name, exp in cached_index.get("entries", {}).items():
+            if name not in manifest:
+                _err(errors, f"cached_index: entry '{name}' not in manifest")
+                continue
+            entry = manifest[name]
+            for field in ("cachetype", "hash", "ref"):
+                if field in exp and entry.get(field) != exp[field]:
+                    _err(errors, f"cached_index[{name}]: {field} mismatch (expected {exp[field]!r}, manifest has {entry.get(field)!r})")
+            if "store" in exp and entry.get("store", "cache") != exp["store"]:
+                _err(errors, f"cached_index[{name}]: store mismatch (expected {exp['store']!r}, manifest has {entry.get('store')!r})")
+            if not _HEX64.match(str(entry.get("hash", ""))):
+                _err(errors, f"cached_index[{name}]: hash is not 64 lowercase hex chars")
 
     if errors:
         raise AssertionError("\n  " + "\n  ".join(errors))

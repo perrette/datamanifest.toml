@@ -1,5 +1,58 @@
 # Changelog
 
+## spec-v2 (schema `_META.schema = 1`, additive)
+
+Promotes the produce-or-load (`@cached`) design
+(`design/caching-and-dataset-storage.md` §6.D) into the normative spec. Additive:
+it adds **no field to the hand-authored `datasets.toml`** and does not change its
+`_META.schema` (still **1**). A produced dataset reuses the existing engine —
+storage model, safe-materialization, loaders — but is **not declared in
+`datasets.toml`**; its only on-disk record is the machine-generated sidecars and
+the `cached.toml` index, each carrying its own `_META.schema = 1`. Gated by two
+independent capabilities so a tool may ship neither, one, or both.
+
+### New features
+
+- **Produced datasets.** A dataset whose bytes come from running a project
+  function rather than a `uri`. It has **no `datasets.toml` entry** — it
+  originates from the `@cached` surface and is recorded only in machine-generated
+  files. `cachetype` is not a `datasets.toml` field; it is a namespace that
+  appears only in those records (the `cached.toml` entry, the `config.toml`
+  `_META`, and the on-disk path). Defaults to `store = "cache"` and is keyed by a
+  **parameter hash** rather than host/path/version. Unifies external-vs-produced
+  into one "recipe + key + store + policy" object — the only new axis is
+  parameter-hash keying.
+- **Parameter-hash keying.** A produced dataset's `key` is `<cachetype>/<hash>`,
+  where the hash is the SHA-256 of the **canonical JSON** (JCS, RFC 8785) of its
+  hash-affecting parameters — the producing function's **keyword parameters**
+  (produced datasets are **keyword-only**; positional `args` have no stable
+  name→value identity to hash). A three-way parameter split is normative:
+  hash-affecting params (in the hash, in `config.toml`) vs `_`-prefixed runtime
+  knobs (excluded) vs audit-only extras (in `metadata.toml`).
+- **Self-describing sidecars (`cache-produce`).** `config.toml` (the re-hashable
+  key table + `_META.cachetype`/`hash`) and `metadata.toml` (provenance: created,
+  tool+version, host, user, `[git]`, `[origin]`) sit next to each produced
+  artifact, materialized via the v1.1 safe-materialization primitive.
+- **`cached.toml` index (`cache-gc`).** A sibling `Manifest.toml`-analogue listing
+  produced datasets by portable key (`cachetype` + `hash`), kept out of the
+  hand-authored `datasets.toml`. Gitignored per-machine by default; opt-in commit
+  for shared reproducibility.
+- **Garbage collection (`cache-gc`).** `datamanifest gc` is a root-reachability
+  collector: roots are still-existing `datasets.toml` (incl. `cache`-store
+  entries) and `cached.toml` files, discovered via a depot-level usage log. An
+  artifact is collectable iff no live root references its key and it is older than
+  a grace age; the per-artifact back-pointer is audit-only.
+- **New capabilities.** `cache-produce` (produced datasets + sidecars) and
+  `cache-gc` (the `cached.toml` index + usage log + `gc`).
+
+### Explicitly deferred
+
+- The `@cached` macro/decorator **API** is per-language, not normative (only the
+  on-disk formats + GC rule are).
+- Produced-artifact serialization format is a per-tool/per-`format` choice (no
+  cross-language loading implied).
+- `mount` store mechanics and cloud/`fsspec` backends remain reserved/deferred.
+
 ## spec-v1.1 (schema `_META.schema = 1`, additive)
 
 Additive storage model — no schema bump (old readers preserve the new field/table

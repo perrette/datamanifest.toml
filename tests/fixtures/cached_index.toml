@@ -1,0 +1,19 @@
+# A `cached.toml` index (the produced-dataset registry — the Manifest.toml
+# analogue). Sibling to datasets.toml; lists produced datasets by portable key
+# (cachetype + hash), never by absolute path. Roots produced artifacts for GC.
+[_META]
+schema = 1
+
+[load_20c_esm_anomaly]
+cachetype = "esm_20c_anomaly"
+hash      = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
+ref       = "lgmpre.data:load_20c_esm_anomaly"
+format    = "nc"
+store     = "cache"
+
+[load_lgm_esm_anomaly]
+cachetype = "esm_lgm_anomaly"
+hash      = "40384c4db019d383728340a2d8c5db9c96eb41db0231e93dd944091ca180633c"
+ref       = "lgmpre.data:load_lgm_esm_anomaly"
+format    = "nc"
+store     = "cache"

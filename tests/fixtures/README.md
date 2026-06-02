@@ -19,6 +19,8 @@ submodule and run a conformance runner against it as their test suite.
 | `unknown_structural` | python, r | `lang-read`, `lang-write` |
 | `parameterized` | python, julia | `lang-read`, `lang-write`, `binding-args` |
 | `storage` | (none) | `storage` |
+| `config_sidecar` | (none) | `cache-produce` |
+| `cached_index` | (none) | `cache-gc` |
 
 ## Expected-outcome JSON schema
 
@@ -59,6 +61,8 @@ An array of capability tags from SCHEMA.md's Conformance-levels table:
 | `mount` | Support the `mount` store (mechanics unspecified in v1.1) |
 | `byte-identity` | Emit canonical lexicographic key ordering (cross-tool byte-identical output) |
 | `binding-args` | Execute the `{ ref, args }` table form of a binding |
+| `cache-produce` | Produced (function-backed) datasets keyed by parameter hash + `config.toml`/`metadata.toml` sidecars |
+| `cache-gc` | The `cached.toml` produced-dataset index, usage log, and root-reachability `gc` |
 
 A runner filters fixtures to those whose `capabilities` array is a subset of the
 implementation's declared capability set. Fixtures with unsupported capabilities are
@@ -133,6 +137,39 @@ env / host):
 - `datasets.<ds>` — the store each dataset resolves to (its `store` field, or the default).
 - `roots.base` — store-root keys that MUST be present in `[_STORAGE]`.
 - `roots.host_patterns` / `roots.profiles` — `_HOST` / `_PROFILE` override keys present.
+
+### `config_sidecar` (optional)
+
+Present for `cache-produce`-capability fixtures. Here the fixture `.toml` is itself a
+**`config.toml` cache sidecar** — the self-describing, re-hashable record written next
+to a produced artifact (SCHEMA.md §Produced datasets and caching) — **not** a
+`datasets.toml`. Produced (function-backed) datasets are never declared in
+`datasets.toml`; they originate from a `@cached`-decorated function and their only TOML
+footprint is this sidecar plus the `cached.toml` index. The sidecar's `[_META]` block
+carries `cachetype` + `hash`; every other top-level key is part of the key table.
+
+`config_sidecar` asserts:
+
+- `cachetype` — the artifact namespace (matches the sidecar's `_META.cachetype`).
+- `key_table` — the hash-affecting parameters: every non-`_META` key of the sidecar
+  (runtime knobs, the `_`-prefixed keys, are excluded *before* the sidecar is written,
+  so a valid `config.toml` never contains them).
+- `param_hash` — the lowercase-hex **SHA-256 of the canonical JSON** of `key_table`
+  (JCS: sorted keys, `separators=(",", ":")`, UTF-8, no floats/nulls). A runner MUST
+  recompute and match this — it is the cross-tool reference vector.
+- `key` — the storage key `"<cachetype>/<param_hash>"`.
+
+The validator recomputes `param_hash` from `key_table`, checks it equals the sidecar's
+recorded `_META.hash` (the re-hashability contract), and checks `key_table` equals the
+sidecar minus `_META`, so the sidecar and the expectation cannot drift.
+
+### `cached_index` (optional)
+
+Present for `cache-gc`-capability fixtures. Here the fixture `.toml` is itself a
+**`cached.toml`** index (not a `datasets.toml`). `cached_index.entries.<name>` asserts,
+per produced-dataset entry: `cachetype`, `hash` (64 lowercase hex), `ref` (the producing
+`module:function`), and `store`. Resolution / preservation blocks are empty for this
+fixture.
 
 ### Byte-identity (cross-tool)
 

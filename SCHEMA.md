@@ -335,6 +335,234 @@ on these conventions:
   PID is dead and older than a grace period MAY be reclaimed) while materializing, so
   concurrent workers neither recompute nor clobber the same entry.
 
+## Produced datasets and caching (spec-v2)
+
+> **Spec-v2, additive.** This section graduates the produce-or-load (`@cached`)
+> design (`design/caching-and-dataset-storage.md` §6.D) into the normative spec. It
+> is **additive**: it adds **no field to the hand-authored `datasets.toml`** and does
+> not change its `_META.schema` (still **1**). A produced dataset reuses the existing
+> **engine** — the storage model, the safe-materialization primitive, and the load
+> ladder — but is **not declared in `datasets.toml`**; its only on-disk record is the
+> machine-generated `config.toml` / `metadata.toml` sidecars and the `cached.toml`
+> index, each carrying its own `_META.schema = 1`. The model is gated by two
+> independent capabilities, `cache-produce` and `cache-gc`, so a tool may ship
+> neither, one, or both.
+
+A **produced dataset** is one whose bytes come from running a project function rather
+than downloading a `uri`. It is the same "recipe + key + store + policy" object as a
+fetched dataset; the distinction is purely two slots:
+
+- the **recipe** — a `uri`/`shell`/`git` recipe with a source-identity key, versus a
+  *function* recipe with a *parameter-hash* key;
+- the **authorship** — a fetched dataset is **hand-authored** in `datasets.toml`; a
+  produced dataset is **machine-generated**.
+
+Everything else — stores, `store=`, the safe-materialization primitive, loaders, the
+preservation contract — is recipe-agnostic and applies unchanged. The only new
+normative axis is **parameter-hash keying** and its on-disk bookkeeping.
+
+**A produced dataset has no entry in `datasets.toml`.** It originates from a function
+that a tool exposes through its produce-or-load surface (the `@cached` decorator /
+macro — per-language and non-normative; see below), and is recorded only after it
+runs. `cachetype` is therefore **not** a `datasets.toml` field; it is a namespace that
+appears solely in the machine-generated records — the `cached.toml` index entry, the
+`config.toml` `[_META]` block, and the on-disk path. A conforming fetch path
+(`download_dataset` and the fetch ladder) **never encounters a produced dataset**: the
+two concerns share the *engine*, not the *manifest*. This keeps `datasets.toml` clean
+(the `Project.toml` analogue) and confines produced, parameter-hash-keyed churn to
+`cached.toml` (the `Manifest.toml` analogue).
+
+A produced dataset is identified **by its keyword parameters**, not by content: its
+storage **key** is `<cachetype>/<param-hash>`, its parameters *are* the hash inputs,
+and the `config.toml` sidecar is the re-checkable record of those inputs (it is not
+content-pinned by a manifest `sha256`). It defaults to **`store = "cache"`** (the
+producing mechanism sets the default; an explicit override still wins), because a
+produced artifact is the textbook reconstructible cache.
+
+> **Keyword-only.** Because the parameters double as identity, the producing function
+> is **keyword-only** for hashing: an ordered positional argument list has no stable
+> name→value identity to hash, so a `cache-produce` tool MUST derive the key table from
+> keyword parameters only. This is a property of the produce-or-load *surface*, not a
+> `datasets.toml` rule — fetched datasets keep their positional `args` per spec-v1.1.
+
+### Parameter-hash keying
+
+A produced dataset's identity is `(cachetype, hash-of-its-parameters)`. The
+**hash inputs** are the producing function's hash-affecting keyword parameters as a
+**key table**: a mapping parameter name → value. Parameters split three ways
+(normative — the split, not the exact source mapping):
+
+| Class | In the hash? | Stored where | Example |
+|---|---|---|---|
+| **hash-affecting params** | yes | `config.toml` sidecar | `grid = "5x5"` |
+| **runtime knobs** (`_`-prefixed keys) | no | nowhere (transient) | `_parallel = true` |
+| **audit-only extras** | no | `metadata.toml` sidecar | producing git commit |
+
+How a tool derives the key table from a function's declared keyword parameters
+(signature introspection, an explicit key selector like LGMIO's `key=(args -> (;…))`,
+etc.) is **implementation-defined**; the **serialization and hash are normative** so
+the same parameters yield the same key everywhere:
+
+1. Build the key table from the hash-affecting keyword parameters, **excluding every
+   key whose name begins with `_`** (those are runtime knobs).
+2. Serialize it to **canonical JSON** (JCS, [RFC 8785]): object members sorted by
+   Unicode code point at every nesting level, no insignificant whitespace
+   (member separator `,`, name separator `:`), UTF-8 output with minimal JSON
+   string escaping. To keep canonicalization unambiguous, **hash-input values are
+   restricted to strings, integers, booleans, and arrays/objects composed of
+   those** — floats and nulls are disallowed in hash inputs (a float-valued knob
+   must be passed as a string, which is also more hash-stable). Array element
+   order is significant (arrays are data); object key order is not (sorted).
+3. The parameter hash is the lowercase hex **SHA-256** of those canonical UTF-8
+   bytes.
+4. The storage **key** is `"<cachetype>/<hash>"`. (Tools MAY *display* a short
+   hash prefix, but the on-disk directory and all references use the full 64-hex
+   digest.)
+
+Canonical JSON (rather than TOML) is the hash input precisely because it has a
+fully-pinned byte form that Python (`json.dumps(obj, sort_keys=True,
+separators=(",", ":"), ensure_ascii=False)`) and Julia produce **identically
+today**, independent of the cross-tool TOML `byte-identity` work. So a produced
+dataset resolves to the same `<cache_root>/<cachetype>/<hash>` path under either
+tool (even though the artifact *bytes* a given tool writes there may be
+language-specific; cross-tool *loading* of a produced artifact is not implied,
+only cross-tool *addressing* and *garbage collection*). The `config.toml` sidecar
+stores the same key table in human-readable TOML; the hash is over its canonical
+**JSON** projection, not over the TOML bytes.
+
+[RFC 8785]: https://www.rfc-editor.org/rfc/rfc8785
+
+### Cache layout and sidecars
+
+A produced artifact is materialized at `<cache_root>/<key>` =
+`<cache_root>/<cachetype>/<hash>/`, via the same safe-materialization primitive
+(atomic publish, `.complete` marker, `.lock` pidfile) as any other store write.
+The directory is **self-describing** through two sidecars written next to the
+artifact:
+
+```
+<cache_root>/<cachetype>/<hash>/
+├── <basename>.<ext>      # the produced artifact (format-determined)
+├── config.toml           # the re-hashable hash inputs (the key table)
+├── metadata.toml         # provenance / audit (never hashed)
+└── .complete             # completion marker (file form: <hash>.complete alongside)
+```
+
+**`config.toml`** (`cache-produce`) — the key table verbatim plus a `[_META]`
+block, so any tool can recompute the hash and confirm the directory's identity. The
+key table is written at the **root** and **first** (TOML requires root-table keys to
+precede any table header), so `[_META]` comes last; reading back, the key table is
+every root key except the `[_META]` block:
+
+```toml
+# --- hash-affecting parameters (the key table) ---
+grid        = "5x5"
+skip_models = ["CESM.*", "FGOALS.*"]
+
+[_META]
+schema    = 1
+cachetype = "esm_20c_anomaly"
+# hash = SHA-256( {"grid":"5x5","skip_models":["CESM.*","FGOALS.*"]} ), canonical JSON:
+hash      = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
+```
+
+(`83425a3…` is a verifiable reference vector: it is the SHA-256 of the canonical
+JSON `{"grid":"5x5","skip_models":["CESM.*","FGOALS.*"]}`. Every conforming
+`cache-produce` implementation MUST reproduce it.)
+
+A tool with `cache-produce` MUST be able to recompute the hash from `config.toml`'s
+key table and MUST treat a directory whose recomputed hash ≠ `_META.hash` as
+**not** a valid cache hit (re-produce).
+
+**`metadata.toml`** (`cache-produce`) — provenance only, never an input to the
+hash and never an authority for cache validity:
+
+```toml
+[_META]
+schema = 1
+
+created = "2026-06-02T15:04:05Z"        # RFC 3339 UTC
+tool    = "datamanifestpy 0.17.0"        # producing tool + version
+host    = "login3.hpc.edu"
+user    = "mahe"
+
+[git]
+commit = "1f8839c…"
+branch = "main"
+dirty  = false
+
+[origin]
+cached_toml = "/home/mahe/proj/cached.toml"   # the index that roots this artifact
+```
+
+### The `cached.toml` index
+
+Produced datasets are **not** written into the hand-authored `datasets.toml`
+(which stays clean — the `Project.toml` analogue). They are registered in a
+sibling **`cached.toml`** (the `Manifest.toml` analogue), by default alongside
+the manifest. `cached.toml` is the *liveness* root for produced artifacts: it
+lists them by **portable key** (`cachetype` + `hash`), never by absolute path.
+
+```toml
+[_META]
+schema = 1
+
+[load_20c_esm_anomaly]
+cachetype = "esm_20c_anomaly"
+hash      = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
+ref       = "lgmpre.data:load_20c_esm_anomaly"   # the producing function
+format    = "nc"
+store     = "cache"
+```
+
+- `cached.toml` is a **defined structural sibling format**, with its own
+  `_META.schema = 1`. A tool that does not implement `cache-gc` need not read it.
+- **Commit policy:** `cached.toml` is **gitignored per-machine state by default**
+  (it indexes machine-local produced artifacts); a project that wants
+  reproducible shared produced-caches MAY opt in to committing it (the
+  `Manifest.toml` convention — libraries ignore, applications commit).
+- A produced dataset is registered in exactly one `cached.toml`; the
+  `metadata.toml` `[origin].cached_toml` back-pointer names it (audit only).
+
+### Garbage collection
+
+Because produced artifacts accumulate, a tool MAY implement `datamanifest gc`
+(`cache-gc`). GC is a **root-reachability** collector (cf. Julia depot `Pkg.gc`,
+Nix GC roots, Hugging Face cache refs):
+
+- **Roots are the two index files.** A still-existing `datasets.toml` roots every
+  *declared/fetched* dataset it lists, including `store = "cache"` entries (they
+  are re-fetchable, rooted by their manifest entry). A still-existing
+  `cached.toml` roots every *produced* dataset it lists.
+- **A depot-level usage log** (the known set of `datasets.toml` / `cached.toml`
+  paths + a last-seen timestamp for each, analogous to Julia's
+  `manifest_usage.toml`) lets `gc` discover the live root set without scanning
+  the whole filesystem. A tool records a manifest/index path in the usage log
+  whenever it reads it.
+- **Collectable rule (normative).** An artifact under a `cache` root is
+  collectable **iff** no still-existing root references its key, **and** it is
+  older than a configurable grace age. The per-artifact `metadata.toml`
+  back-pointer is **audit only** — never the deletion authority (it goes stale
+  and cannot express multiple references).
+- A `data`- or `repo`-store dataset is never collected by `gc` (only the `cache`
+  store is reclaimable).
+
+### What spec-v2 does not specify
+
+- **The `@cached` macro / decorator API** (Julia macro, Python decorator) is the
+  *ergonomic surface* over this model and is **per-language, not normative** — a
+  tool exposes it however fits the language. Only the on-disk formats (key hash,
+  `config.toml`, `metadata.toml`, `cached.toml`) and the GC rule are normative.
+- **The artifact serialization format** (`jls`/`jld2`/`pickle`/…) is a per-tool,
+  per-`format` choice (the existing `format` + loader concern); produced
+  artifacts are not assumed cross-language-loadable.
+- **`mount` store mechanics** remain reserved and unspecified (deferred past
+  spec-v2, as in v1.1) — `store = "mount"` and `[_STORAGE]` are still parsed and
+  preserved verbatim, but no tool should advertise `mount` yet.
+- **Cloud / `fsspec` / CAS backends** are not a core model; if a tool adds them,
+  they are optional per-language extras behind the recipe interface, not a spec
+  contract.
+
 ## Preservation contract
 
 A conforming writer of language `L` MUST:
@@ -371,6 +599,8 @@ fixture-suite tests tagged for those capabilities.
 | `mount` | Support the `mount` store — transient, non-materialized in-place access via a mounted/remote filesystem. |
 | `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest serializes to byte-identical output across tools (verified by the cross-tool fixture). |
 | `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
+| `cache-produce` | Produce-or-load: function-backed (produced) datasets with parameter-hash keying, the `config.toml` / `metadata.toml` sidecars, and `store = "cache"` defaulting (spec-v2 §Produced datasets). |
+| `cache-gc` | The `cached.toml` produced-dataset index, the depot-level usage log, and root-reachability `datamanifest gc` (spec-v2 §Garbage collection). |
 
 Capabilities are independent — a partial implementation may ship `lang-read` and
 `lang-write` without `shell-fetch` or `delegation`. The spec and its fixture suite are

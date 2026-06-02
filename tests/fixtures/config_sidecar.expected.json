@@ -1,0 +1,17 @@
+{
+  "capabilities": ["cache-produce"],
+  "resolution": {},
+  "preserve_verbatim": {
+    "unknown_structural": [],
+    "lang_namespaces": {
+      "top_level": [],
+      "per_dataset": {}
+    }
+  },
+  "config_sidecar": {
+    "cachetype": "esm_20c_anomaly",
+    "key_table": {"grid": "5x5", "skip_models": ["CESM.*", "FGOALS.*"]},
+    "param_hash": "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b",
+    "key": "esm_20c_anomaly/83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
+  }
+}
