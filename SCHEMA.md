@@ -174,8 +174,9 @@ kwargs = { grid = "10x10" }
   requires no such capability.
 - For canonical serialization, `kwargs` keys are emitted in lexicographic order like all
   other keys (including inside an inline `{ }` table); `args` is an **ordered array**, so
-  its element order is preserved as data (arrays are never reordered). Both are therefore
-  byte-identical across tools.
+  its element order is preserved as data (arrays are never reordered). Both therefore carry
+  the same key order and element order across tools — **semantically identical** (and
+  byte-identical via the canonical reference form; see the `byte-identity` capability).
 
 ### `shell` execution context
 
@@ -597,7 +598,7 @@ fixture-suite tests tagged for those capabilities.
 | `delegation` | Opt-in peer-CLI delegation in the fetch ladder (rung 3). |
 | `storage` | Honor the `store` field and `[_STORAGE]` resolution; materialize datasets into the selected local store at its canonical or configured root (see Storage). |
 | `mount` | Support the `mount` store — transient, non-materialized in-place access via a mounted/remote filesystem. |
-| `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest serializes to byte-identical output across tools (verified by the cross-tool fixture). |
+| `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, or Julia `write(...; canonical=true)`). |
 | `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
 | `cache-produce` | Produce-or-load: function-backed (produced) datasets with parameter-hash keying, the `config.toml` / `metadata.toml` sidecars, and `store = "cache"` defaulting (spec-v2 §Produced datasets). |
 | `cache-gc` | The `cached.toml` produced-dataset index, the depot-level usage log, and root-reachability `datamanifest gc` (spec-v2 §Garbage collection). |
@@ -673,11 +674,18 @@ flat file to v1 `_LANG` form for the tool's own language.
 - Writers MUST emit all keys, at every nesting level — top-level tables (structural `_*`
   and datasets alike) and the fields within each table, including keys nested in inline
   `{ }` tables — sorted by **Unicode code-point lexicographic order** (the shared default of Python `sorted()` and Julia
-  `TOML.print(sorted=true)`). No table is special-cased (no `_LOADERS`/`_META`-first), so a
-  given logical manifest serializes to **byte-identical** output from every tool. Note:
+  `TOML.print(sorted=true)`). No table is special-cased (no `_LOADERS`/`_META`-first). This
+  guarantees **semantic identity** across tools — the same logical manifest round-trips to
+  the same keys, values, and ordering through either tool (the weaker constraint that is
+  always met). It does **not**, by itself, guarantee **byte-for-byte** identity: the Python
+  (`tomli_w`) and Julia (`TOML.print`) serializers differ in cosmetic formatting
+  (indentation, blank lines, inline-vs-multiline arrays), and current tooling does not
+  always permit a one-to-one byte match. For literal byte-identity the **Python tool is the
+  normative reference** for the canonical form, and a tool MAY route its output through it
+  opt-in (`datamanifest format`, or Julia `write(...; canonical=true)`). Note:
   because `_` (U+005F) sorts after uppercase but before lowercase ASCII letters, an
   uppercase dataset name sorts *before* the `_*` structural tables and a lowercase one
-  *after* — intended; byte-identity across tools is the requirement, not structural-table
+  *after* — intended; the canonical *ordering* is the requirement, not structural-table
   placement.
 - `uri` and `uris` are mutually exclusive on a single dataset.
 - A file with no `[_META]` section is read as schema v0 (legacy flat), leniently.
