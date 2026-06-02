@@ -1,0 +1,20 @@
+{
+  "capabilities": ["lang-read", "lang-write"],
+  "resolution": {
+    "python": {
+      "stats_data": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "per-dataset", "ref": "myproject.stats:load_stats"}
+      }
+    }
+  },
+  "preserve_verbatim": {
+    "unknown_structural": ["_FUTURE"],
+    "lang_namespaces": {
+      "top_level": ["_LANG.python", "_LANG.r"],
+      "per_dataset": {
+        "stats_data": ["_LANG.python", "_LANG.r"]
+      }
+    }
+  }
+}

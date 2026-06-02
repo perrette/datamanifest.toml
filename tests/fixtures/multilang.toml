@@ -1,0 +1,31 @@
+[_META]
+schema = 1
+
+[_LANG.python.loaders]
+csv = "pandas.io.parsers:read_csv"
+nc  = "xarray:open_dataset"
+
+[_LANG.julia.loaders]
+csv = "CSV:read"
+nc  = "NCDatasets:Dataset"
+
+[model_output]
+sha256      = "e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
+format      = "nc"
+description = "Climate model simulation output"
+
+[model_output._LANG.python]
+fetcher = "myproject.fetch:build_model_output"
+loader  = "myproject.load:load_model_output"
+
+[model_output._LANG.julia]
+loader = "MyModel:load_output"
+
+[model_output._LANG.shell]
+fetcher = "make model_output OUTPUT=$download_path"
+
+[observations]
+uri         = "https://example.com/obs.csv"
+sha256      = "f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1"
+format      = "csv"
+description = "Ground truth observations for model validation"

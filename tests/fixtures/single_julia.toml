@@ -1,0 +1,21 @@
+[_META]
+schema = 1
+
+[_LANG.julia.loaders]
+nc  = "NCDatasets:Dataset"
+csv = "CSV:read"
+
+[ocean_temp]
+sha256      = "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
+format      = "nc"
+description = "Ocean temperature profiles from Argo floats"
+
+[ocean_temp._LANG.julia]
+fetcher = "OceanPkg:download_argo"
+loader  = "OceanPkg:load_argo"
+
+[bathymetry]
+uri         = "https://example.com/etopo1.nc"
+sha256      = "d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5"
+format      = "nc"
+description = "ETOPO1 global bathymetry"

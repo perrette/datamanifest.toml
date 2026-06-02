@@ -1,0 +1,34 @@
+{
+  "capabilities": ["lang-read", "lang-write", "shell-fetch"],
+  "resolution": {
+    "python": {
+      "model_output": {
+        "fetcher": {"rung": "own-fetcher", "ref": "myproject.fetch:build_model_output"},
+        "loader":  {"rung": "per-dataset", "ref": "myproject.load:load_model_output"}
+      },
+      "observations": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "manifest-format-default", "ref": "pandas.io.parsers:read_csv"}
+      }
+    },
+    "julia": {
+      "model_output": {
+        "fetcher": {"rung": "shell", "ref": "make model_output OUTPUT=$download_path"},
+        "loader":  {"rung": "per-dataset", "ref": "MyModel:load_output"}
+      },
+      "observations": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "manifest-format-default", "ref": "CSV:read"}
+      }
+    }
+  },
+  "preserve_verbatim": {
+    "unknown_structural": [],
+    "lang_namespaces": {
+      "top_level": ["_LANG.python", "_LANG.julia"],
+      "per_dataset": {
+        "model_output": ["_LANG.python", "_LANG.julia", "_LANG.shell"]
+      }
+    }
+  }
+}

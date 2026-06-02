@@ -1,0 +1,24 @@
+{
+  "capabilities": ["lang-read", "lang-write"],
+  "resolution": {
+    "python": {
+      "climate_data": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "per-dataset", "ref": "myproject.loaders:load_climate"}
+      },
+      "stations": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "manifest-format-default", "ref": "pandas.io.parsers:read_csv"}
+      }
+    }
+  },
+  "preserve_verbatim": {
+    "unknown_structural": [],
+    "lang_namespaces": {
+      "top_level": ["_LANG.python"],
+      "per_dataset": {
+        "climate_data": ["_LANG.python"]
+      }
+    }
+  }
+}

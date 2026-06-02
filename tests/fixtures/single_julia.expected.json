@@ -1,0 +1,24 @@
+{
+  "capabilities": ["lang-read", "lang-write"],
+  "resolution": {
+    "julia": {
+      "ocean_temp": {
+        "fetcher": {"rung": "own-fetcher", "ref": "OceanPkg:download_argo"},
+        "loader":  {"rung": "per-dataset", "ref": "OceanPkg:load_argo"}
+      },
+      "bathymetry": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "manifest-format-default", "ref": "NCDatasets:Dataset"}
+      }
+    }
+  },
+  "preserve_verbatim": {
+    "unknown_structural": [],
+    "lang_namespaces": {
+      "top_level": ["_LANG.julia"],
+      "per_dataset": {
+        "ocean_temp": ["_LANG.julia"]
+      }
+    }
+  }
+}

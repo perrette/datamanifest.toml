@@ -1,0 +1,21 @@
+[_META]
+schema = 1
+
+[_LANG.python.loaders]
+csv = "pandas.io.parsers:read_csv"
+nc  = "xarray:open_dataset"
+
+[climate_data]
+uri         = "https://example.com/climate_data.csv"
+sha256      = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+format      = "csv"
+description = "Annual mean surface temperature anomalies"
+
+[climate_data._LANG.python]
+loader = "myproject.loaders:load_climate"
+
+[stations]
+uri         = "https://example.com/stations.csv"
+sha256      = "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3"
+format      = "csv"
+description = "Weather station metadata"
