@@ -1,6 +1,6 @@
 # Design & schema: language namespaces in `datamanifest.toml`
 
-**Status:** design agreed in discussion; not yet implemented past Phase 0.
+**Status:** Track A complete — SCHEMA.md v1, conformance fixtures, and CHANGELOG.md landed.
 **Scope:** the canonical `datamanifest.toml` spec (shared with DataManifest.jl)
 and the Python implementation.
 
@@ -279,13 +279,13 @@ tools:
 - **Discovery & availability:** the PATH name of each language's CLI and how a
   tool probes that a peer (and its runtime) is installed before delegating.
 
-### Track A — `datamanifest.toml` (spec, do first)
+### Track A — `datamanifest.toml` (spec, do first) ✓ DONE
 
-- Rewrite SCHEMA.md to v2 (text in §10): structural `_` keys; `_LANG` layout;
+- ✓ Rewrite SCHEMA.md to v2 (text in §10): structural `_` keys; `_LANG` layout;
   `fetcher`/`loader` refs; resolution ladders incl. **load-never-delegates**;
   the preservation rule; deprecations; the peer-CLI contract; `schema` versioning
   (absent ⇒ v0).
-- Add the conformance fixtures and a short v0→v1 changelog.
+- ✓ Add the conformance fixtures and a short v0→v1 changelog.
 
 ### Track B — `datamanifest` (Python)
 
