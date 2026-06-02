@@ -78,17 +78,21 @@ Two changes, both on the spec-document axis (no `_META.schema` bump — see
   `cache-gc` (the `cached.toml` index + usage log + `gc`) — both declared by the
   **companion package**, not the core fetch tool.
 
-### Delegation clarified
+### Cross-language fetch (rung 3) clarified
 
 - **`delegate` is now a defined field** (per-dataset bool) plus the per-run `--delegate`
-  flag, and a dedicated `SCHEMA.md` §Delegation explains the rung: the peer CLI runs its
-  own fetch ladder into the shared store, with `sha256` verify, probe, and graceful
-  fall-through to `uri` when the peer is absent.
-- **Python CLI named the reference fetch orchestrator.** It is the recommended delegation
-  target; the on/off *default* is a documented per-tool deployment choice (the reference
-  deployment has non-Python tools delegate to Python by default when present). Delegation
-  moves *fetching* only — produced (`@cached`) datasets originate in their host language
-  and are not delegable. See `ROADMAP.md` for the deployment rationale.
+  flag, and a dedicated `SCHEMA.md` §Cross-language fetch explains the rung and its two
+  mechanisms.
+- **Two mechanisms — interpreter-subprocess preferred.** A foreign-language fetcher can be
+  run (1) by invoking that language's **interpreter against the repo's project env**
+  (`julia --project=<env> -e '…'`), with the **caller** materializing — **no foreign
+  `datamanifest` CLI required**; or (2) by **peer-CLI delegation**, where the peer
+  `datamanifest` CLI runs its own ladder and materializes (the Python CLI is the reference
+  peer). Mechanism 1 sidesteps the Julia-CLI packaging problem.
+- **Probe and graceful fall-through** to `uri` when the foreign toolchain is absent; the
+  on/off *default* is a documented per-tool deployment choice. Cross-language fetch moves
+  *fetching* only — produced (`@cached`) datasets originate in their host language and are
+  not cross-language. See `ROADMAP.md` for the deployment rationale.
 
 ### Explicitly deferred
 

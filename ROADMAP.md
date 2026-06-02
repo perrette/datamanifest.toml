@@ -24,44 +24,42 @@ forward-looking view: what is specified, what is built, and what is deferred.
   Rationale and build order: `design/cached-layer-handoff.md`.
 - **Merge Julia core v1.1** before any Julia spec-v2 work.
 
-## Deployment model: Python as the reference fetch orchestrator
+## Deployment model: cross-language fetch without shipping a Julia CLI
 
-The delegation **mechanism** and the **Python-as-reference-orchestrator** recommendation
-are now in the spec (`SCHEMA.md` §Delegation, §Peer-CLI contract). This section is the
-high-level rationale; the per-tool *default policy* (whether to delegate by default) is a
-deployment choice the spec leaves to each implementation, with the reference deployment
-described below.
+The cross-language fetch **mechanisms** are now in the spec (`SCHEMA.md` §Cross-language
+fetch, §Peer-CLI contract). This section is the high-level rationale; the per-tool *default
+policy* (whether the rung fires by default) is a deployment choice the spec leaves to each
+implementation, with the reference deployment described below.
 
-- **The Python CLI is the main fetch orchestrator.** It is the canonical
-  download/materialization engine — easy to install system-wide (pip `entry_points`, fast
-  startup) and already the normative reference for paths and byte-identity. Anything not
-  already handled by a **native** (own-language) or **shell** fetcher is delegated to it.
-- **`delegate` defaults to *true* for non-Python tools** (e.g. the Julia tool), targeting
-  the Python CLI — **unless the Python CLI is not installed**. The fetch ladder becomes:
-  native → shell → **delegate to Python (default on, if present)** → `uri` download. The
-  existing probe-and-fall-through makes this safe: if Python is absent, delegation is
-  skipped and plain `uri` datasets still download natively.
-- **Python is the target, not a delegator** — it does not default-delegate to a peer; it
-  *is* the peer everyone else delegates to. **Load is always native** (load never delegates).
-- This lets a non-Python tool ship as a **plain library** (no Julia CLI to compile /
-  sysimage): it shells out to Python for fetch and loads natively. It is the practical
-  answer to the Julia-CLI packaging / startup-latency problem.
+- **Python is the primary driver and orchestrator.** It fetches `python` / `shell` / `uri`
+  recipes natively and owns materialization (store, lock, atomic publish, `sha256`, marker).
+  It is also the normative reference for paths and byte-identity.
+- **Foreign fetchers run via the interpreter, not a shipped CLI (preferred).** When the
+  only available fetcher is in another language (e.g. `[ds._LANG.julia].fetcher`), the
+  driver spawns that language's **interpreter against the repo's project env** —
+  `julia --project=<env> -e 'using MyPkg; MyPkg.fetch_foo(; download_path=…)'` — and
+  materializes the bytes itself. This is a language-aware `shell` fetcher. It needs only the
+  `julia` binary (system-wide) + the repo's `Project.toml` + the package — **no Julia
+  `datamanifest` CLI to compile/ship**. This is the practical answer to the Julia-CLI
+  packaging problem.
+- **Peer-CLI delegation is the heavier alternative.** Where a peer tool should *own*
+  materialization (it has store/index logic the caller lacks), the driver calls the peer
+  `datamanifest` CLI instead; the **Python CLI** is the reference peer (e.g. a thin
+  non-Python client that delegates all fetching to Python and loads natively).
+- **The rung fires by default when its toolchain is present**, else it falls through to
+  `uri` via the mandatory probe — so a missing `julia` (or peer CLI) never breaks plain-`uri`
+  datasets. **Load is always native** (load never crosses languages).
 
-**Caveat — produced (`@cached`) datasets are out of scope of this model.** Delegation can
-only hand off work Python can actually do. A dataset whose bytes are *produced* by a
-non-Python project function (the companion produce-or-load layer), or a genuinely
-Julia-only fetcher, **cannot** be delegated to Python — the bytes originate in that
-language by definition. So "delegate everything to Python" covers *fetched* (uri / shell /
-python-fetcher) datasets; each language still produces and caches its own `@cached`
-datasets natively. The orchestrator model and the companion layer pull in opposite
-directions here — keep them distinct.
+**Caveat — produced (`@cached`) datasets are out of scope.** Cross-language fetch moves
+*fetching* only. A dataset whose bytes are *produced* by a project function in a given
+language (the companion produce-or-load layer) is not cross-language — each language
+produces and caches its own. The fetch model and the companion layer pull in opposite
+directions here; keep them distinct.
 
-**Status in the spec.** `SCHEMA.md` now defines the `delegate` field, the Delegation
-subsection, and names the Python CLI as the reference orchestrator; it makes the on/off
-*default* a documented per-tool deployment choice rather than hard-coding "off". The
-reference deployment (non-Python tools delegating to Python by default, with probe
-fallback) is the recommended configuration. Remaining work is in the implementations, not
-the spec.
+**Status in the spec.** `SCHEMA.md` now defines the `delegate` field, the §Cross-language
+fetch subsection (interpreter-subprocess preferred, peer-CLI alternative), and makes the
+on/off *default* a documented per-tool deployment choice rather than hard-coding "off".
+Remaining work is in the implementations, not the spec.
 
 ## Deferred / reserved
 
