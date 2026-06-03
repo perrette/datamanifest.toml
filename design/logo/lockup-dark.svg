@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img" aria-labelledby="t">
+  <title id="t">datamanifest — wordmark lockup (white, for dark backgrounds)</title>
+  <!-- icon: stacked drives -->
+  <g transform="translate(14,16) scale(0.78)">
+    <rect x="40" y="52"  width="176" height="46" rx="9" fill="#ffffff"/>
+    <rect x="56" y="70"  width="56" height="5" rx="2.5" fill="#14233d"/>
+    <rect x="56" y="80"  width="40" height="5" rx="2.5" fill="#14233d"/>
+    <rect x="40" y="107" width="176" height="46" rx="9" fill="#ffffff"/>
+    <rect x="56" y="125" width="56" height="5" rx="2.5" fill="#14233d"/>
+    <rect x="56" y="135" width="40" height="5" rx="2.5" fill="#14233d"/>
+    <rect x="40" y="162" width="176" height="46" rx="9" fill="#ffffff"/>
+    <rect x="56" y="180" width="56" height="5" rx="2.5" fill="#14233d"/>
+    <rect x="56" y="190" width="40" height="5" rx="2.5" fill="#14233d"/>
+  </g>
+  <!-- wordmark, framed by TOML brackets -->
+  <text x="206" y="116" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-size="62" font-weight="700" letter-spacing="-1">
+    <tspan fill="#F0A92B">[</tspan><tspan fill="#ffffff" dx="8">datamanifest</tspan><tspan fill="#F0A92B" dx="8">]</tspan>
+  </text>
+  <text x="210" y="148" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-size="22" font-weight="500" letter-spacing="3" fill="#8fa0bd">ONE&#160;MANIFEST&#160;·&#160;EVERY&#160;LANGUAGE</text>
+</svg>

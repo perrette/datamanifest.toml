@@ -1,11 +1,11 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="design/logo/drive-stack-dark.svg">
-    <img src="design/logo/drive-stack-light.svg" alt="datamanifest" height="96">
+    <img src="design/logo/drive-stack.svg" alt="datamanifest" height="96">
   </picture>
 </p>
 
-<h1 align="center">datamanifest.toml</h1>
+# datamanifest.toml
 
 A small, normative specification for the **`datamanifest.toml`** manifest format — a
 TOML file that declares the data dependencies of a scientific project (each dataset's
@@ -18,8 +18,8 @@ The spec is at **schema v1** (`_META.schema = 1`). The key change from v0 is the
 Each implementation reads its own `_LANG` entries and preserves the rest verbatim,
 enabling lossless round-trips in multi-language projects.
 
-➡️ **[Read the schema: `SCHEMA.md`](SCHEMA.md)**  
-➡️ **[Conformance fixtures: `tests/fixtures/`](tests/fixtures/README.md)**  
+➡️ **[Read the schema: `SCHEMA.md`](SCHEMA.md)**
+➡️ **[Conformance fixtures: `tests/fixtures/`](tests/fixtures/README.md)**
 ➡️ **[Changelog: `CHANGELOG.md`](CHANGELOG.md)**
 
 ## Implementations
