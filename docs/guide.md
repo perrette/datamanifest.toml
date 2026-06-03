@@ -10,6 +10,13 @@ format. It complements the two other layers of documentation:
   [Julia `DataManifest.jl`](https://github.com/awi-esc/DataManifest.jl). This guide covers
   only what is shared across them.
 
+**Copy freely.** This guide is a *guideline*, not a dependency. An implementation is
+welcome to copy or adapt any of it into its own documentation (it is MIT-licensed, like the
+rest of this repo) — there is no obligation to link back or defer to it. Each
+implementation's docs should stay self-contained and authoritative about what *that package*
+actually does (the spec tag it targets, the capabilities it implements, any deviations);
+this guide describes the shared contract those docs can build on.
+
 A complete, mostly-runnable manifest is in [`examples/datasets.toml`](../examples/datasets.toml).
 
 ## Contents
