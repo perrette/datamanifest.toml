@@ -19,9 +19,11 @@ forward-looking view: what is specified, what is built, and what is deferred.
   selectors vs path expressions, the unified resolution ladder, the hard migration off
   bare `store` names). Spec: `SCHEMA.md` §Storage; rationale:
   `design/storage-model-revision.md`.
-- **Build the companion produce-or-load packages** (one per language) over the core
-  engine — parameter-hash keying + sidecars first, then the `cached.toml` index + GC.
-  Rationale and build order: `design/cached-layer-handoff.md`.
+- **Build the produce-or-load layer** (one per language) over the core engine —
+  parameter-hash keying + sidecars first, then the `cached.toml` index + GC. Whether it
+  ships as a separate package or an optional submodule is the implementation's call
+  (spec-v2.1). Rationale and build order: `design/cached-layer-handoff.md`; packaging:
+  `design/package-architecture.md`.
 - **Merge Julia core v1.1** before any Julia spec-v2 work.
 
 ## Cross-language fetch (a rare case)

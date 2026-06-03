@@ -1,5 +1,19 @@
 # Changelog
 
+## spec-v2.1 (schema `_META.schema = 1`)
+
+Prose-only correction on the spec-document axis — no `_META.schema` bump, no on-disk
+format change, fixtures unaffected.
+
+- **Produce-or-load is a *layer*, not necessarily a separate *package*.** spec-v2 baked a
+  distribution decision into the format spec ("lives in a companion package that depends
+  on datamanifest"). spec-v2.1 separates the two concerns it conflated: it keeps the
+  normative **capability boundary** (`cache-produce` / `cache-gc` are never declared by the
+  core fetch capability; the core keeps no GC and no disposability) and **relaxes the
+  packaging mandate** — shipping the layer as a separate package or as an optional module
+  of the same package is now explicitly the implementation's choice. Rationale and the
+  per-language packaging asymmetry: `design/package-architecture.md`.
+
 ## spec-v2 (schema `_META.schema = 1`)
 
 Two changes, both on the spec-document axis (no `_META.schema` bump — see

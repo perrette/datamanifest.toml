@@ -406,16 +406,21 @@ on these conventions:
   PID is dead and older than a grace period MAY be reclaimed) while materializing, so
   concurrent workers neither recompute nor clobber the same entry.
 
-## Produced datasets and caching (spec-v2, companion layer)
+## Produced datasets and caching (spec-v2.1, companion layer)
 
-> **Spec-v2 — a companion-layer format, not a core capability.** The produce-or-load
-> (`@cached`) layer lives **outside the core fetch engine**, in a **companion package**
-> (one per language) that *depends on* datamanifest and reuses its engine
-> (safe-materialization, folder resolution, loaders). This section is the cross-tool
-> **format** spec for that layer — it stays in this document so both languages' companions
-> agree on the on-disk shape — but the `cache-produce` / `cache-gc` capabilities are
-> declared by the **companion tool**, never by the core fetch tool, and **the core keeps no
-> garbage collection and no disposability policy**.
+> **Spec-v2.1 — a companion *layer*, not a core capability.** The produce-or-load
+> (`@cached`) layer sits **outside the core fetch engine** as a distinct capability layer
+> built on the shared substrate it reuses (safe-materialization, folder resolution,
+> loaders). This section is the cross-tool **format** spec for that layer — it stays in
+> this document so both languages agree on the on-disk shape.
+>
+> **Packaging is not constrained by this spec.** Whether an implementation ships the layer
+> as a **separate package** that depends on the core, or as an **optional module of the
+> same package**, is the implementation's choice (spec-v2 over-specified this as a separate
+> package; spec-v2.1 relaxes it). What the spec fixes is the **boundary**: the
+> `cache-produce` / `cache-gc` capabilities are **never declared by the core fetch
+> capability**, and **the core fetch engine keeps no garbage collection and no disposability
+> policy**.
 >
 > The format is **additive over a `datasets.toml`**: it adds **no field to the
 > hand-authored `datasets.toml`** and does not change its `_META.schema` (still **1**). A
@@ -604,8 +609,8 @@ store     = "$cache"
 
 ### Garbage collection
 
-Because produced artifacts accumulate, the **companion tool** MAY implement a `gc`
-command (`cache-gc`). GC is a property of the companion layer, **not the core**, and is a
+Because produced artifacts accumulate, the **cache layer** MAY implement a `gc`
+command (`cache-gc`). GC is a property of the cache layer, **not the core**, and is a
 **root-reachability** collector (cf. Julia depot `Pkg.gc`, Nix GC roots, Hugging Face
 cache refs):
 
@@ -678,8 +683,8 @@ fixture-suite tests tagged for those capabilities.
 | `storage` | Honor the `store` / `default` `$`-folder selectors and `[_STORAGE]` folder-variable resolution; materialize datasets into the selected folder at its canonical or configured root (see Storage). |
 | `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, or Julia `write(...; canonical=true)`). |
 | `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
-| `cache-produce` | **Companion-layer** produce-or-load: function-backed (produced) datasets with parameter-hash keying, the `config.toml` / `metadata.toml` sidecars, and `store = "$cache"` defaulting (spec-v2 §Produced datasets). Declared by the companion package, not the core fetch tool. |
-| `cache-gc` | **Companion-layer** `cached.toml` produced-dataset index, the depot-level usage log, and root-reachability `gc` (spec-v2 §Garbage collection). Declared by the companion package; the core keeps no GC. |
+| `cache-produce` | **Cache-layer** produce-or-load: function-backed (produced) datasets with parameter-hash keying, the `config.toml` / `metadata.toml` sidecars, and `store = "$cache"` defaulting (spec-v2.1 §Produced datasets). Declared by the cache layer, never by the core fetch capability (packaging — separate package or submodule — is unconstrained). |
+| `cache-gc` | **Cache-layer** `cached.toml` produced-dataset index, the depot-level usage log, and root-reachability `gc` (spec-v2.1 §Garbage collection). Declared by the cache layer; the core keeps no GC. |
 
 Capabilities are independent — a partial implementation may ship `lang-read` and
 `lang-write` without `shell-fetch` or `delegation`. The spec and its fixture suite are
