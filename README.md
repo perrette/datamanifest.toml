@@ -20,6 +20,67 @@ enabling lossless round-trips in multi-language projects.
 ➡️ **[Conformance fixtures: `tests/fixtures/`](tests/fixtures/README.md)**
 ➡️ **[Changelog: `CHANGELOG.md`](CHANGELOG.md)**
 
+## Example
+
+A manifest declares each dataset's source, checksum, format, and how each language loads
+it. Below is a representative `datasets.toml`; the full, runnable file lives at
+**[`examples/datasets.toml`](examples/datasets.toml)** (both implementations can load it
+directly).
+
+```toml
+[_META]
+schema = 1
+
+# Project-wide default loaders, per language: format -> module:function.
+[_LANG.python.loaders]
+csv = "pandas.io.parsers:read_csv"
+nc  = "xarray:open_dataset"
+
+[_LANG.julia.loaders]
+csv = "CSV:read"
+nc  = "NCDatasets:Dataset"
+
+# A DOI archive: downloaded, checksum-verified, then unpacked.
+[herzschuh2023]
+uri         = "https://doi.pangaea.de/10.1594/PANGAEA.930512?format=zip"
+sha256      = "4e40e43ac0f1ddea125cb5314eee46e332aacbcb18aff7efbf59f1d8b1d84a13"
+doi         = "10.1594/PANGAEA.930512"
+format      = "zip"
+extract     = true
+description = "Pollen-based climate reconstructions (Herzschuh et al., 2023)"
+
+# A per-dataset loader override. A binding is a "module:function" string …
+[ocean_temp]
+uri    = "https://example.com/argo_ocean_temp.nc"
+sha256 = "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
+format = "nc"
+
+[ocean_temp._LANG.python]
+loader = "myclimate.loaders:load_argo"        # string form (no arguments)
+
+# … or a { ref, args, kwargs } table when the call needs arguments.
+[esm_5x5]
+uri    = "https://example.com/esm_5x5.nc"
+sha256 = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+format = "nc"
+
+[esm_5x5._LANG.julia.loader]
+ref    = "MyClimate:load_esm"
+args   = ["$path"]
+kwargs = { grid = "5x5", skip_models = ["CESM.*"] }
+
+# A re-fetchable input parked on the OS-reclaimable cache folder.
+[reanalysis]
+uri    = "https://example.com/era5_slice.nc"
+sha256 = "f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1"
+format = "nc"
+store  = "$cache"
+```
+
+A binding (a `fetcher`/`loader`, or a `[_LANG.<lang>.loaders]` entry) is either a
+`module:function` **string** or a `{ ref, args, kwargs }` **table** — the string being a
+shorthand for a ref with no arguments.
+
 ## Implementations
 
 Two implementations track the spec in parallel and on equal footing. Julia was the

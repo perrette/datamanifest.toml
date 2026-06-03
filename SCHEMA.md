@@ -119,14 +119,38 @@ any language. A local module is importable because the manifest's directory (the
 root) is on the language tool's import path by convention. There are no `includes` or
 `modules` fields in v1. A binding may additionally carry **arguments as data**
 (`args` / `kwargs`); these are passed to the referenced function and are never
-interpreted as code (see Parameterized bindings).
+interpreted as code (see *Binding forms*).
+
+### Binding forms (string or table)
+
+A **binding** is the single, unified concept used at **every** executable site — a
+per-dataset `fetcher` or `loader` (`[<dataset>._LANG.<lang>]`) **and** every entry in a
+project-wide `[_LANG.<lang>.loaders]` format map. It takes one of two interchangeable
+forms:
+
+1. **string** — a bare `module:function` reference; or
+2. **table** — `{ ref = "module:function", args = [...], kwargs = {...} }`, with
+   `args`/`kwargs` optional (see *Parameterized bindings*).
+
+The string is an **alias** for the ref-only table — `"M:f"` ≡ `{ ref = "M:f" }` — so a
+reader MUST accept either form anywhere a binding is allowed. **Call semantics follow the
+arguments, not the syntax:** with no `args`/`kwargs` the tool makes its **conventional
+call** (a loader receives the dataset path; a fetcher the standard fetch context); with
+`args`/`kwargs` the call is **explicit** — `ref(*args; kwargs...)`, nothing auto-injected
+— and runtime values are passed via `$var` substitution (`$path`, …).
+
+**Canonical writing.** A binding with no `args` and no `kwargs` MUST be written as the
+**string**; the bare `{ ref = … }` table is accepted on read but normalized to the string
+on write. A binding that carries `args`/`kwargs` is written as a table.
+
+`shell.fetcher` is **not** a `module:function` binding — it is a command-template string
+— so it is always a string, never a table.
 
 ### Per-dataset bindings
 
 `[<dataset>._LANG.<lang>]` holds singular bindings for a specific dataset in language
-`<lang>`. Both keys are optional. Each binding is either a **string** — a bare
-`module:function` ref — or a **table** carrying the ref plus arguments (see Parameterized
-bindings).
+`<lang>`. Both keys are optional, and each is a **binding** in either form (see *Binding
+forms*).
 
 | Key | Type | Semantics |
 |---|---|---|
@@ -160,13 +184,13 @@ kwargs = { grid = "10x10" }
 - `args` and `kwargs` are **plain data** (string, number, bool, array, table) — never
   code. `args` is an ordered list of positional values; `kwargs` keys become keyword
   parameters. Values map to each language's native types.
-- The table form is **explicit**: the tool calls `ref(*args; kwargs...)` and does **not**
-  auto-inject any standard value. Runtime values are referenced by **`$var` substitution**
-  in string values — the same variables the `shell` fetcher exposes (`$key`, `$version`,
-  `$doi`, `$format`, `$branch`, `$uri`, `$project_root`; `$download_path` for fetchers,
-  `$path` — the resolved dataset path — for loaders). (The bare-string form keeps the
-  tool's conventional call: a loader receives the dataset path, a fetcher the standard
-  fetch kwargs.)
+- A binding carrying `args`/`kwargs` is called **explicitly**: the tool calls
+  `ref(*args; kwargs...)` and does **not** auto-inject any standard value. Runtime values
+  are referenced by **`$var` substitution** in string values — the same variables the
+  `shell` fetcher exposes (`$key`, `$version`, `$doi`, `$format`, `$branch`, `$uri`,
+  `$project_root`; `$download_path` for fetchers, `$path` — the resolved dataset path —
+  for loaders). The ref-only form (the bare string, equivalently `{ ref = … }`) instead
+  makes the tool's conventional call and is written as the string (see *Binding forms*).
 - **Type mapping is language-neutral.** A value with no TOML type — e.g. a Julia `Symbol`
   — is written as its plain string form (`weighting_method = "model"` for `:model`); the
   target function accepts the string (or coerces it at its boundary). A binding's
@@ -191,10 +215,12 @@ value is a command template that supports variable substitutions: `$download_pat
 
 ### Project-wide loaders
 
-`[_LANG.<lang>.loaders]` is a `format → ref` map of project-wide default loaders for
-language `<lang>`. It applies when a dataset has no per-dataset `loader` for that
-language. Note the singular `loader` key per dataset vs. the plural `loaders` format
-map at the top level.
+`[_LANG.<lang>.loaders]` is a `format → binding` map of project-wide default loaders for
+language `<lang>`: each value is a **binding** in either form (a bare `module:function`
+string, or a `{ ref, args, kwargs }` table — see *Binding forms*), so a format default may
+be parameterized exactly like a per-dataset loader. It applies when a dataset has no
+per-dataset `loader` for that language. Note the singular `loader` key per dataset vs. the
+plural `loaders` format map at the top level.
 
 ## Resolution semantics
 

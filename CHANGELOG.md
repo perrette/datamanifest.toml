@@ -1,5 +1,25 @@
 # Changelog
 
+## spec-v3.3 (schema `_META.schema = 1`)
+
+Harmonize executable bindings into **one** form, used identically at every site. A
+**binding** — a per-dataset `fetcher`/`loader` and now every entry in a
+`[_LANG.<lang>.loaders]` format map — is either a `module:function` string or a
+`{ ref, args, kwargs }` table.
+
+- The **string is an alias** for the ref-only table (`"M:f"` ≡ `{ ref = "M:f" }`); a
+  reader accepts either form anywhere a binding is allowed.
+- **Writer rule:** a binding with no `args` and no `kwargs` MUST be written as the string;
+  the table form is used only when it carries arguments.
+- **Call semantics follow the arguments:** none → the tool's conventional call (path
+  injected for a loader, fetch context for a fetcher); `args`/`kwargs` → an explicit
+  `ref(*args; kwargs...)` with `$var` substitution and no auto-injection.
+- `schemas/manifest.v3.json`: `[_LANG.<lang>.loaders]` values now accept the table form
+  (were string-only), via the shared `binding` definition. `shell.fetcher` stays a
+  command-template string (not a `module:function` binding).
+- `_META.schema` stays **1**: the TOML shape is back-compatible (a widening plus a writer
+  rule); versioned on the spec-tag axis.
+
 ## spec-v3.2 (schema `_META.schema = 1`)
 
 Fix the `inspect` **`last-access`** rule. The previous wording ("a tool SHOULD touch an

@@ -35,7 +35,7 @@
       "description": "A module:function reference (never inline code)."
     },
     "binding": {
-      "description": "A fetcher/loader binding: a bare module:function string, or a { ref, args, kwargs } table.",
+      "description": "A fetcher/loader binding, used identically for per-dataset fetcher/loader and for [_LANG.<lang>.loaders] values: a bare module:function string, or a { ref, args, kwargs } table. The string is an alias for { ref } (no args/kwargs) and is the canonical written form whenever there are no arguments.",
       "oneOf": [
         { "$ref": "#/$defs/ref" },
         {
@@ -63,8 +63,8 @@
         "properties": {
           "loaders": {
             "type": "object",
-            "description": "format -> module:function default-loader map for this language.",
-            "additionalProperties": { "$ref": "#/$defs/ref" }
+            "description": "format -> binding default-loader map for this language (each value is a module:function string or a { ref, args, kwargs } table).",
+            "additionalProperties": { "$ref": "#/$defs/binding" }
           }
         },
         "additionalProperties": true
