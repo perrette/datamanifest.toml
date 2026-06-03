@@ -1,5 +1,26 @@
 # Changelog
 
+## spec-v3.4 (schema `_META.schema = 1`)
+
+Language-implicit ("bare") bindings, so a single-language project can skip the
+`[<dataset>._LANG.<lang>]` ceremony. A dataset MAY carry a bare `fetcher`/`loader`
+directly, and a top-level `[_LOADERS]` MAY carry a bare `format → binding` map; a reading
+tool interprets these as bindings in **its own language**.
+
+- **Precedence:** an explicit `[<dataset>._LANG.<self>]` binding (and
+  `[_LANG.<self>.loaders]`) overrides the bare one.
+- **Tolerant:** a bare binding that does not resolve in the running language **warns and
+  falls through** the ladder — never a hard error (a shared single-author manifest will
+  legitimately fail in the other language).
+- **Round-trip:** a writer preserves a bare binding verbatim — it never promotes it into
+  `_LANG.<self>`; tools write `_LANG.<self>` only for bindings they generate.
+- `[_LOADERS]` is reclassified from deprecated back-compat to the **tolerated**
+  language-implicit counterpart of `[_LANG.<self>.loaders]`.
+- `schemas/manifest.v3.json`: datasets gain `fetcher`/`loader` (binding-typed); `_LOADERS`
+  is a `format → binding` map.
+- `_META.schema` stays **1**: additive (new optional fields + a tolerant read rule);
+  versioned on the spec-tag axis.
+
 ## spec-v3.3 (schema `_META.schema = 1`)
 
 Harmonize executable bindings into **one** form, used identically at every site. A

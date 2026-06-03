@@ -9,8 +9,9 @@
     "_LANG": { "$ref": "#/$defs/langTop" },
     "_STORAGE": { "$ref": "#/$defs/storage" },
     "_LOADERS": {
-      "description": "Legacy format -> ref loader map (deprecated; preserved for back-compat).",
-      "type": "object"
+      "description": "Language-implicit format -> binding loaders map (tolerated; the bare counterpart of [_LANG.<self>.loaders], read as the running tool's own language).",
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/binding" }
     }
   },
   "patternProperties": {
@@ -149,6 +150,8 @@
         "extract": { "type": "boolean" },
         "format": { "type": "string" },
         "requires": { "type": "array", "items": { "type": "string" } },
+        "fetcher": { "$ref": "#/$defs/binding" },
+        "loader": { "$ref": "#/$defs/binding" },
         "_LANG": { "$ref": "#/$defs/langDataset" }
       },
       "not": {

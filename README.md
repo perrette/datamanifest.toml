@@ -81,6 +81,18 @@ A binding (a `fetcher`/`loader`, or a `[_LANG.<lang>.loaders]` entry) is either 
 `module:function` **string** or a `{ ref, args, kwargs }` **table** — the string being a
 shorthand for a ref with no arguments.
 
+Single-language projects can drop the `_LANG.<lang>` wrapper entirely: a **bare**
+`fetcher`/`loader` on the dataset (or a top-level `[_LOADERS]` map) is read as the running
+tool's own language. A bare binding that doesn't resolve in that language warns and falls
+through rather than erroring.
+
+```toml
+[sea_ice]
+uri    = "https://example.com/sea_ice.nc"
+format = "nc"
+loader = "myclimate.loaders:load_sea_ice"   # no [._LANG.python] — own language assumed
+```
+
 ## Implementations
 
 Two implementations track the spec in parallel and on equal footing. Julia was the

@@ -24,7 +24,7 @@ Two independent version axes govern this format:
 ## Structural keys
 
 Keys beginning with `_` are **structural** — they are not dataset tables. At the top
-level, the defined structural tables are `_META`, `_LANG`, `_STORAGE`, and the legacy `_LOADERS`.
+level, the defined structural tables are `_META`, `_LANG`, `_STORAGE`, and `_LOADERS`.
 Within a dataset table, the only defined structural sub-table is `_LANG`. Readers MUST
 preserve unknown `_*` keys verbatim and MUST NOT treat them as datasets or drop them on
 write.
@@ -38,13 +38,15 @@ A v1 manifest is a TOML document with:
   `<lang>`. The sub-key `loaders` is a `format → ref` map of default loaders for that
   language.
 - **One table per dataset**, keyed by the dataset name. Dataset tables hold the
-  language-agnostic contract fields and an optional `_LANG` sub-table for per-dataset
-  bindings.
+  language-agnostic contract fields, an optional `_LANG` sub-table for per-dataset
+  bindings, and optional **bare (language-implicit) `fetcher`/`loader` bindings** (see
+  *Language-implicit bindings*).
 - **`[_STORAGE]`** — optional storage configuration: a host-aware namespace of **folder
   variables** (built-in `data`, `cache`, `repo` plus user-defined keys), the project-wide
   `default` selector, the `_HOST` override sub-table, and the `_PREFIX` / `_SCOPE` content
   sub-tables. See Storage.
-- **Legacy `[_LOADERS]`** — preserved for backward compatibility; see Deprecations.
+- **`[_LOADERS]`** — a language-implicit `format → binding` loaders map (tolerated; the
+  bare counterpart of `[_LANG.<self>.loaders]`). See *Language-implicit bindings*.
 
 Example:
 
@@ -108,6 +110,8 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `extract` | bool | `false` | After download, extract the archive (`zip` / `tar` / `tar.gz`) and use the extracted directory as the dataset path. |
 | `format` | string | `""` | Data format hint used to pick a default loader (`csv`, `parquet`, `nc`, `json`, `yaml`, `toml`, `md`, `txt`, `zip`, `tar`, `tar.gz`, …). Inferred from the URI when absent. |
 | `requires` | array of string | `[]` | Names of datasets that must be downloaded before this one; defines a dependency graph resolved in topological order. |
+| `fetcher` | string \| table | `""` | **Language-implicit** fetcher binding — read as the running tool's own language (see *Language-implicit bindings*). Equivalent to `[<dataset>._LANG.<self>].fetcher`. |
+| `loader` | string \| table | `""` | **Language-implicit** loader binding — read as the running tool's own language. Equivalent to `[<dataset>._LANG.<self>].loader`. |
 
 ## Language bindings (`_LANG`)
 
@@ -222,6 +226,33 @@ be parameterized exactly like a per-dataset loader. It applies when a dataset ha
 per-dataset `loader` for that language. Note the singular `loader` key per dataset vs. the
 plural `loaders` format map at the top level.
 
+### Language-implicit bindings (bare `fetcher` / `loader`)
+
+For a single-language project the `[<dataset>._LANG.<lang>]` wrapper is needless ceremony.
+A dataset table MAY therefore carry a **bare** `fetcher` and/or `loader` directly (a
+binding in either form), and a top-level **`[_LOADERS]`** table MAY carry a bare
+`format → binding` map. "Bare" means **language-implicit**: a reading tool interprets these
+as bindings in **its own language**, exactly as if they appeared under
+`[<dataset>._LANG.<self>]` / `[_LANG.<self>.loaders]`.
+
+- **Precedence — explicit wins.** An explicit own-language binding overrides the bare one:
+  `[<dataset>._LANG.<self>].loader` > bare `loader`, and `[_LANG.<self>.loaders][fmt]` >
+  `[_LOADERS][fmt]` (likewise for `fetcher`).
+- **Tolerant — warn, do not error.** A bare binding written by a single author will not
+  resolve in another language (a Python tool cannot import a Julia `loader`). When a bare
+  binding fails to resolve or call in the running language, a tool SHOULD **emit a warning
+  and fall through** to the next ladder rung — it MUST NOT hard-error on that account.
+- **Preserve verbatim (round-trip).** A writer MUST keep a bare binding **bare** — it MUST
+  NOT promote `loader = …` into `[<dataset>._LANG.<self>].loader`. A tool writes under
+  `_LANG.<self>` only for bindings it generates itself, so hand-authored bare bindings
+  survive a read-write round-trip unchanged and one tool never rewrites another language's
+  view.
+
+`[_LOADERS]` was previously a deprecated back-compat table; it is now **tolerated** as the
+language-implicit counterpart of `[_LANG.<self>.loaders]` — read as the running tool's
+format-default loaders and preserved verbatim on write. The `shell` fetcher has no bare
+form (it is never language-implicit).
+
 ## Resolution semantics
 
 At runtime, each language tool collapses the `_LANG` tree to a single effective
@@ -232,7 +263,8 @@ internally for lossless round-trip.
 
 The tool tries each rung in order, using the first that applies:
 
-1. `[<dataset>._LANG.<self>].fetcher` — in-process call (own language, fastest);
+1. `[<dataset>._LANG.<self>].fetcher`, else the bare `[<dataset>].fetcher` — in-process
+   call (own language, fastest);
 2. `[<dataset>._LANG.shell].fetcher` — run the command template (cheap subprocess);
 3. **cross-language fetch** — the rare case: run a fetcher defined in another language
    (mechanism implementation-defined; the Python CLI can serve as a fallback), controlled
@@ -244,10 +276,15 @@ The tool tries each rung in order, using the first that applies:
 
 The tool tries each rung in order:
 
-1. `[<dataset>._LANG.<self>].loader`;
-2. `[_LANG.<self>.loaders][<dataset>.format]` — manifest-configured format default;
+1. `[<dataset>._LANG.<self>].loader`, else the bare `[<dataset>].loader`;
+2. `[_LANG.<self>.loaders][<dataset>.format]`, else `[_LOADERS][<dataset>.format]` —
+   manifest-configured format default;
 3. the tool's built-in default loader for `<dataset>.format`;
 4. else error.
+
+At each own-language rung the explicit `_LANG.<self>` binding takes precedence over the
+bare one; a bare binding that fails in the running language warns and falls through (see
+*Language-implicit bindings*).
 
 **Load never delegates.** A loader returns a live in-memory native object, which cannot
 cross a process boundary. Cross-language data preparation is modeled as one language's
