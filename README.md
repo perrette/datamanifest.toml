@@ -9,17 +9,32 @@ A small, normative specification for the **`datamanifest.toml`** manifest format
 TOML file that declares the data dependencies of a scientific project (each dataset's
 source URI, checksum, version, format, and how to fetch and load it).
 
-The spec is at **schema v1** (`_META.schema = 1`). The key change from v0 is the
-**`_LANG` namespace**: language-specific bindings (`fetcher`/`loader` as
-`module:function` references) live under `[<dataset>._LANG.<lang>]` and
-`[_LANG.<lang>.loaders]`, keeping the language-agnostic contract fields separate.
-Each implementation reads its own `_LANG` entries and preserves the rest verbatim,
-enabling lossless round-trips in multi-language projects.
+One `datasets.toml` is read by tools in different languages — today
+[Python](https://github.com/perrette/datamanifest) and
+[Julia](https://github.com/awi-esc/DataManifest.jl) — and covers fetching (download,
+checksum, extract, load), portable storage, per-language bindings, and an optional
+produce-or-load cache layer. The data model is `_META.schema = 1`; behavioural revisions
+are tracked by spec tags (currently `spec-v3.6`).
 
 ➡️ **[Reference guide: `docs/guide.md`](docs/guide.md)** — readable walkthrough of every aspect  
 ➡️ **[Normative spec: `SCHEMA.md`](SCHEMA.md)**  
 ➡️ **[Conformance fixtures: `tests/fixtures/`](tests/fixtures/README.md)**  
 ➡️ **[Changelog: `CHANGELOG.md`](CHANGELOG.md)**
+
+## Quick look
+
+Declare a dataset — its source and checksum — in `datasets.toml`:
+
+```toml
+["jesstierney/lgmDA"]
+uri     = "https://github.com/jesstierney/lgmDA/archive/refs/tags/v2.1.zip"
+sha256  = "da5f85235baf7f858f1b52ed73405f5d4ed28a8f6da92e16070f86b724d8bb25"
+extract = true
+```
+
+A tool downloads it, verifies the checksum, unpacks the archive, and hands your code the
+local path — re-fetching only when it's missing. Add a `format` and it loads the data into a
+native object too; the same file is read unchanged by tools in different languages.
 
 ## Example
 
