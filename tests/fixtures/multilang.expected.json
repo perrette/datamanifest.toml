@@ -27,7 +27,7 @@
     "lang_namespaces": {
       "top_level": ["_LANG.python", "_LANG.julia"],
       "per_dataset": {
-        "model_output": ["_LANG.python", "_LANG.julia", "_LANG.shell"]
+        "model_output": ["_LANG.python", "_LANG.julia"]
       }
     }
   }

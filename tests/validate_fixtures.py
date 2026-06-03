@@ -129,10 +129,11 @@ def validate(toml_path, json_path):
                     elif ref is not None and _ref_of(binding) != ref:
                         _err(errors, f"resolution[{lang}][{ds_name}].fetcher: ref mismatch (expected '{ref}', manifest has '{_ref_of(binding)}')")
                 elif rung == "shell":
-                    shell_ds = ds.get("_LANG", {}).get("shell", {})
-                    if "fetcher" not in shell_ds:
-                        _err(errors, f"resolution[{lang}][{ds_name}].fetcher: rung 'shell' but manifest has no [_LANG.shell].fetcher")
-                    elif ref is not None and _ref_of(shell_ds["fetcher"]) != ref:
+                    # canonical bare `shell` field; else legacy [_LANG.shell].fetcher
+                    cmd = ds.get("shell", ds.get("_LANG", {}).get("shell", {}).get("fetcher"))
+                    if cmd is None:
+                        _err(errors, f"resolution[{lang}][{ds_name}].fetcher: rung 'shell' but manifest has no bare 'shell' nor [_LANG.shell].fetcher")
+                    elif ref is not None and _ref_of(cmd) != ref:
                         _err(errors, f"resolution[{lang}][{ds_name}].fetcher: shell ref mismatch")
                 elif rung == "per-dataset":
                     lang_ds = ds.get("_LANG", {}).get(lang, {})

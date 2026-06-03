@@ -84,19 +84,17 @@ args   = ["$path"]
 kwargs = { grid = "5x5", skip_models = ["CESM.*"] }
 
 # A dataset with no public URI: produced by a fetcher. The own-language fetcher
-# runs in-process; the shell fetcher is a cheap cross-language fallback that
-# writes to $download_path.
+# runs in-process; the bare `shell` fetcher is a language-agnostic fallback (the
+# same command for every tool) that writes to $download_path.
 [model_output]
 sha256      = "e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
 format      = "nc"
 description = "Local climate-model run, built on demand"
+shell       = "make model_output OUTPUT=$download_path"   # language-agnostic
 
 [model_output._LANG.python]
 fetcher = "myclimate.build:model_output"
 loader  = "myclimate.loaders:load_output"
-
-[model_output._LANG.shell]
-fetcher = "make model_output OUTPUT=$download_path"
 
 # Single-language shorthand: a BARE binding (no _LANG.<lang> wrapper) is read as the
 # running tool's OWN language — handy for a Python-only or Julia-only project. An

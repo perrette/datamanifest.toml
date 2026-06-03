@@ -70,6 +70,7 @@ format = "csv"
 [bar]
 sha256 = "def456"
 format = "nc"
+shell  = "make-bar -o $download_path"   # language-agnostic shell fetcher
 
 [bar._LANG.julia]
 fetcher = "MyPkg:build_bar"
@@ -78,9 +79,6 @@ loader  = "MyPkg:load_bar"
 [bar._LANG.python]
 fetcher = "mypkg.build:bar"
 loader  = "mypkg.load:bar"
-
-[bar._LANG.shell]
-fetcher = "make-bar -o $download_path"
 ```
 
 ## Language-agnostic contract (common fields)
@@ -112,11 +110,14 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `requires` | array of string | `[]` | Names of datasets that must be downloaded before this one; defines a dependency graph resolved in topological order. |
 | `fetcher` | string \| table | `""` | **Language-implicit** fetcher binding — read as the running tool's own language (see *Language-implicit bindings*). Equivalent to `[<dataset>._LANG.<self>].fetcher`. |
 | `loader` | string \| table | `""` | **Language-implicit** loader binding — read as the running tool's own language. Equivalent to `[<dataset>._LANG.<self>].loader`. |
+| `shell` | string | `""` | **Language-agnostic** shell fetcher — a command template run as a subprocess (the same command for every tool). Fetcher only; see *`shell` fetcher*. |
 
 ## Language bindings (`_LANG`)
 
 Executable bindings live under a structural `_LANG` namespace, keyed by language tag
-(`python`, `julia`, `r`, `shell`, …). The dataset table itself stays fully agnostic.
+(`python`, `julia`, `r`, …). The dataset table itself stays fully agnostic. (The
+language-agnostic shell fetcher is a bare `shell` field, not a `_LANG` tag — see
+*`shell` fetcher*.)
 
 All executable references are **`module:function` references** — never inline code, in
 any language. A local module is importable because the manifest's directory (the project
@@ -147,8 +148,8 @@ call** (a loader receives the dataset path; a fetcher the standard fetch context
 **string**; the bare `{ ref = … }` table is accepted on read but normalized to the string
 on write. A binding that carries `args`/`kwargs` is written as a table.
 
-`shell.fetcher` is **not** a `module:function` binding — it is a command-template string
-— so it is always a string, never a table.
+The `shell` fetcher is **not** a `module:function` binding — it is a language-agnostic
+command-template string (see *`shell` fetcher*) — so it is always a string, never a table.
 
 ### Per-dataset bindings
 
@@ -209,13 +210,19 @@ kwargs = { grid = "10x10" }
   the same key order and element order across tools — **semantically identical** (and
   byte-identical via the canonical reference form; see the `byte-identity` capability).
 
-### `shell` execution context
+### `shell` fetcher
 
-`shell` is an execution context with a `fetcher` only — there is no `loader` for
-`shell`, because a subprocess cannot return a live in-memory object. The `fetcher`
-value is a command template that supports variable substitutions: `$download_path`,
-`$project_root`, `$uri`, `$key`, `$version`, `$doi`, `$format`, `$branch`,
-`$path_<ref>`, `$path_<i>`, `$requires_paths`.
+`shell` is a **bare, language-agnostic** dataset field: a command template run as a
+subprocess to fetch the dataset. Unlike a bare `fetcher`/`loader` (language-*implicit* —
+the running tool's own language), `shell` is the **same command for every tool**, so it
+belongs on the dataset table, not under the language namespace. It is a fetcher only — a
+subprocess cannot return a live in-memory object, so there is no shell `loader`. The value
+is a command template supporting variable substitutions: `$download_path`, `$project_root`,
+`$uri`, `$key`, `$version`, `$doi`, `$format`, `$branch`, `$path_<ref>`, `$path_<i>`,
+`$requires_paths`.
+
+The legacy `[<dataset>._LANG.shell].fetcher` form is still read and preserved verbatim;
+the bare `shell` field is the canonical form.
 
 ### Project-wide loaders
 
@@ -250,8 +257,9 @@ as bindings in **its own language**, exactly as if they appeared under
 
 `[_LOADERS]` was previously a deprecated back-compat table; it is now **tolerated** as the
 language-implicit counterpart of `[_LANG.<self>.loaders]` — read as the running tool's
-format-default loaders and preserved verbatim on write. The `shell` fetcher has no bare
-form (it is never language-implicit).
+format-default loaders and preserved verbatim on write. The `shell` fetcher is the
+language-**agnostic** sibling of these language-implicit bindings: a bare dataset field
+carrying the same command for every tool (see *`shell` fetcher*).
 
 ## Resolution semantics
 
@@ -265,7 +273,8 @@ The tool tries each rung in order, using the first that applies:
 
 1. `[<dataset>._LANG.<self>].fetcher`, else the bare `[<dataset>].fetcher` — in-process
    call (own language, fastest);
-2. `[<dataset>._LANG.shell].fetcher` — run the command template (cheap subprocess);
+2. the dataset's `shell` command (else legacy `[<dataset>._LANG.shell].fetcher`) — run the
+   command template (cheap subprocess);
 3. **cross-language fetch** — the rare case: run a fetcher defined in another language
    (mechanism implementation-defined; the Python CLI can serve as a fallback), controlled
    by `delegate` / `--delegate`; see Cross-language fetch below;
@@ -294,7 +303,7 @@ then loads with its own format default.
 ### Cross-language fetch (rung 3)
 
 Reached **only** in the rare case that a dataset has no fetcher in the running tool's own
-language, no `shell` fetcher, and no `uri` — its bytes can be produced only by a fetcher
+language, no `shell` command, and no `uri` — its bytes can be produced only by a fetcher
 defined in another language (`[<ds>._LANG.<other>].fetcher`). Native / `shell` / plain
 `uri` cases never reach here, so each implementation is self-sufficient for nearly all
 datasets.
@@ -922,7 +931,7 @@ fixture-suite tests tagged for those capabilities.
 |---|---|
 | `lang-read` | Parse `[<ds>._LANG.<lang>]` and `[_LANG.<lang>.loaders]`; apply the load ladder. |
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write (full lossless round-trip). |
-| `shell-fetch` | Execute the `[<ds>._LANG.shell].fetcher` command template in the fetch ladder. |
+| `shell-fetch` | Execute the dataset's `shell` command template (or legacy `[<ds>._LANG.shell].fetcher`) in the fetch ladder. |
 | `delegation` | Cross-language fetch (rung 3, the rare case): run a fetcher defined in another language — mechanism implementation-defined (call the language's runtime, or a peer `datamanifest` CLI), with fall-through to `uri` — controlled by `delegate` / `--delegate` (see Cross-language fetch, Peer-CLI contract). |
 | `storage` | Honor the `store` / `default` `$`-folder selectors and `[_STORAGE]` folder-variable resolution; materialize datasets into the selected folder at its canonical or configured root (see Storage). |
 | `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, or Julia `write(...; canonical=true)`). |
@@ -980,14 +989,20 @@ implementation to document.
 The following v0 forms are still read for backward compatibility but SHOULD NOT be
 written by conforming v1 tools:
 
-- **`[_LOADERS]`** (top-level) — replaced by `[_LANG.<lang>.loaders]`.
-- **Per-dataset `julia=` / `python=` / `callable=` / `shell=` / `loader=`** — replaced
-  by `[<dataset>._LANG.<lang>].fetcher` / `.loader`. These legacy keys are kept verbatim
-  in the dataset's `extra` on read (no auto-rewrite to avoid touching another language's
-  data). A tool MAY emit a one-time deprecation notice.
+- **Per-dataset language-named flat fields `julia=` / `python=` / `callable=`** (and any
+  other `<lang>=`) — historically held **inline code**, which v1 forbids. Replaced by a
+  `module:function` binding under `[<dataset>._LANG.<lang>].fetcher` (or the bare,
+  language-implicit `fetcher`). Kept verbatim in the dataset's `extra` on read (no
+  auto-rewrite, to avoid touching another language's data); `migrate` rewrites the
+  ref-shaped ones. A tool MAY emit a one-time deprecation notice.
 - **`julia_modules` / `python_includes`** — retired; the manifest's directory is on the
   tool's import path by convention. Legacy `*_includes` values are still read as extra
   import-path entries for back-compat.
+
+Note: bare `fetcher` / `loader` (language-implicit), bare `shell` (language-agnostic), and
+top-level `[_LOADERS]` are **not** deprecated — they are supported forms (see
+*Language-implicit bindings* and *`shell` fetcher*). Only the inline-code language-named
+fields above are legacy.
 
 An opt-in `datamanifest migrate` command (not normative in this spec) may rewrite a v0
 flat file to v1 `_LANG` form for the tool's own language.

@@ -152,6 +152,10 @@
         "requires": { "type": "array", "items": { "type": "string" } },
         "fetcher": { "$ref": "#/$defs/binding" },
         "loader": { "$ref": "#/$defs/binding" },
+        "shell": {
+          "type": "string",
+          "description": "Language-agnostic shell fetcher: a command template run as a subprocess (the same command for every tool). Fetcher only."
+        },
         "_LANG": { "$ref": "#/$defs/langDataset" }
       },
       "not": {

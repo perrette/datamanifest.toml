@@ -1,5 +1,24 @@
 # Changelog
 
+## spec-v3.5 (schema `_META.schema = 1`)
+
+Move the shell fetcher out of the `_LANG` namespace. `shell` is **language-agnostic** (the
+same command for every tool), so it is now a bare dataset field — a command template run as
+a subprocess — rather than a pseudo-language under `[<ds>._LANG.shell]`.
+
+- `shell = "<command template>"` on the dataset is the canonical form; same `$var`
+  substitutions as before; fetcher only.
+- The legacy `[<ds>._LANG.shell].fetcher` is still read and preserved verbatim.
+- `schemas/manifest.v3.json`: datasets gain a `shell` string field.
+- The bare `julia=`/`python=`/`callable=` flat fields stay **legacy** (they historically
+  held inline code, which v1 forbids) — tolerated on read and rewritten by `migrate`; not a
+  forward form. The single-language convenience is already covered by bare `fetcher`.
+- Reconciled the Deprecations section with spec-v3.4: bare `fetcher`/`loader`
+  (language-implicit), bare `shell` (language-agnostic), and `[_LOADERS]` are supported
+  forms, not deprecated.
+- `_META.schema` stays **1**: additive field + a relocation with legacy tolerance;
+  spec-tag axis.
+
 ## spec-v3.4 (schema `_META.schema = 1`)
 
 Language-implicit ("bare") bindings, so a single-language project can skip the
