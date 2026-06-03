@@ -26,6 +26,8 @@ HEIGHT = 196          # canvas height (extra vertical breathing room)
 SIZE_WORD = 62
 LS_WORD = -1
 SIZE_TAG = 22
+BRACKET_GAP = 18      # gap between the wordmark and each bracket stem
+TAG_MARGIN = 10       # tagline clearance inside each bracket (broader = smaller)
 AMBER = "#F0A92B"
 
 
@@ -96,13 +98,15 @@ def build(path, body, line, word_fill, tag_fill):
 
     word_w = width(w_items, LS_WORD)
     word_right = WORD_START + word_w
-    # justify the tagline to the same advance width as the wordmark
-    ls_tag = (word_w - width(t_items, 0)) / (len(t_items) - 1)
+    lb, rb = WORD_START - BRACKET_GAP, word_right + BRACKET_GAP
+
+    # justify the tagline to the bracket span (centered, never beyond the brackets)
+    tag_left, tag_right = lb + TAG_MARGIN, rb - TAG_MARGIN
+    ls_tag = ((tag_right - tag_left) - width(t_items, 0)) / (len(t_items) - 1)
 
     word_paths = render(w_items, w_s, WORD_START, BASE_WORD, LS_WORD, word_fill)
-    tag_paths = render(t_items, t_s, WORD_START, BASE_TAG, ls_tag, tag_fill)
+    tag_paths = render(t_items, t_s, tag_left, BASE_TAG, ls_tag, tag_fill)
 
-    lb, rb = WORD_START - 18, word_right + 18
     top, bot = BASE_WORD - 46, BASE_WORD + 8
     brackets = (
         f'  <path d="M{lb+12:.1f} {top} H{lb:.1f} V{bot} H{lb+12:.1f}" fill="none" '
@@ -124,8 +128,9 @@ def build(path, body, line, word_fill, tag_fill):
     with open(path, "w") as fh:
         fh.write(svg)
     print(f"wrote {path}: viewBox 0 0 {vb_w} {HEIGHT}; "
-          f"wordmark width={word_w:.1f}px, tagline ls={ls_tag:.2f}px, "
-          f"both span x={WORD_START}..{word_right:.1f}")
+          f"wordmark x={WORD_START}..{word_right:.1f}, "
+          f"tagline x={tag_left:.1f}..{tag_right:.1f} (ls={ls_tag:.2f}px), "
+          f"brackets x={lb:.1f}..{rb:.1f}")
 
 
 build("design/logo/lockup.svg", "#2f4d7a", "#1c3050", "#2f4d7a", "#7d8aa0")
