@@ -299,16 +299,31 @@ def validate(toml_path, json_path):
     # --- cached_index (optional; present for `inspect` fixtures) ---
     cached_index = expected.get("cached_index")
     if cached_index is not None:
+        # `forbidden_keys` is the canonical *writer* contract: a generated
+        # cached.toml must NOT carry these legacy/renamed keys (e.g. `project`,
+        # renamed to `scope`), in `_META` or any entry. Deliberately distinct
+        # from the lenient round-trip preservation of unknown keys (R3/R4):
+        # preservation governs foreign input copied verbatim; this governs what a
+        # tool *emits*. Without it, `additionalProperties: true` (and the bespoke
+        # positive-only checks here) would silently accept a stray `project`.
+        forbidden = cached_index.get("forbidden_keys", [])
+        cached_meta = manifest.get("_META", {})
+        for bad in forbidden:
+            if bad in cached_meta:
+                _err(errors, f"cached_index[_META]: canonical output must not carry legacy key '{bad}'")
         for name, exp in cached_index.get("entries", {}).items():
             if name not in manifest:
                 _err(errors, f"cached_index: entry '{name}' not in manifest")
                 continue
             entry = manifest[name]
-            for field in ("cachetype", "hash", "ref"):
+            for field in ("cachetype", "hash", "ref", "scope"):
                 if field in exp and entry.get(field) != exp[field]:
                     _err(errors, f"cached_index[{name}]: {field} mismatch (expected {exp[field]!r}, manifest has {entry.get(field)!r})")
             if "store" in exp and entry.get("store", "$cache") != exp["store"]:
                 _err(errors, f"cached_index[{name}]: store mismatch (expected {exp['store']!r}, manifest has {entry.get('store')!r})")
+            for bad in forbidden:
+                if bad in entry:
+                    _err(errors, f"cached_index[{name}]: canonical output must not carry legacy key '{bad}' (renamed to 'scope')")
             if not _HEX64.match(str(entry.get("hash", ""))):
                 _err(errors, f"cached_index[{name}]: hash is not 64 lowercase hex chars")
 

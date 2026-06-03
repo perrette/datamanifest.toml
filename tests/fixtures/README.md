@@ -180,10 +180,20 @@ sidecar minus `_META`, so the sidecar and the expectation cannot drift.
 ### `cached_index` (optional)
 
 Present for `inspect`-capability fixtures. Here the fixture `.toml` is itself a
-**`cached.toml`** index (not a `datasets.toml`). `cached_index.entries.<name>` asserts,
-per produced-dataset entry: `cachetype`, `hash` (64 lowercase hex), `ref` (the producing
-`module:function`), and `store`. Resolution / preservation blocks are empty for this
-fixture.
+**`cached.toml`** index (not a `datasets.toml`), modelling canonical *generated* writer
+output. `cached_index.entries.<name>` asserts, per produced-dataset entry: `cachetype`,
+`hash` (64 lowercase hex), `ref` (the producing `module:function`), `scope` (the partition
+segment — the cached default is the project id), and `store`. Resolution / preservation
+blocks are empty for this fixture.
+
+`cached_index.forbidden_keys` is a **negative** assertion: a list of keys a canonical
+generated `cached.toml` must NOT carry — checked against `_META` and every entry. It pins
+renames/removals the positive field checks can't (e.g. `project`, renamed to `scope`).
+This is the *writer* contract and is deliberately distinct from the lenient round-trip
+**preservation** of unknown keys (R3/R4): preservation governs foreign input a tool copies
+verbatim; `forbidden_keys` governs what a tool *emits*. (Note `cached.v3.json` keeps
+`additionalProperties: true` for that preservation, so the schema alone cannot catch a
+stray legacy key — this assertion is what does.)
 
 ### Byte-identity (cross-tool)
 

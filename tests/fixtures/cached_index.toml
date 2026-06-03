@@ -1,6 +1,12 @@
 # A `cached.toml` index (the produced-dataset registry — the Manifest.toml
 # analogue). Sibling to datasets.toml; lists produced datasets by portable key
 # (cachetype + hash), never by absolute path. Roots produced artifacts for GC.
+#
+# This models canonical *generated* writer output: each entry carries the
+# resolved `scope` partition segment (the cached default is the project id —
+# here `lgmpre`, the package name). The legacy `project` key is gone — neither
+# `_META` nor any entry may carry it in canonical output (the expectation's
+# `forbidden_keys` asserts this negatively).
 [_META]
 schema = 1
 
@@ -9,6 +15,7 @@ cachetype = "esm_20c_anomaly"
 hash      = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
 ref       = "lgmpre.data:load_20c_esm_anomaly"
 format    = "nc"
+scope     = "lgmpre"
 store     = "$cache"
 
 [load_lgm_esm_anomaly]
@@ -16,4 +23,5 @@ cachetype = "esm_lgm_anomaly"
 hash      = "40384c4db019d383728340a2d8c5db9c96eb41db0231e93dd944091ca180633c"
 ref       = "lgmpre.data:load_lgm_esm_anomaly"
 format    = "nc"
+scope     = "lgmpre"
 store     = "$cache"
