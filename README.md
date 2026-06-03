@@ -69,6 +69,13 @@ ref    = "MyClimate:load_esm"
 args   = ["$path"]
 kwargs = { grid = "5x5", skip_models = ["CESM.*"] }
 
+# No public URI: built by a shell command. `shell` is the language-agnostic
+# fetcher — the same command for every tool — and uses $var substitutions.
+[model_output]
+sha256 = "e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
+format = "nc"
+shell  = "make model_output OUTPUT=$download_path"
+
 # A re-fetchable input parked on the OS-reclaimable cache folder.
 [reanalysis]
 uri    = "https://example.com/era5_slice.nc"
