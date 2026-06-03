@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/cached.v2.1.json",
+  "title": "Produced-dataset index (cached.toml) — spec-v2.1",
+  "description": "JSON Schema for the JSON projection of a cached.toml produced-dataset index (the cache layer's liveness root). Parse the TOML to JSON, then validate against this schema.",
+  "type": "object",
+  "required": ["_META"],
+  "properties": {
+    "_META": { "$ref": "#/$defs/meta" }
+  },
+  "patternProperties": {
+    "^[^_].*$": { "$ref": "#/$defs/entry" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "meta": {
+      "type": "object",
+      "properties": {
+        "schema": { "const": 1 }
+      },
+      "required": ["schema"],
+      "additionalProperties": true
+    },
+    "selector": {
+      "type": "string",
+      "pattern": "^\\$(\\{[A-Za-z_][A-Za-z0-9_]*\\}|[A-Za-z_][A-Za-z0-9_]*)(/.+)?$"
+    },
+    "entry": {
+      "type": "object",
+      "description": "A produced dataset, addressed by portable key (cachetype + hash), never by absolute path.",
+      "properties": {
+        "cachetype": { "type": "string", "minLength": 1 },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Lowercase 64-hex SHA-256 of the canonical-JSON key table."
+        },
+        "ref": { "type": "string", "description": "The producing module:function reference." },
+        "format": { "type": "string" },
+        "store": { "$ref": "#/$defs/selector" }
+      },
+      "required": ["cachetype", "hash"],
+      "additionalProperties": true
+    }
+  }
+}

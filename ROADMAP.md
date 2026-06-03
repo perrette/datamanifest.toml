@@ -45,11 +45,15 @@ originate in their host language.
 
 ## Possible future directions
 
-- **A proper JSON validator, one file per spec version.** Today a `datasets.toml` is
-  validated by the prose spec plus the fixture suite (`tests/`). A declarative
-  machine-readable schema (e.g. JSON Schema) — **one file per spec version** (`spec-v1.1`,
-  `spec-v2`, …), since older versions stay in use — would let dedicated tools validate a
-  manifest mechanically. This is a separate artifact from the prose `SCHEMA.md` (present),
-  the `CHANGELOG.md` (which documents prior versions), and the git tags.
 - **Cloud / `fsspec` / CAS backends** — optional per-language extras behind the recipe
   interface, never a core spec contract.
+
+## Delivered tooling
+
+- **Machine-readable JSON Schemas** (`schemas/`, spec-v2.1). Declarative
+  [JSON Schema](https://json-schema.org/) (draft 2020-12) for all four TOML document types
+  (`manifest`, `cached`, `config`/`metadata` sidecars), one file per spec version
+  (`*.v2.1.json`) so older versions stay alongside new ones. They complement — do not
+  replace — the prose `SCHEMA.md` and the fixture suite (`tests/`): behavioural rules
+  (resolution ladders, hash reproduction, round-trip) stay in the prose and fixtures. See
+  `schemas/README.md`.
