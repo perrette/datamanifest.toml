@@ -1,0 +1,47 @@
+# Language-implicit ("bare") bindings (spec-v3.4).
+#
+# A single-language author may skip the [<ds>._LANG.<lang>] wrapper: a bare
+# fetcher/loader on the dataset, and a top-level [_LOADERS] format map, are read
+# as bindings in the running tool's OWN language. Resolution therefore yields the
+# same effective binding for python and julia alike (whether it then *executes*
+# in that language is a runtime concern, not a resolution one).
+
+[_META]
+schema = 1
+
+# Language-implicit top-level default loaders: format -> binding (bare).
+[_LOADERS]
+csv = "myproject.io:read_csv"
+nc  = "myproject.io:read_nc"
+
+# Bare per-dataset loader (own language); overrides the _LOADERS csv default.
+[temperature]
+uri    = "https://example.com/temperature.csv"
+sha256 = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+format = "csv"
+loader = "myproject.loaders:load_temperature"
+
+# Bare per-dataset fetcher (own language); no uri, so it is produced by the fetcher.
+[derived]
+sha256  = "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3"
+format  = "nc"
+fetcher = "myproject.build:derived"
+
+# No per-dataset loader: falls back to the [_LOADERS] nc default; plain uri fetch.
+[bathymetry]
+uri    = "https://example.com/bathy.nc"
+sha256 = "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
+format = "nc"
+
+# Precedence: an explicit [_LANG.<self>] loader overrides the bare one.
+[precedence]
+uri    = "https://example.com/p.csv"
+sha256 = "d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5"
+format = "csv"
+loader = "myproject.loaders:bare_one"
+
+[precedence._LANG.python]
+loader = "myproject.loaders:python_one"
+
+[precedence._LANG.julia]
+loader = "MyProject:julia_one"

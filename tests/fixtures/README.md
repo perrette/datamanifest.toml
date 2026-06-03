@@ -18,6 +18,7 @@ submodule and run a conformance runner against it as their test suite.
 | `multilang` | python, julia, shell | `lang-read`, `lang-write`, `shell-fetch` |
 | `unknown_structural` | python, r | `lang-read`, `lang-write` |
 | `parameterized` | python, julia | `lang-read`, `lang-write`, `binding-args` |
+| `lang_implicit` | python, julia | `lang-read`, `lang-write` (bare/language-implicit bindings + `[_LOADERS]`) |
 | `storage` | (none) | `storage` |
 | `config_sidecar` | (none) | `cache-produce` |
 | `config_sidecar_float` | (none) | `cache-produce` (finite-float hash input) |
@@ -78,7 +79,7 @@ implementation MUST resolve for that dataset. Each is expressed as `{"rung": <na
 
 | Rung | Meaning |
 |------|---------|
-| `"own-fetcher"` | `[<ds>._LANG.<self>].fetcher` (own language, rung 1) |
+| `"own-fetcher"` | `[<ds>._LANG.<self>].fetcher`, or the bare `[<ds>].fetcher` (own language, rung 1) |
 | `"shell"` | `[<ds>._LANG.shell].fetcher` command template (rung 2) |
 | `"delegation"` | Peer-CLI delegation, opt-in (rung 3) |
 | `"uri"` | Plain `uri` download (rung 4) |
@@ -88,8 +89,8 @@ implementation MUST resolve for that dataset. Each is expressed as `{"rung": <na
 
 | Rung | Meaning |
 |------|---------|
-| `"per-dataset"` | `[<ds>._LANG.<self>].loader` (rung 1) |
-| `"manifest-format-default"` | `[_LANG.<self>.loaders][<ds>.format]` (rung 2) |
+| `"per-dataset"` | `[<ds>._LANG.<self>].loader`, or the bare `[<ds>].loader` (rung 1) |
+| `"manifest-format-default"` | `[_LANG.<self>.loaders][<ds>.format]`, or `[_LOADERS][<ds>.format]` (rung 2) |
 | `"built-in"` | Tool's built-in default for `<ds>.format` (rung 3) |
 | `"error"` | No rung applies — implementation MUST error |
 

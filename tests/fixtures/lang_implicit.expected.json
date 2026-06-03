@@ -1,0 +1,50 @@
+{
+  "capabilities": ["lang-read", "lang-write"],
+  "resolution": {
+    "python": {
+      "temperature": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "per-dataset", "ref": "myproject.loaders:load_temperature"}
+      },
+      "derived": {
+        "fetcher": {"rung": "own-fetcher", "ref": "myproject.build:derived"},
+        "loader":  {"rung": "manifest-format-default", "ref": "myproject.io:read_nc"}
+      },
+      "bathymetry": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "manifest-format-default", "ref": "myproject.io:read_nc"}
+      },
+      "precedence": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "per-dataset", "ref": "myproject.loaders:python_one"}
+      }
+    },
+    "julia": {
+      "temperature": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "per-dataset", "ref": "myproject.loaders:load_temperature"}
+      },
+      "derived": {
+        "fetcher": {"rung": "own-fetcher", "ref": "myproject.build:derived"},
+        "loader":  {"rung": "manifest-format-default", "ref": "myproject.io:read_nc"}
+      },
+      "bathymetry": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "manifest-format-default", "ref": "myproject.io:read_nc"}
+      },
+      "precedence": {
+        "fetcher": {"rung": "uri", "ref": null},
+        "loader":  {"rung": "per-dataset", "ref": "MyProject:julia_one"}
+      }
+    }
+  },
+  "preserve_verbatim": {
+    "unknown_structural": [],
+    "lang_namespaces": {
+      "top_level": [],
+      "per_dataset": {
+        "precedence": ["_LANG.python", "_LANG.julia"]
+      }
+    }
+  }
+}

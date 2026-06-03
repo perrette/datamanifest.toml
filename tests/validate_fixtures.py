@@ -121,10 +121,13 @@ def validate(toml_path, json_path):
                 # Verify the manifest actually carries the binding the rung claims
                 if rung == "own-fetcher":
                     lang_ds = ds.get("_LANG", {}).get(lang, {})
-                    if "fetcher" not in lang_ds:
-                        _err(errors, f"resolution[{lang}][{ds_name}].fetcher: rung 'own-fetcher' but manifest has no [_LANG.{lang}].fetcher")
-                    elif ref is not None and _ref_of(lang_ds["fetcher"]) != ref:
-                        _err(errors, f"resolution[{lang}][{ds_name}].fetcher: ref mismatch (expected '{ref}', manifest has '{_ref_of(lang_ds['fetcher'])}')")
+                    # explicit [_LANG.<lang>].fetcher wins; else the bare
+                    # (language-implicit) ds.fetcher
+                    binding = lang_ds.get("fetcher", ds.get("fetcher"))
+                    if binding is None:
+                        _err(errors, f"resolution[{lang}][{ds_name}].fetcher: rung 'own-fetcher' but manifest has no [_LANG.{lang}].fetcher nor a bare fetcher")
+                    elif ref is not None and _ref_of(binding) != ref:
+                        _err(errors, f"resolution[{lang}][{ds_name}].fetcher: ref mismatch (expected '{ref}', manifest has '{_ref_of(binding)}')")
                 elif rung == "shell":
                     shell_ds = ds.get("_LANG", {}).get("shell", {})
                     if "fetcher" not in shell_ds:
@@ -133,19 +136,26 @@ def validate(toml_path, json_path):
                         _err(errors, f"resolution[{lang}][{ds_name}].fetcher: shell ref mismatch")
                 elif rung == "per-dataset":
                     lang_ds = ds.get("_LANG", {}).get(lang, {})
-                    if "loader" not in lang_ds:
-                        _err(errors, f"resolution[{lang}][{ds_name}].loader: rung 'per-dataset' but manifest has no [_LANG.{lang}].loader")
-                    elif ref is not None and _ref_of(lang_ds["loader"]) != ref:
-                        _err(errors, f"resolution[{lang}][{ds_name}].loader: ref mismatch (expected '{ref}', manifest has '{_ref_of(lang_ds['loader'])}')")
+                    # explicit [_LANG.<lang>].loader wins; else the bare
+                    # (language-implicit) ds.loader
+                    binding = lang_ds.get("loader", ds.get("loader"))
+                    if binding is None:
+                        _err(errors, f"resolution[{lang}][{ds_name}].loader: rung 'per-dataset' but manifest has no [_LANG.{lang}].loader nor a bare loader")
+                    elif ref is not None and _ref_of(binding) != ref:
+                        _err(errors, f"resolution[{lang}][{ds_name}].loader: ref mismatch (expected '{ref}', manifest has '{_ref_of(binding)}')")
                 elif rung == "manifest-format-default":
-                    top_loaders = manifest.get("_LANG", {}).get(lang, {}).get("loaders", {})
+                    # [_LANG.<lang>.loaders] overrides the bare [_LOADERS] map
+                    effective = {
+                        **manifest.get("_LOADERS", {}),
+                        **manifest.get("_LANG", {}).get(lang, {}).get("loaders", {}),
+                    }
                     fmt = ds.get("format")
                     if fmt is None:
                         _err(errors, f"resolution[{lang}][{ds_name}].loader: rung 'manifest-format-default' but dataset has no 'format'")
-                    elif fmt not in top_loaders:
-                        _err(errors, f"resolution[{lang}][{ds_name}].loader: rung 'manifest-format-default' but [_LANG.{lang}.loaders] has no '{fmt}' entry")
-                    elif ref is not None and top_loaders[fmt] != ref:
-                        _err(errors, f"resolution[{lang}][{ds_name}].loader: manifest-format-default ref mismatch (expected '{ref}', manifest has '{top_loaders[fmt]}')")
+                    elif fmt not in effective:
+                        _err(errors, f"resolution[{lang}][{ds_name}].loader: rung 'manifest-format-default' but neither [_LANG.{lang}.loaders] nor [_LOADERS] has '{fmt}'")
+                    elif ref is not None and _ref_of(effective[fmt]) != ref:
+                        _err(errors, f"resolution[{lang}][{ds_name}].loader: manifest-format-default ref mismatch (expected '{ref}', manifest has '{_ref_of(effective[fmt])}')")
 
     # --- preserve_verbatim ---
     pv = expected.get("preserve_verbatim", {})
