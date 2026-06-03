@@ -1,11 +1,9 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="design/logo/drive-stack-dark.svg">
-    <img src="design/logo/drive-stack.svg" alt="datamanifest" height="96">
+    <source media="(prefers-color-scheme: dark)" srcset="design/logo/lockup-dark.svg">
+    <img src="design/logo/lockup.svg" alt="datamanifest.toml" height="76">
   </picture>
 </p>
-
-# datamanifest.toml
 
 A small, normative specification for the **`datamanifest.toml`** manifest format — a
 TOML file that declares the data dependencies of a scientific project (each dataset's
