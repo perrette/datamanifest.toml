@@ -50,6 +50,12 @@ originate in their host language.
 
 ## Possible future directions
 
+- **Unified documentation site (tabbed, multi-language).** A static docs site
+  (MkDocs + Material — its built-in content tabs give the Python/Julia code switcher), built
+  from the reference guide (`docs/guide.md`) with per-language inline examples and deployed to
+  GitHub Pages. Better UX and more impressive than scattered per-repo READMEs, but it pulls
+  implementation-specific code into the family docs — a deliberate trade against "each client
+  owns its own docs." Deferred (mkdocs not yet set up; `pip install mkdocs-material`).
 - **Register-on-arrival for `sync`, and at-rest content verification.** `sync` (spec-v3) is
   deliberately symmetric and manifest-untouching, so a transferred object arrives as an
   orphan and integrity rests on rsync's per-file check. Optional later additions: an opt-in
