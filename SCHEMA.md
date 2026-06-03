@@ -715,7 +715,8 @@ see *Why not automatic reachability* below.
   - `location` — the resolved absolute path on disk;
   - `referenced` — whether a still-present local `.toml` roots it (its key is listed in a
     `datasets.toml` / `cached.toml`) or it is an **orphan**;
-  - `scope`, `format`, `size`, `created`, and a best-effort **last-access** time.
+  - `scope`, `format`, `size`, `created`, and a best-effort, filesystem-derived
+    **last-access** time (read from `stat`, never written on read; MAY be unknown).
 
   These fields are the cross-tool inspectable surface; a tool with the `inspect` capability
   MUST be able to report them.
@@ -747,11 +748,18 @@ so an automatic collector would reap an artifact still in active use. Rather tha
 with ever-more-complete bookkeeping, maintenance keeps a human in the loop; liveness signals
 are **advisory inputs to a filter**, not a deletion authority:
 
-- **Last-access is reader-updated and best-effort.** To make "not accessed in N days"
-  meaningful, a tool SHOULD touch an entry's access time **on read** — not only on
-  production — so a read-only consumer's use is reflected. This is best-effort (MAY be
-  skipped on a read-only or shared filesystem) and **advisory only**, never the sole basis
-  for deletion.
+- **Last-access is filesystem-derived and best-effort — never written on read.** A tool
+  reads it at inspect time from the artifact's filesystem metadata (the `stat` access time,
+  falling back to the modification time or `created` when atime is unusable); it **MUST NOT**
+  rewrite any sidecar, index, or `.toml` on read to record access. (Touching a file on the
+  lock-free read path would contend with the produce `.lock`, serialize concurrent readers,
+  and put I/O on the hot path — all for a value that is purely advisory.) Because the OS
+  maintains it, a read-only consumer's use is still reflected wherever the filesystem records
+  it, but the signal is coarse and may be **absent**: `relatime` advances atime at most once
+  a day, and `noatime`, network, and read-only filesystems record nothing — so a tool MAY
+  report `last-access` as **unknown**. It is **advisory only**, never the sole basis for
+  deletion; `created` (stamped once at produce time in `metadata.toml`) is the
+  always-available age signal.
 - **The `referenced` field is advisory too.** "Is this orphaned?" (no still-present local
   `.toml` lists its key) is one more column to show and filter on — input to the user's
   choice, not an automatic trigger. An orphan is a strong *delete candidate*, never an

@@ -1,5 +1,22 @@
 # Changelog
 
+## spec-v3.2 (schema `_META.schema = 1`)
+
+Fix the `inspect` **`last-access`** rule. The previous wording ("a tool SHOULD touch an
+entry's access time on read") invited a write-on-read implementation — rewriting a
+sidecar/index `.toml` on every read — which contends with the produce `.lock`,
+serializes concurrent readers, and puts I/O on the lock-free hot path, all for an
+advisory value.
+
+- `last-access` is now **filesystem-derived** and **never written on read**: a tool
+  reads it from `stat` (access time, with modification-time / `created` fallback) at
+  inspect time, and **MUST NOT** rewrite any sidecar/index/`.toml` to record access.
+- The signal is explicitly coarse and **may be unknown** (`relatime`, `noatime`,
+  network/read-only filesystems); `created` (stamped once at produce time) is the
+  always-available age signal.
+- `_META.schema` stays **1**: no data-model change; this is a behavioural correction on
+  the spec-tag axis.
+
 ## spec-v3.1 (schema `_META.schema = 1`)
 
 Refinement of the parameter-hash rules: **finite floats are now permitted as hash
