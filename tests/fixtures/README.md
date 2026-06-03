@@ -20,6 +20,7 @@ submodule and run a conformance runner against it as their test suite.
 | `parameterized` | python, julia | `lang-read`, `lang-write`, `binding-args` |
 | `storage` | (none) | `storage` |
 | `config_sidecar` | (none) | `cache-produce` |
+| `config_sidecar_float` | (none) | `cache-produce` (finite-float hash input) |
 | `cached_index` | (none) | `inspect` |
 
 ## Expected-outcome JSON schema
@@ -165,8 +166,10 @@ carries `cachetype` + `hash`; every other top-level key is part of the key table
   (runtime knobs, the `_`-prefixed keys, are excluded *before* the sidecar is written,
   so a valid `config.toml` never contains them).
 - `param_hash` — the lowercase-hex **SHA-256 of the canonical JSON** of `key_table`
-  (JCS: sorted keys, `separators=(",", ":")`, UTF-8, no floats/nulls). A runner MUST
-  recompute and match this — it is the cross-tool reference vector.
+  (JCS: sorted keys, `separators=(",", ":")`, UTF-8; finite floats via the normative
+  Python `json.dumps` form; no `NaN`/`±Inf`/nulls). A runner MUST recompute and match
+  this — it is the cross-tool reference vector. See `config_sidecar_float` for a
+  float-bearing key table.
 - `key` — the storage key `"<cachetype>/<param_hash>"`.
 
 The validator recomputes `param_hash` from `key_table`, checks it equals the sidecar's

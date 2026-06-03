@@ -1,0 +1,21 @@
+# A `config.toml` cache sidecar (spec-v3) exercising a FINITE-FLOAT hash input.
+#
+# spec-v3.1 permits finite floats in the key table. They serialize through the same
+# canonical-JSON projection as every other value — the Python reference `json.dumps`
+# float form is normative (`0.5` -> "0.5", `1.0` -> "1.0"), and a non-Python tool MUST
+# reproduce it byte-for-byte. `NaN` / `±Inf` and nulls remain disallowed.
+#
+# Reference vector — canonical JSON of the key table:
+#   {"grid":"5x5","sigma":0.5,"threshold":1.0}
+# whose SHA-256 is the `_META.hash` below. Every conforming `cache-produce`
+# implementation MUST reproduce it.
+
+# --- hash-affecting parameters (the key table) ---
+grid      = "5x5"
+sigma     = 0.5
+threshold = 1.0
+
+[_META]
+schema    = 1
+cachetype = "calibration"
+hash      = "acc37c631f4f18aa8de978cdff239c8a3278d80ea9c19389fd1a5cc0326ea30e"

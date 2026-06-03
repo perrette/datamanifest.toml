@@ -1,0 +1,17 @@
+{
+  "capabilities": ["cache-produce"],
+  "resolution": {},
+  "preserve_verbatim": {
+    "unknown_structural": [],
+    "lang_namespaces": {
+      "top_level": [],
+      "per_dataset": {}
+    }
+  },
+  "config_sidecar": {
+    "cachetype": "calibration",
+    "key_table": {"grid": "5x5", "sigma": 0.5, "threshold": 1.0},
+    "param_hash": "acc37c631f4f18aa8de978cdff239c8a3278d80ea9c19389fd1a5cc0326ea30e",
+    "key": "calibration/acc37c631f4f18aa8de978cdff239c8a3278d80ea9c19389fd1a5cc0326ea30e"
+  }
+}

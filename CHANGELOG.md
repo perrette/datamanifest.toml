@@ -1,5 +1,23 @@
 # Changelog
 
+## spec-v3.1 (schema `_META.schema = 1`)
+
+Refinement of the parameter-hash rules: **finite floats are now permitted as hash
+inputs.** A float serializes through the same canonical-JSON projection as every other
+value — the Python reference `json.dumps` form is normative (`1.0` → `1.0`, `0.1` →
+`0.1`) and a non-Python tool MUST reproduce it byte-for-byte. `NaN` / `±Inf` remain
+disallowed (no JSON representation) and nulls remain disallowed (an absent parameter is
+omitted, not encoded as `null`). Passing a float-valued knob as a string is still
+allowed and remains the most cross-tool-stable option.
+
+- `SCHEMA.md` §Parameter-hash keying: the value-restriction now lists finite floats and
+  pins their canonical form.
+- `schemas/config-sidecar.v3.json`: `hashValue` now admits `number`.
+- New conformance fixture `config_sidecar_float` pins a float reference vector
+  (`{"grid":"5x5","sigma":0.5,"threshold":1.0}` → SHA-256 `acc37c63…`).
+- `_META.schema` stays **1**: the data-model shape is unchanged; this is a hash-input
+  validation widening on the spec-tag axis (the v2 → v2.1 convention).
+
 ## spec-v3 (schema `_META.schema = 1`)
 
 A breaking **behavioral** revision of the storage and cache model. `_META.schema` stays

@@ -532,9 +532,14 @@ the same parameters yield the same key everywhere:
    Unicode code point at every nesting level, no insignificant whitespace
    (member separator `,`, name separator `:`), UTF-8 output with minimal JSON
    string escaping. To keep canonicalization unambiguous, **hash-input values are
-   restricted to strings, integers, booleans, and arrays/objects composed of
-   those** — floats and nulls are disallowed in hash inputs (a float-valued knob
-   must be passed as a string, which is also more hash-stable). Array element
+   restricted to strings, integers, finite floats, booleans, and arrays/objects
+   composed of those**. A finite float serializes through this same canonical-JSON
+   projection — the Python reference `json.dumps` float form is normative (`1.0` →
+   `1.0`, `0.1` → `0.1`) and a non-Python tool MUST reproduce it byte-for-byte.
+   **`NaN` and `±Inf` are disallowed** (no JSON representation), as are **nulls**
+   (an absent parameter is omitted, not encoded as null). A float-valued knob MAY
+   still be passed as a string when maximal cross-tool hash stability matters,
+   since float formatting is the most implementation-sensitive case. Array element
    order is significant (arrays are data); object key order is not (sorted).
 3. The parameter hash is the lowercase hex **SHA-256** of those canonical UTF-8
    bytes.
@@ -546,7 +551,9 @@ the same parameters yield the same key everywhere:
 Canonical JSON (rather than TOML) is the hash input precisely because it has a
 fully-pinned byte form that Python (`json.dumps(obj, sort_keys=True,
 separators=(",", ":"), ensure_ascii=False)`) and Julia produce **identically
-today**, independent of the cross-tool TOML `byte-identity` work. So a produced
+today** for strings, integers, booleans, and their arrays/objects, independent of
+the cross-tool TOML `byte-identity` work (for finite floats the Python form is the
+normative reference a non-Python tool reproduces). So a produced
 dataset resolves to the same `<cache_root>/<cachetype>/<hash>` path under either
 tool (even though the artifact *bytes* a given tool writes there may be
 language-specific; cross-tool *loading* of a produced artifact is not implied,

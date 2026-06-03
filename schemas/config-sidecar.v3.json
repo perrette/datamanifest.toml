@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/config-sidecar.v3.json",
   "title": "Produced-dataset config.toml sidecar — spec-v3",
-  "description": "JSON Schema for the JSON projection of a produced artifact's config.toml sidecar: the re-hashable key table (every root key except [_META]) plus a [_META] block carrying cachetype, optional recipe version, and hash. Hash-input values are restricted to strings, integers, booleans, and arrays/objects of those (floats and nulls disallowed).",
+  "description": "JSON Schema for the JSON projection of a produced artifact's config.toml sidecar: the re-hashable key table (every root key except [_META]) plus a [_META] block carrying cachetype, optional recipe version, and hash. Hash-input values are restricted to strings, integers, finite floats, booleans, and arrays/objects of those (NaN/±Inf and nulls disallowed).",
   "type": "object",
   "required": ["_META"],
   "properties": {
@@ -28,8 +28,8 @@
   "additionalProperties": true,
   "$defs": {
     "hashValue": {
-      "description": "A hash-input value: string, integer, boolean, or an array/object composed of those. Floats and nulls are disallowed in hash inputs.",
-      "type": ["string", "integer", "boolean", "array", "object"],
+      "description": "A hash-input value: string, integer, finite float, boolean, or an array/object composed of those. NaN/±Inf and nulls are disallowed in hash inputs (behavioural rule; not expressible here).",
+      "type": ["string", "number", "integer", "boolean", "array", "object"],
       "items": { "$ref": "#/$defs/hashValue" },
       "additionalProperties": { "$ref": "#/$defs/hashValue" }
     }
