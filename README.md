@@ -83,8 +83,9 @@ shorthand for a ref with no arguments.
 
 Single-language projects can drop the `_LANG.<lang>` wrapper entirely: a **bare**
 `fetcher`/`loader` on the dataset (or a top-level `[_LOADERS]` map) is read as the running
-tool's own language. A bare binding that doesn't resolve in that language warns and falls
-through rather than erroring.
+tool's own language. A bare binding is *present* for that language, so a failure to resolve
+is an error (not a silent fallback); use explicit `[_LANG.<lang>]` for multi-language
+manifests, which other languages correctly skip.
 
 ```toml
 [sea_ice]

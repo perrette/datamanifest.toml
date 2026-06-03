@@ -98,8 +98,8 @@ loader  = "myclimate.loaders:load_output"
 
 # Single-language shorthand: a BARE binding (no _LANG.<lang> wrapper) is read as the
 # running tool's OWN language — handy for a Python-only or Julia-only project. An
-# explicit [..._LANG.<self>] binding would override it; a bare binding that doesn't
-# resolve in the running language warns and falls through (it does not error).
+# explicit [..._LANG.<self>] binding overrides it; a bare binding that fails to resolve
+# in the running language is an error (use [_LANG.<lang>] for multi-language manifests).
 [sea_ice]
 uri         = "https://example.com/sea_ice.nc"
 sha256      = "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3"

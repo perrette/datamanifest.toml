@@ -1,5 +1,23 @@
 # Changelog
 
+## spec-v3.6 (schema `_META.schema = 1`)
+
+Replace the spec-v3.4 "warn and fall through" rule for language-implicit bindings with
+**fail-loud** semantics.
+
+- A binding that is *present* for the running language — a bare `fetcher`/`loader`, or an
+  explicit `[<ds>._LANG.<self>]` — that **fails to resolve is an error**; one that resolves
+  and then raises **propagates**. No silent fall-through to a different loader/fetcher
+  (which could hand a program wrong-shaped data behind only a warning, especially for a
+  loader falling through to the format default).
+- The fetch/load ladders still fall through only for bindings that are **absent** for the
+  running language (e.g. another language's `_LANG.<other>` fetcher), unchanged.
+- Multi-language manifests use explicit `[<ds>._LANG.<lang>]` bindings (absent — and so
+  correctly skipped — in other languages); bare bindings are the single-language form.
+- **No `--lenient` flag.** A tool-wide best-effort mode (e.g. "fetch all, skip failures")
+  is a separate, broader concern, intentionally not introduced by this rule.
+- Docs/semantics only; no schema change. `_META.schema` stays **1**.
+
 ## spec-v3.5 (schema `_META.schema = 1`)
 
 Move the shell fetcher out of the `_LANG` namespace. `shell` is **language-agnostic** (the

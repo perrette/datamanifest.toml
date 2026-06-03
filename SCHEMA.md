@@ -245,10 +245,18 @@ as bindings in **its own language**, exactly as if they appeared under
 - **Precedence — explicit wins.** An explicit own-language binding overrides the bare one:
   `[<dataset>._LANG.<self>].loader` > bare `loader`, and `[_LANG.<self>.loaders][fmt]` >
   `[_LOADERS][fmt]` (likewise for `fetcher`).
-- **Tolerant — warn, do not error.** A bare binding written by a single author will not
-  resolve in another language (a Python tool cannot import a Julia `loader`). When a bare
-  binding fails to resolve or call in the running language, a tool SHOULD **emit a warning
-  and fall through** to the next ladder rung — it MUST NOT hard-error on that account.
+- **Strict — fail loud.** A bare binding is **present** for the running language (bare =
+  the running language), so it is treated exactly like an explicit `[<dataset>._LANG.<self>]`
+  binding: if it fails to **resolve** it is an **error**, and if it resolves and then
+  **raises** at run time the error **propagates** — never a silent fall-through to a
+  different loader/fetcher (which could hand a program wrong-shaped data behind only a
+  warning). The ladder falls through only for bindings that are **absent** for the running
+  language. A manifest meant to be read by more than one language uses explicit
+  `[<dataset>._LANG.<lang>]` bindings (absent — and so correctly skipped — in the other
+  languages); sharing a *bare* binding across languages and expecting the others to ignore
+  it is unsupported. (A tool-wide best-effort mode — e.g. "fetch everything that succeeds,
+  skip the rest" — is a separate concern, out of scope for this rule and not introduced
+  here.)
 - **Preserve verbatim (round-trip).** A writer MUST keep a bare binding **bare** — it MUST
   NOT promote `loader = …` into `[<dataset>._LANG.<self>].loader`. A tool writes under
   `_LANG.<self>` only for bindings it generates itself, so hand-authored bare bindings
@@ -292,8 +300,11 @@ The tool tries each rung in order:
 4. else error.
 
 At each own-language rung the explicit `_LANG.<self>` binding takes precedence over the
-bare one; a bare binding that fails in the running language warns and falls through (see
-*Language-implicit bindings*).
+bare one. A binding that is **present** for the running language (bare, or explicit
+`_LANG.<self>`) but fails to resolve is an **error**; one that resolves and then raises
+**propagates**. The ladder falls through only to skip rungs that are **absent** (another
+language's `_LANG.<other>` fetcher, or no own loader), never to paper over a broken present
+binding (see *Language-implicit bindings*).
 
 **Load never delegates.** A loader returns a live in-memory native object, which cannot
 cross a process boundary. Cross-language data preparation is modeled as one language's
