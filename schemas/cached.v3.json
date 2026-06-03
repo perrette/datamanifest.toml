@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/cached.v3.json",
+  "title": "Produced-dataset index (cached.toml) — spec-v3",
+  "description": "JSON Schema for the JSON projection of a cached.toml produced-dataset index. Parse the TOML to JSON, then validate. spec-v3 adds the optional recipe `version` (entry) and optional declared `project` id (_META).",
+  "type": "object",
+  "required": ["_META"],
+  "properties": {
+    "_META": {
+      "type": "object",
+      "properties": {
+        "schema": { "const": 1 },
+        "project": { "type": "string", "description": "Optional declared project id (default cached scope; else derived)." }
+      },
+      "required": ["schema"],
+      "additionalProperties": true
+    }
+  },
+  "patternProperties": {
+    "^[^_].*$": { "$ref": "#/$defs/entry" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "selector": {
+      "type": "string",
+      "pattern": "^\\$(\\{[A-Za-z_][A-Za-z0-9_]*\\}|[A-Za-z_][A-Za-z0-9_]*)(/.+)?$"
+    },
+    "entry": {
+      "type": "object",
+      "description": "A produced dataset, addressed by portable key (cachetype + optional version + hash), never by absolute path.",
+      "properties": {
+        "cachetype": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "description": "Optional recipe/code version (a path segment when set)." },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Lowercase 64-hex SHA-256 of the canonical-JSON key table."
+        },
+        "ref": { "type": "string", "description": "The producing module:function reference." },
+        "format": { "type": "string" },
+        "store": { "$ref": "#/$defs/selector" }
+      },
+      "required": ["cachetype", "hash"],
+      "additionalProperties": true
+    }
+  }
+}

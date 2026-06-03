@@ -7,24 +7,29 @@ forward-looking view: what is specified, what is built, and what is deferred.
 
 ## Status
 
-- **Spec.** `SCHEMA.md` is at **spec-v2**: the storage model is the `$`-folder-variable
-  model (locations only), and produce-or-load is specified as a companion-layer format.
+- **Spec.** `SCHEMA.md` is at **spec-v3**: storage uses **top-level folder roots** with
+  layer-applied `datasets/` / `cached/` prefixes and an optional `scope` partition
+  (`DATAMANIFEST_DIR` app base; `_PROFILE` shelved); produce-or-load is a companion layer;
+  store maintenance is the user-driven `inspect` capability; and cross-machine `sync` is
+  specified. `_META.schema` stays **1**.
 - **Implementations.** Python core is at spec-v1.1; Julia core's v1.1 is not yet merged.
-  Neither core implements the spec-v2 storage revision yet, and the companion
-  produce-or-load packages are not yet built.
+  Neither core implements the spec-v3 storage revision yet, and the produce-or-load layer,
+  `inspect`, and `sync` are not yet built.
 
 ## Planned
 
-- **Implement the spec-v2 storage revision** in both cores (`$`-folder variables,
-  selectors vs path expressions, the unified resolution ladder, the hard migration off
-  bare `store` names). Spec: `SCHEMA.md` §Storage; rationale:
-  `design/storage-model-revision.md`.
+- **Implement the spec-v3 storage revision** in both cores (top-level folder roots,
+  `datasets/`/`cached/` prefixes + `_PREFIX`, `scope` + `_SCOPE`, `DATAMANIFEST_DIR`, the
+  resolution ladder, hard migration off bare `store` names). Spec: `SCHEMA.md` §Storage.
 - **Build the produce-or-load layer** (one per language) over the core engine —
-  parameter-hash keying + sidecars first, then the `cached.toml` index + GC. Whether it
-  ships as a separate package or an optional submodule is the implementation's call
+  parameter-hash keying + sidecars + recipe `version`, then the `cached.toml` index. Whether
+  it ships as a separate package or an optional submodule is the implementation's call
   (spec-v2.1). Rationale and build order: `design/cached-layer-handoff.md`; packaging:
   `design/package-architecture.md`.
-- **Merge Julia core v1.1** before any Julia spec-v2 work.
+- **Implement `inspect`** (the field-oriented `list … --delete` store maintenance) and
+  **`sync`** (`push`/`pull` over SSH/rsync). Spec: `SCHEMA.md` §Maintenance, §Cross-machine
+  sync.
+- **Merge Julia core v1.1** before any Julia spec-v3 work.
 
 ## Cross-language fetch (a rare case)
 
@@ -45,6 +50,12 @@ originate in their host language.
 
 ## Possible future directions
 
+- **Register-on-arrival for `sync`, and at-rest content verification.** `sync` (spec-v3) is
+  deliberately symmetric and manifest-untouching, so a transferred object arrives as an
+  orphan and integrity rests on rsync's per-file check. Optional later additions: an opt-in
+  to record a pulled object in the local `cached.toml`/`datasets.toml` (so it shows as
+  `referenced`), and a content checksum (e.g. a Merkle digest over a directory's files) for
+  at-rest verification beyond the transport.
 - **Cloud / `fsspec` / CAS backends** — optional per-language extras behind the recipe
   interface, never a core spec contract.
 

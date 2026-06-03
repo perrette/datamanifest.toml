@@ -20,7 +20,7 @@ submodule and run a conformance runner against it as their test suite.
 | `parameterized` | python, julia | `lang-read`, `lang-write`, `binding-args` |
 | `storage` | (none) | `storage` |
 | `config_sidecar` | (none) | `cache-produce` |
-| `cached_index` | (none) | `cache-gc` |
+| `cached_index` | (none) | `inspect` |
 
 ## Expected-outcome JSON schema
 
@@ -61,7 +61,7 @@ An array of capability tags from SCHEMA.md's Conformance-levels table:
 | `byte-identity` | Emit canonical lexicographic key ordering (cross-tool byte-identical output) |
 | `binding-args` | Execute the `{ ref, args }` table form of a binding |
 | `cache-produce` | Companion-layer produced (function-backed) datasets keyed by parameter hash + `config.toml`/`metadata.toml` sidecars |
-| `cache-gc` | Companion-layer `cached.toml` produced-dataset index, usage log, and root-reachability `gc` |
+| `inspect` | User-driven store inspection: enumerate datasets + the `cached.toml` index, filter by fields, and act on a selection (`list … --delete`). No automatic collector |
 
 A runner filters fixtures to those whose `capabilities` array is a subset of the
 implementation's declared capability set. Fixtures with unsupported capabilities are
@@ -130,9 +130,11 @@ bare-string form have no entry here.
 
 Present for `storage`-capability fixtures. Asserts selector resolution and the
 `[_STORAGE]` folder-variable namespace (but not absolute on-disk paths, which are
-machine-dependent — `platformdirs` / env / host). In the spec-v2 folder model, `store` and
-`default` are `$`-folder **selectors** (a `$`-reference, optionally with a sub-path); a
-bare folder name is no longer a valid selector (hard migration).
+machine-dependent — `platformdirs` / env / host). In the spec-v3 folder model, folder
+variables are **bare top-level roots** and `store` / `default` are `$`-folder **selectors**
+(a `$`-reference, optionally with a sub-path); a bare folder name is not a valid selector
+(hard migration). The `datasets/` / `cached/` content prefixes (`_PREFIX`) and the `scope`
+partition (`_SCOPE`) are applied by the layer.
 
 - `default` — the project-wide `[_STORAGE].default` selector (`$`-form; itself defaults to
   `$data`) — the selector a dataset assumes when it omits `store`.
@@ -142,8 +144,9 @@ bare folder name is no longer a valid selector (hard migration).
   keyed `<root>/<key>` layout.
 - `folders.builtin` — the built-in folder names (`data`, `cache`, `repo`).
 - `folders.user` — user-defined folder variables that MUST be defined in `[_STORAGE]`
-  (bare keys, excluding the reserved `default` / `_HOST` / `_PROFILE`).
-- `folders.host_patterns` / `folders.profiles` — `_HOST` / `_PROFILE` override keys present.
+  (bare keys, excluding the reserved `default` / `_HOST` / `_PREFIX` / `_SCOPE` / `_PROFILE`).
+- `folders.host_patterns` / `folders.profiles` — `_HOST` / `_PROFILE` override keys present
+  (`_PROFILE` is shelved in spec-v3, so `profiles` is normally empty).
 
 ### `config_sidecar` (optional)
 
@@ -172,7 +175,7 @@ sidecar minus `_META`, so the sidecar and the expectation cannot drift.
 
 ### `cached_index` (optional)
 
-Present for `cache-gc`-capability fixtures. Here the fixture `.toml` is itself a
+Present for `inspect`-capability fixtures. Here the fixture `.toml` is itself a
 **`cached.toml`** index (not a `datasets.toml`). `cached_index.entries.<name>` asserts,
 per produced-dataset entry: `cachetype`, `hash` (64 lowercase hex), `ref` (the producing
 `module:function`), and `store`. Resolution / preservation blocks are empty for this

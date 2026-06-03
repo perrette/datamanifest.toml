@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/metadata-sidecar.v3.json",
+  "title": "Produced-dataset metadata.toml sidecar — spec-v3",
+  "description": "JSON Schema for the JSON projection of a produced artifact's metadata.toml sidecar: provenance/audit only, never an input to the hash and never an authority for cache validity. Intentionally lenient (provenance is open-ended); known fields are typed.",
+  "type": "object",
+  "properties": {
+    "_META": {
+      "type": "object",
+      "properties": { "schema": { "const": 1 } },
+      "required": ["schema"],
+      "additionalProperties": true
+    },
+    "created": { "type": "string", "description": "RFC 3339 UTC timestamp." },
+    "tool": { "type": "string", "description": "Producing tool and version." },
+    "host": { "type": "string" },
+    "user": { "type": "string" },
+    "git": {
+      "type": "object",
+      "properties": {
+        "commit": { "type": "string" },
+        "branch": { "type": "string" },
+        "dirty": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "origin": {
+      "type": "object",
+      "properties": {
+        "cached_toml": { "type": "string", "description": "Path of the index that roots this artifact (audit only)." }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

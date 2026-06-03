@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/config-sidecar.v3.json",
+  "title": "Produced-dataset config.toml sidecar — spec-v3",
+  "description": "JSON Schema for the JSON projection of a produced artifact's config.toml sidecar: the re-hashable key table (every root key except [_META]) plus a [_META] block carrying cachetype, optional recipe version, and hash. Hash-input values are restricted to strings, integers, booleans, and arrays/objects of those (floats and nulls disallowed).",
+  "type": "object",
+  "required": ["_META"],
+  "properties": {
+    "_META": {
+      "type": "object",
+      "properties": {
+        "schema": { "const": 1 },
+        "cachetype": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "description": "Optional recipe/code version (a path segment when set; not part of the parameter hash)." },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Lowercase 64-hex SHA-256 over the canonical-JSON projection of the key table."
+        }
+      },
+      "required": ["schema", "cachetype", "hash"],
+      "additionalProperties": true
+    }
+  },
+  "patternProperties": {
+    "^[^_].*$": { "$ref": "#/$defs/hashValue" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "hashValue": {
+      "description": "A hash-input value: string, integer, boolean, or an array/object composed of those. Floats and nulls are disallowed in hash inputs.",
+      "type": ["string", "integer", "boolean", "array", "object"],
+      "items": { "$ref": "#/$defs/hashValue" },
+      "additionalProperties": { "$ref": "#/$defs/hashValue" }
+    }
+  }
+}

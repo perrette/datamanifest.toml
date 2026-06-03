@@ -2,15 +2,19 @@
 schema = 1
 
 [_STORAGE]
-default = "$data"                       # project-wide default selector ($-form)
-scratch = "$TMPDIR/datasets"            # user-defined folder variable (path expression)
+default = "$data"                  # project-wide default selector ($-form)
+scratch = "$TMPDIR"                # user-defined folder variable (a bare top-level root)
 
 [_STORAGE._HOST."login*.hpc.edu"]
-scratch = "/scratch/$USER/datasets"     # same variable, host-specific resolution
-data    = "/work/$USER/Datasets"        # override a built-in's location, host-specific
+scratch = "/scratch/$USER"         # same variable, host-specific resolution
+data    = "/work/$USER"            # override a built-in root, host-specific
 
-[_STORAGE._PROFILE.cluster]
-data = "/work/proj/Datasets"
+[_STORAGE._PREFIX]                 # content prefixes applied by the consuming layer
+datasets = "datasets"
+cached   = "cached"
+
+[_STORAGE._SCOPE]                  # partition: empty datasets = shared; cached defaults to the project id
+datasets = "shared-pool"           # share fetched datasets within a named group
 
 # Store omitted -> the project default selector ($data); this expensive sim is protected.
 [bigsim]
@@ -29,7 +33,7 @@ uri    = "https://example.com/big.nc"
 format = "nc"
 store  = "$scratch"
 
-# Sub-path selector: keyed under <cache_root>/derived/<key>.
+# Sub-path selector: keyed under the resolved cache folder's datasets/ prefix, beneath derived/.
 [derived_table]
 format = "csv"
 store  = "$cache/derived"

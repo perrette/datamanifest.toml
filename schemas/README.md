@@ -26,10 +26,15 @@ python -c 'import tomllib,json,sys; json.dump(tomllib.load(open(sys.argv[1],"rb"
 
 | File | Validates | Capability |
 |---|---|---|
-| `manifest.v2.1.json` | the hand-authored manifest (`datasets.toml`) | core |
-| `cached.v2.1.json` | the produced-dataset index (`cached.toml`) | `cache-gc` |
-| `config-sidecar.v2.1.json` | a produced artifact's `config.toml` (re-hashable key table) | `cache-produce` |
-| `metadata-sidecar.v2.1.json` | a produced artifact's `metadata.toml` (provenance) | `cache-produce` |
+| `manifest.v3.json` | the hand-authored manifest (`datasets.toml`) | core |
+| `cached.v3.json` | the produced-dataset index (`cached.toml`) | `inspect` |
+| `config-sidecar.v3.json` | a produced artifact's `config.toml` (re-hashable key table) | `cache-produce` |
+| `metadata-sidecar.v3.json` | a produced artifact's `metadata.toml` (provenance) | `cache-produce` |
+
+The `*.v2.1.json` files are kept alongside for tools pinned to the earlier spec. **spec-v3**
+changes storage (top-level folder roots; `[_STORAGE._PREFIX]` / `[_STORAGE._SCOPE]`;
+`_PROFILE` reserved) and adds the produced `version` / `project` fields; `manifest.v3.json`
+allows the new `_STORAGE` sub-tables, and `cached`/`config` v3 type the new fields.
 
 ## Versioning
 
@@ -46,7 +51,7 @@ files as follows:
   version). A file carrying a different `_META.schema` will (correctly) fail to validate
   against a v2.x schema.
 
-When a future spec tag changes structure, add new files (`*.v3.json`) next to these rather
+When a future spec tag changes structure, add new files (`*.v4.json`) next to these rather
 than editing them in place. Earlier-version files (`*.v1.1.json`) may be backfilled.
 
 ## Strictness notes

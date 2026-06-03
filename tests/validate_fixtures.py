@@ -23,11 +23,11 @@ FIXTURES = pathlib.Path(__file__).parent / "fixtures"
 KNOWN_CAPABILITIES = {
     "lang-read", "lang-write", "shell-fetch", "delegation",
     "storage", "byte-identity", "binding-args",
-    "cache-produce", "cache-gc",
+    "cache-produce", "inspect", "sync",
 }
 
 # Reserved keys under [_STORAGE] that are not folder-variable definitions.
-STORAGE_RESERVED = {"default", "_HOST", "_PROFILE"}
+STORAGE_RESERVED = {"default", "_HOST", "_PROFILE", "_PREFIX", "_SCOPE"}
 BUILTIN_FOLDERS = {"data", "cache", "repo"}
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -285,7 +285,7 @@ def validate(toml_path, json_path):
         if "key" in config_sidecar and config_sidecar["key"] != f"{ct}/{computed}":
             _err(errors, f"config_sidecar: key mismatch (expected {config_sidecar['key']}, derived {ct}/{computed})")
 
-    # --- cached_index (optional; present for `cache-gc` fixtures) ---
+    # --- cached_index (optional; present for `inspect` fixtures) ---
     cached_index = expected.get("cached_index")
     if cached_index is not None:
         for name, exp in cached_index.get("entries", {}).items():

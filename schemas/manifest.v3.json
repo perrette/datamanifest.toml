@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/manifest.v3.json",
+  "title": "datamanifest manifest (datasets.toml) — spec-v3",
+  "description": "JSON Schema for the JSON projection of a datamanifest manifest TOML file (spec-v3). Parse the TOML to JSON, then validate. _META.schema is asserted as 1. spec-v3 storage: folder variables are bare top-level roots; the datasets/ and cached/ content prefixes and the scope partition are applied by the layer and configured via [_STORAGE._PREFIX] / [_STORAGE._SCOPE]. Lenient about underscore-prefixed structural keys (preserved verbatim); rejects unknown plain dataset fields (typos).",
+  "type": "object",
+  "properties": {
+    "_META": { "$ref": "#/$defs/meta" },
+    "_LANG": { "$ref": "#/$defs/langTop" },
+    "_STORAGE": { "$ref": "#/$defs/storage" },
+    "_LOADERS": {
+      "description": "Legacy format -> ref loader map (deprecated; preserved for back-compat).",
+      "type": "object"
+    }
+  },
+  "patternProperties": {
+    "^[^_].*$": { "$ref": "#/$defs/dataset" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "meta": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": 1,
+          "description": "Data-model compatibility version. This schema file targets schema 1."
+        }
+      },
+      "required": ["schema"],
+      "additionalProperties": true
+    },
+    "ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A module:function reference (never inline code)."
+    },
+    "binding": {
+      "description": "A fetcher/loader binding: a bare module:function string, or a { ref, args, kwargs } table.",
+      "oneOf": [
+        { "$ref": "#/$defs/ref" },
+        {
+          "type": "object",
+          "properties": {
+            "ref": { "$ref": "#/$defs/ref" },
+            "args": { "type": "array" },
+            "kwargs": { "type": "object" }
+          },
+          "required": ["ref"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "selector": {
+      "type": "string",
+      "pattern": "^\\$(\\{[A-Za-z_][A-Za-z0-9_]*\\}|[A-Za-z_][A-Za-z0-9_]*)(/.+)?$",
+      "description": "A storage selector: a $-folder reference, optionally with a literal sub-path ($data, $scratch, $cache/sub). Bare folder names are not valid."
+    },
+    "langTop": {
+      "type": "object",
+      "description": "Top-level [_LANG.<lang>] project-wide execution-context config.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "loaders": {
+            "type": "object",
+            "description": "format -> module:function default-loader map for this language.",
+            "additionalProperties": { "$ref": "#/$defs/ref" }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "langDataset": {
+      "type": "object",
+      "description": "Per-dataset [<ds>._LANG.<lang>] bindings.",
+      "properties": {
+        "shell": {
+          "type": "object",
+          "description": "The shell execution context has a fetcher only (no loader).",
+          "properties": {
+            "fetcher": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "fetcher": { "$ref": "#/$defs/binding" },
+          "loader": { "$ref": "#/$defs/binding" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "storageOverrides": {
+      "type": "object",
+      "description": "_HOST (hostname glob/regex) -> { folder-name: path-expression }. _PROFILE has the same shape but is reserved (shelved) in spec-v3.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": "string" }
+      }
+    },
+    "contentMap": {
+      "type": "object",
+      "description": "Per-content-kind map for _PREFIX / _SCOPE: keys 'datasets' and 'cached' (string values; empty allowed).",
+      "properties": {
+        "datasets": { "type": "string" },
+        "cached": { "type": "string" }
+      },
+      "additionalProperties": { "type": "string" }
+    },
+    "storage": {
+      "type": "object",
+      "description": "[_STORAGE]: folder variables (bare key -> path expression to a top-level root), the project-wide default selector, _HOST overrides, the _PREFIX content-prefix map, and the _SCOPE partition map. _PROFILE is reserved (shelved).",
+      "properties": {
+        "default": { "$ref": "#/$defs/selector" },
+        "_HOST": { "$ref": "#/$defs/storageOverrides" },
+        "_PROFILE": { "$ref": "#/$defs/storageOverrides" },
+        "_PREFIX": { "$ref": "#/$defs/contentMap" },
+        "_SCOPE": { "$ref": "#/$defs/contentMap" }
+      },
+      "additionalProperties": { "type": "string" }
+    },
+    "dataset": {
+      "type": "object",
+      "description": "A dataset table: language-agnostic contract fields plus an optional _LANG sub-table.",
+      "properties": {
+        "uri": { "type": "string" },
+        "uris": { "type": "array", "items": { "type": "string" } },
+        "host": { "type": "string" },
+        "path": { "type": "string" },
+        "scheme": { "type": "string" },
+        "version": { "type": "string" },
+        "branch": { "type": "string" },
+        "doi": { "type": "string" },
+        "aliases": { "type": "array", "items": { "type": "string" } },
+        "description": { "type": "string" },
+        "key": { "type": "string" },
+        "local_path": { "type": "string" },
+        "store": { "$ref": "#/$defs/selector" },
+        "sha256": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{64})?$",
+          "description": "Empty, or a 64-hex SHA-256 digest."
+        },
+        "skip_checksum": { "type": "boolean" },
+        "skip_download": { "type": "boolean" },
+        "delegate": { "type": "boolean" },
+        "extract": { "type": "boolean" },
+        "format": { "type": "string" },
+        "requires": { "type": "array", "items": { "type": "string" } },
+        "_LANG": { "$ref": "#/$defs/langDataset" }
+      },
+      "not": {
+        "required": ["uri", "uris"],
+        "description": "uri and uris are mutually exclusive."
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,5 +1,43 @@
 # Changelog
 
+## spec-v3 (schema `_META.schema = 1`)
+
+A breaking **behavioral** revision of the storage and cache model. `_META.schema` stays
+**1** — the TOML *shape* is back-compatible (changes are resolution semantics + additive
+structural tables); the break is in *resolution* and *layout*, which is what the spec-tag
+axis versions. Nothing implemented spec-v2 storage yet, so practical migration is nil.
+
+1. **Storage: top-level folder roots + layer-applied prefixes + scope.** Folder variables
+   (`$data`/`$cache`/`$repo`/user-defined) are now **bare top-level roots** (`$data` =
+   `user_data_dir`, not `…/Datasets`). The lowercase content prefixes **`datasets/`** (fetch)
+   and **`cached/`** (produce) are applied by the consuming layer, configurable via
+   `[_STORAGE._PREFIX]` / `DATAMANIFEST_PREFIX_*`. A new **`scope`** partition segment
+   (`[_STORAGE._SCOPE]` / `DATAMANIFEST_SCOPE_*`) controls sharing — empty for `datasets`
+   (shared), the **project id** for `cached` (project-isolated). New **`DATAMANIFEST_DIR`**
+   application base. **Breaking:** `[_STORAGE]` folder values drop their `/datasets` suffixes;
+   fetched paths become `<root>/datasets/[scope/]<key>`. `_PROFILE` is **shelved** (reserved,
+   preserved verbatim); `_HOST` kept.
+
+2. **Produced datasets: composition + recipe `version`.** A produced artifact composes its
+   path via folder / `cached` prefix / scope: `<folder>/cached/<project-id>/<cachetype>/
+   [<version>/]<hash>`. The cached scope defaults to the **project id** (declared
+   `[_META].project` → `pyproject.toml`/`Project.toml` name/uuid → path hash). New optional
+   **`version`** path segment — a human-set recipe/code version (not in the parameter hash)
+   that prevents a stale cross-branch/clone hit.
+
+3. **`inspect` (renamed from `cache-gc`): user-driven maintenance, no automatic collector.**
+   Replaces root-reachability GC (which had a read-only-consumer hole) with a field-oriented
+   store listing: enumerate objects (datasets + cached) by `kind`, `key`/`hash`, `location`,
+   `referenced`/orphan, `scope`, `format`, `size`, `created`, `last-access`; filter; and act
+   on an explicit selection (`delete`, optional `move`). Never deletes by default;
+   liveness/`last-access` are advisory. Reference CLI: `datamanifest list … --delete`.
+
+4. **`sync`: cross-machine transfer.** New optional capability — `push`/`pull` a stored
+   object between two stores over SSH/rsync, addressed by `name`/`alias`/`doi` (fetched) or
+   `cachetype[/version]/hash` (produced). Each end resolves its own store from env + `_HOST`
+   (`$repo` excluded); symmetric; writes no manifest (objects arrive as orphans); integrity
+   via rsync; idempotent.
+
 ## spec-v2.1 (schema `_META.schema = 1`)
 
 Prose-only correction on the spec-document axis — no `_META.schema` bump, no on-disk

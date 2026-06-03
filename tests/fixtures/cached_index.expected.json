@@ -1,5 +1,5 @@
 {
-  "capabilities": ["cache-gc"],
+  "capabilities": ["inspect"],
   "resolution": {},
   "preserve_verbatim": {
     "unknown_structural": [],
