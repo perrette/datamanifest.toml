@@ -18,16 +18,16 @@ WORDMARK = "datamanifest"
 TAGLINE = "ONE MANIFEST · MULTI-LANGUAGE"
 
 # layout
-WORD_START = 232      # left edge of the wordmark (and the tagline)
-BASE_WORD = 122       # wordmark baseline
-BASE_TAG = 156        # tagline baseline (a touch more gap below the wordmark)
-ICON_Y = 22           # icon vertical offset
-HEIGHT = 196          # canvas height (extra vertical breathing room)
+WORD_START = 232      # left edge of the wordmark
+BASE_WORD = 128       # wordmark baseline
+BASE_TAG = 170        # tagline baseline (more gap below the wordmark)
+ICON_Y = 26           # icon vertical offset
+HEIGHT = 214          # canvas height (extra vertical breathing room)
 SIZE_WORD = 62
 LS_WORD = -1
 SIZE_TAG = 22
 BRACKET_GAP = 18      # gap between the wordmark and each bracket stem
-TAG_MARGIN = 10       # tagline clearance inside each bracket (broader = smaller)
+TAG_MARGIN = 2        # tagline clearance inside each bracket (broader = smaller; 0 = flush)
 AMBER = "#F0A92B"
 
 
