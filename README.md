@@ -16,8 +16,9 @@ The spec is at **schema v1** (`_META.schema = 1`). The key change from v0 is the
 Each implementation reads its own `_LANG` entries and preserves the rest verbatim,
 enabling lossless round-trips in multi-language projects.
 
-➡️ **[Read the schema: `SCHEMA.md`](SCHEMA.md)**
-➡️ **[Conformance fixtures: `tests/fixtures/`](tests/fixtures/README.md)**
+➡️ **[Reference guide: `docs/guide.md`](docs/guide.md)** — readable walkthrough of every aspect  
+➡️ **[Normative spec: `SCHEMA.md`](SCHEMA.md)**  
+➡️ **[Conformance fixtures: `tests/fixtures/`](tests/fixtures/README.md)**  
 ➡️ **[Changelog: `CHANGELOG.md`](CHANGELOG.md)**
 
 ## Example
