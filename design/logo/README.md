@@ -45,6 +45,18 @@ Shared palette:
 
 Swap to `lockup.svg` / `lockup-dark.svg` for the mark-plus-wordmark form.
 
+## Regenerating the lockup
+
+The lockup wordmark and tagline are baked to vector `<path>` outlines (Inter Bold /
+Medium) by **`build_lockup.py`**, so they render identically everywhere with no font
+dependency — there is no live `<text>` in the SVGs. The tagline is justified to the
+wordmark's exact width. To change the text, colors, or layout, edit the constants at the
+top of the script and re-run:
+
+```sh
+python3 design/logo/build_lockup.py
+```
+
 ## Notes / next steps
 
 - The wordmark uses a system sans stack (`Inter`/Helvetica/Arial). For a portable mark
