@@ -431,12 +431,14 @@ never sets them:
   project-id default preserves the no-cross-project-deletion guarantee — widening it to a
   group trades isolation for sharing within that group).
 
-The **project id** used as the default `cached` scope resolves, first non-empty wins:
-declared `[_META].project` → the **package identity** at the project root (Python
-`[project].name` in `pyproject.toml`; Julia `uuid` else `name` in `Project.toml`) → a hash of
-the project root's absolute path (machine-local; does not coincide across clones, so clones
-do not share). Rungs 1–2 are stable across clones and branches, which is what lets those
-clones share. A tool SHOULD render the chosen value to a single path-safe segment.
+The default `cached` scope resolves, first non-empty wins: declared `[_META].scope` → the
+**project id**, i.e. the **package identity** at the project root (Python `[project].name` in
+`pyproject.toml`; Julia `uuid` else `name` in `Project.toml`) → a hash of the project root's
+absolute path (machine-local; does not coincide across clones, so clones do not share). Rungs
+1–2 are stable across clones and branches, which is what lets those clones share. A tool
+SHOULD render the chosen value to a single path-safe segment. A produced entry MAY carry its
+own `scope` to override this default per artifact (parallel to a dataset's `store`); there is
+no per-entry *project* — the project id is only the source of the scope default.
 
 ### Host-aware resolution (`[_STORAGE]`)
 
@@ -755,11 +757,12 @@ lists them by **portable key** (`cachetype` + `hash`), never by absolute path.
 ```toml
 [_META]
 schema  = 1
-# project = "lgmpre"   # optional declared project id (else derived: package name / Julia uuid, else path hash)
+# scope = "lgmpre"   # optional declared default scope (else derived: package name / Julia uuid, else path hash)
 
 [load_20c_esm_anomaly]
 cachetype = "esm_20c_anomaly"
 # version = "v3"      # optional recipe version (path segment when set)
+# scope   = "lgmpre"  # optional per-artifact scope override (else the _META / derived default)
 hash      = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
 ref       = "lgmpre.data:load_20c_esm_anomaly"   # the producing function
 format    = "nc"

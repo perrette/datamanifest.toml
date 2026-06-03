@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/cached.v3.json",
   "title": "Produced-dataset index (cached.toml) — spec-v3",
-  "description": "JSON Schema for the JSON projection of a cached.toml produced-dataset index. Parse the TOML to JSON, then validate. spec-v3 adds the optional recipe `version` (entry) and optional declared `project` id (_META).",
+  "description": "JSON Schema for the JSON projection of a cached.toml produced-dataset index. Parse the TOML to JSON, then validate. spec-v3 adds the optional recipe `version` and `scope` (entry) and an optional declared default `scope` (_META).",
   "type": "object",
   "required": ["_META"],
   "properties": {
@@ -10,7 +10,7 @@
       "type": "object",
       "properties": {
         "schema": { "const": 1 },
-        "project": { "type": "string", "description": "Optional declared project id (default cached scope; else derived)." }
+        "scope": { "type": "string", "description": "Optional declared default scope (the cached partition segment) for this file; else the derived project id." }
       },
       "required": ["schema"],
       "additionalProperties": true
@@ -31,6 +31,7 @@
       "properties": {
         "cachetype": { "type": "string", "minLength": 1 },
         "version": { "type": "string", "description": "Optional recipe/code version (a path segment when set)." },
+        "scope": { "type": "string", "description": "The cached partition segment for this artifact; defaults to _META.scope / the derived project id." },
         "hash": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$",

@@ -134,7 +134,8 @@ axis versions. Nothing implemented spec-v2 storage yet, so practical migration i
 2. **Produced datasets: composition + recipe `version`.** A produced artifact composes its
    path via folder / `cached` prefix / scope: `<folder>/cached/<project-id>/<cachetype>/
    [<version>/]<hash>`. The cached scope defaults to the **project id** (declared
-   `[_META].project` → `pyproject.toml`/`Project.toml` name/uuid → path hash). New optional
+   `[_META].scope` → `pyproject.toml`/`Project.toml` name/uuid → path hash) and MAY be
+   overridden per entry with `scope`; there is no per-entry `project`. New optional
    **`version`** path segment — a human-set recipe/code version (not in the parameter hash)
    that prevents a stale cross-branch/clone hit.
 
