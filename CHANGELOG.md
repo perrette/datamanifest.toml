@@ -1,5 +1,64 @@
 # Changelog
 
+## spec-v3.7 (schema `_META.schema = 1`)
+
+Reconcile the produced-dataset / cache model with the implementation: the `cached.toml` index
+becomes a self-healing, **nested schema-2** registry, and the produced-dataset identity model
+(cachetype / scope / conflicts / default format) is formalized cross-language. The manifest
+`_META.schema` stays **1**; `cached.toml`'s own `_META.schema` goes **1 → 2** (schema 1 is
+still read, always rewritten as 2).
+
+1. **`cached.toml` field `project` → `scope`.** The declarable knob is named for what it sets
+   — the scope partition — not for the project id that merely *defaults* it. There is no
+   per-dataset `project`; `scope` is recorded per recipe (parallel to a dataset's `store`).
+
+2. **`cached.toml` index lifecycle: self-healing transparency view.** The index is reframed
+   from a write-once log to a per-machine transparency view that **converges to the artifacts
+   present on disk**. A tool registers on produce (miss), **registers-if-missing on cache
+   hit** (so a deleted `cached.toml` repopulates as datasets are accessed; the steady-state
+   check is read-only, off the hot path), and **prunes a stale entry** when it observes the
+   artifact is gone (single ops reconcile their own entry, `inspect` the whole file). Pruning
+   a dangling pointer is bookkeeping, **not** the "never auto-delete data" rule (which
+   protects present bytes). On-disk `config.toml` stays the cache-validity authority; index
+   mutations use the produce atomic-write+lock and are idempotent. `metadata.toml` provenance
+   remains **write-if-absent** (hits don't re-stamp it) — only the index re-registers.
+
+3. **Produced-dataset identity model (cross-language).** (i) **`cachetype` default +
+   stable-name rule:** absent an explicit `cachetype`, it derives from the producing
+   function's canonical *importable* name (so it coincides with the entry `ref`);
+   unique-per-function is the right default (mixing unrelated caches is the worst failure),
+   with the accepted rename-orphans consequence and `version` as the deliberate-bust tool; and
+   when the function has **no stable importable identity** (script / REPL / eval / notebook) a
+   tool MUST require an explicit `cachetype`, never synthesize one (the generalized pickle
+   constraint). (ii) **`scope` is ownership, not disambiguation:** resolved from the *caller's*
+   project, isolation-by-default / share-by-opt-in; never affects hit validity. (iii)
+   **`(cachetype, version)` conflict guard:** a tool SHOULD raise when two distinct functions
+   claim the same pair *live in one process at once* (same-process/same-time only; `scope`
+   irrelevant). Transient/local/anonymous functions are exempt; *when and how* to detect is
+   left to each implementer (the earliest practical point for the language — import time in
+   Python; trickier under Julia's precompilation, and possibly infeasible there), hence a
+   SHOULD with no fixed mechanism. (iv) **Format coexists under one hash:** `format` is not a
+   hash input, so several formats share a `<cachetype>/[<version>/]<hash>` dir; a hit requires
+   the `data.<ext>` for the *requested* format, else recompute. (v) **Per-language default
+   format** (RECOMMENDED, not normative): `pickle` (Python) / `jld2` (Julia), each with a
+   built-in **saver** + loader, so a format-less produced dataset round-trips.
+
+4. **`cached.toml` schema 2 (nested) + scope ladder + centralized `[_STORAGE]`.** (a) **Schema
+   2 is nested:** `cached.toml` becomes a `produced` array of recipe tables keyed by
+   `(scope, cachetype, version)`, each with one `instances` entry per produced variation
+   (parameter `hash` + the `params` key table). Registering **accumulates** instances (so a
+   recipe's many parameterizations all stay reachable instead of orphaning); recipe-level
+   `ref`/`format`/`store` are refreshed on register and on hit-if-drifted (not hash inputs).
+   Schema 1 (flat, one `hash`, no params) is still **read** (→ one-instance recipe) but
+   rewritten as schema 2. (b) **Scope resolution ladder:** a producing-call `scope=` override
+   (highest) → `DATAMANIFEST_SCOPE_CACHED` → `[_STORAGE._SCOPE].cached` → project id;
+   `scope=""` is one global unscoped store; the scope is resolved **once** and drives both the
+   path and the recorded entry (no divergence), and reachability is the full
+   `(scope, cachetype, version, hash)` tuple. (c) **Centralized storage:** a produced artifact
+   reads the nearest manifest's `[_STORAGE]` (a plain TOML read, no fetch layer), so produced
+   and fetched data share one storage configuration; env overrides win, an explicit config
+   wins over the manifest. The `cached.v3.json` schema now validates the nested schema-2 form.
+
 ## spec-v3.6 (schema `_META.schema = 1`)
 
 Replace the spec-v3.4 "warn and fall through" rule for language-implicit bindings with
@@ -134,8 +193,7 @@ axis versions. Nothing implemented spec-v2 storage yet, so practical migration i
 2. **Produced datasets: composition + recipe `version`.** A produced artifact composes its
    path via folder / `cached` prefix / scope: `<folder>/cached/<project-id>/<cachetype>/
    [<version>/]<hash>`. The cached scope defaults to the **project id** (declared
-   `[_META].scope` → `pyproject.toml`/`Project.toml` name/uuid → path hash) and MAY be
-   overridden per entry with `scope`; there is no per-entry `project`. New optional
+   `[_META].project` → `pyproject.toml`/`Project.toml` name/uuid → path hash). New optional
    **`version`** path segment — a human-set recipe/code version (not in the parameter hash)
    that prevents a stale cross-branch/clone hit.
 
@@ -145,56 +203,6 @@ axis versions. Nothing implemented spec-v2 storage yet, so practical migration i
    `referenced`/orphan, `scope`, `format`, `size`, `created`, `last-access`; filter; and act
    on an explicit selection (`delete`, optional `move`). Never deletes by default;
    liveness/`last-access` are advisory. Reference CLI: `datamanifest list … --delete`.
-
-3a. **`cached.toml` index lifecycle: self-healing transparency view.** The index is
-   reframed from a write-once log to a per-machine transparency view that **converges to
-   the artifacts present on disk**. A tool registers on produce (miss), **registers-if-missing
-   on cache hit** (so a deleted `cached.toml` repopulates as datasets are accessed; the
-   steady-state check is read-only, off the hot path), and **prunes a stale entry** when it
-   observes the artifact is gone (single ops reconcile their own entry, `inspect` the whole
-   file). Pruning a dangling pointer is bookkeeping, **not** the "never auto-delete data"
-   rule (which protects present bytes). On-disk `config.toml` stays the cache-validity
-   authority; index mutations use the produce atomic-write+lock and are idempotent.
-   `metadata.toml` provenance remains **write-if-absent** (hits don't re-stamp it) — only the
-   index re-registers.
-
-3b. **Produced-dataset identity model (cross-language reformulation).** Generalized from the
-   Python implementation's design note. (i) **`cachetype` default + stable-name rule:**
-   absent an explicit `cachetype`, it derives from the producing function's canonical
-   *importable* name (so it coincides with the entry `ref`); unique-per-function is the
-   right default (mixing unrelated caches is the worst failure), with the accepted
-   rename-orphans consequence and `version` as the deliberate-bust tool; and when the
-   function has **no stable importable identity** (script / REPL / eval / notebook) a tool
-   MUST require an explicit `cachetype`, never synthesize one (the generalized pickle
-   constraint). (ii) **`scope` is ownership, not disambiguation:** resolved from the
-   *caller's* project, isolation-by-default / share-by-opt-in; never affects hit validity.
-   (iii) **`(cachetype, version)` conflict guard:** a tool SHOULD raise when two distinct
-   functions claim the same pair *live in one process at once* (same-process/same-time only;
-   `scope` irrelevant). Transient/local/anonymous functions are exempt; *when and how* to
-   detect is left to each implementer (the earliest practical point for the language —
-   import time in Python; trickier under Julia's precompilation, and possibly infeasible
-   there), hence a SHOULD with no fixed mechanism. (iv) **Format coexists under one hash:** `format` is not a hash
-   input, so several formats share a `<cachetype>/[<version>/]<hash>` dir; a hit requires the
-   `data.<ext>` for the *requested* format, else recompute. (v) **Per-language default
-   format** (RECOMMENDED, not normative): `pickle` (Python) / `jld2` (Julia), each with a
-   built-in **saver** + loader, so a format-less produced dataset round-trips.
-
-3c. **`cached.toml` schema 2 (nested) + scope ladder + centralized `[_STORAGE]`.** Three
-   reconciliations from the Python `feat/cache-ergonomics-and-list` branch. (a) **Schema 2 is
-   nested:** `cached.toml` becomes a `produced` array of recipe tables keyed by
-   `(scope, cachetype, version)`, each with one `instances` entry per produced variation
-   (parameter `hash` + the `params` key table). Registering **accumulates** instances (so a
-   recipe's many parameterizations all stay reachable instead of orphaning); recipe-level
-   `ref`/`format`/`store` are refreshed on register and on hit-if-drifted (not hash inputs).
-   Schema 1 (flat, one `hash`, no params) is still **read** (→ one-instance recipe) but
-   rewritten as schema 2. (b) **Scope resolution ladder:** a producing-call `scope=` override
-   (highest) → `DATAMANIFEST_SCOPE_CACHED` → `[_STORAGE._SCOPE].cached` → project id;
-   `scope=""` is one global unscoped store; the scope is resolved **once** and drives both the
-   path and the recorded entry (no divergence), and reachability is the full
-   `(scope, cachetype, version, hash)` tuple. (c) **Centralized storage:** a produced artifact
-   reads the nearest manifest's `[_STORAGE]` (a plain TOML read, no fetch layer), so produced
-   and fetched data share one storage configuration; env overrides win, an explicit config
-   wins over the manifest. The `cached.v3.json` schema now validates the nested schema-2 form.
 
 4. **`sync`: cross-machine transfer.** New optional capability — `push`/`pull` a stored
    object between two stores over SSH/rsync, addressed by `name`/`alias`/`doi` (fetched) or
