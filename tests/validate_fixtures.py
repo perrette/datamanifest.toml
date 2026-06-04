@@ -229,6 +229,16 @@ def validate(toml_path, json_path):
             actual = manifest[ds_name].get("local_path")
             if actual != lp:
                 _err(errors, f"storage.local_paths[{ds_name}]: expected '{lp}', manifest has '{actual!r}'")
+        # per-dataset scope overrides (the top rung of the scope ladder). An explicit
+        # empty string "" is a valid, intentional value (the unscoped/global store),
+        # distinct from an absent field — so compare exact, not truthy.
+        for ds_name, sc in storage.get("scopes", {}).items():
+            if ds_name not in manifest:
+                _err(errors, f"storage.scopes: '{ds_name}' not in manifest")
+                continue
+            actual = manifest[ds_name].get("scope")
+            if actual != sc:
+                _err(errors, f"storage.scopes[{ds_name}]: expected scope {sc!r}, manifest has {actual!r}")
         # folder-variable namespace
         folders = storage.get("folders", {})
         for name in folders.get("builtin", []):

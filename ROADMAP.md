@@ -62,6 +62,13 @@ originate in their host language.
   to record a pulled object in the local `cached.toml`/`datasets.toml` (so it shows as
   `referenced`), and a content checksum (e.g. a Merkle digest over a directory's files) for
   at-rest verification beyond the transport.
+- **Scoped datasets without duplicating the heavy ones (hardlinks / reflink clones).** With
+  per-dataset `scope` in place, a project can isolate its fetched datasets for clean per-project
+  maintenance — but a genuinely shared heavy archive (CMIP, reanalysis) scoped per project would
+  duplicate gigabytes. A storage-layer (not format) enhancement could keep **one physical copy**
+  and expose per-scope **hardlinks or reflink/CoW clones** (Linux `cp --reflink`, APFS clones),
+  so scoping stays cheap for large inputs. Pairs with the open question of whether the *datasets*
+  default scope should flip from empty/shared to project-id. Deferred.
 - **Cloud / `fsspec` / CAS backends** — optional per-language extras behind the recipe
   interface, never a core spec contract.
 

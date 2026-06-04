@@ -1,5 +1,18 @@
 # Changelog
 
+## spec-v3.8 (schema `_META.schema = 1`) — unreleased
+
+- **Per-dataset `scope` override for fetched datasets.** A `datasets.toml` dataset MAY now
+  carry a `scope` field — the top rung of the scope ladder, parallel to a produced call's
+  `scope=`. `scope = ""` selects the unscoped/global store (shared across projects); a name
+  selects that partition (e.g. `"cmip"` for a shared pool); omitted falls through to the
+  layer default (`DATAMANIFEST_SCOPE_DATASETS` → `[_STORAGE._SCOPE].datasets` → built-in,
+  currently empty). This lets a project share a few heavy archives explicitly while scoping
+  the rest. The scope ladder resolves **first-explicitly-set** (an explicit `""` is a real
+  value, not "unset"). `manifest.v3.json` types the new field; a storage conformance fixture
+  asserts it. **The datasets default scope is unchanged (still empty/shared) — flipping it is
+  a separate, pending decision.**
+
 ## spec-v3.7 (schema `_META.schema = 1`)
 
 Reconcile the produced-dataset / cache model with the implementation: the `cached.toml` index

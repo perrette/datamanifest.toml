@@ -19,6 +19,10 @@
     "local_paths": {
       "pinned": "$scratch/exact/file.nc"
     },
+    "scopes": {
+      "bigsim": "cmip",
+      "scratch_run": ""
+    },
     "folders": {
       "builtin": ["data", "cache", "repo"],
       "user": ["scratch"],

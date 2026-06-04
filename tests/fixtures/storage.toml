@@ -17,15 +17,20 @@ cached   = "cached"
 datasets = "shared-pool"           # share fetched datasets within a named group
 
 # Store omitted -> the project default selector ($data); this expensive sim is protected.
+# Per-dataset scope override: this huge archive is shared across projects under a named
+# pool, overriding the layer default ("shared-pool") for just this dataset.
 [bigsim]
 uri    = "https://example.com/bigsim.nc"
 format = "nc"
+scope  = "cmip"
 
 # Disposable, re-fetchable input on the OS-reclaimable cache folder.
+# Per-dataset scope = "" -> the unscoped/global store (explicit empty overrides the layer).
 [scratch_run]
 uri    = "https://example.com/scratch_run.nc"
 format = "nc"
 store  = "$cache"
+scope  = ""
 
 # Keyed under the host-resolved user-defined scratch folder.
 [big]

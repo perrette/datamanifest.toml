@@ -144,6 +144,9 @@ partition (`_SCOPE`) are applied by the layer.
   the default). The validator also asserts it is `$`-form.
 - `local_paths.<ds>` — the raw `local_path` path expression for datasets that bypass the
   keyed `<root>/<key>` layout.
+- `scopes.<ds>` — the per-dataset `scope` override (the top rung of the scope ladder).
+  Compared exactly, so an explicit empty string `""` (the unscoped/global store) is
+  distinguished from an absent field.
 - `folders.builtin` — the built-in folder names (`data`, `cache`, `repo`).
 - `folders.user` — user-defined folder variables that MUST be defined in `[_STORAGE]`
   (bare keys, excluding the reserved `default` / `_HOST` / `_PREFIX` / `_SCOPE` / `_PROFILE`).

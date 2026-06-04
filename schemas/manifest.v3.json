@@ -139,6 +139,7 @@
         "key": { "type": "string" },
         "local_path": { "type": "string" },
         "store": { "$ref": "#/$defs/selector" },
+        "scope": { "type": "string", "description": "Optional per-dataset partition segment (the top rung of the scope ladder); '' = the unscoped/global store, a name = that partition. Omitted = the layer default." },
         "sha256": {
           "type": "string",
           "pattern": "^([0-9a-fA-F]{64})?$",

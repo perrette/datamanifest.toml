@@ -101,6 +101,7 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `key` | string | `""` | Storage key (relative path under the datasets folder). Derived from host + path + version when absent. |
 | `local_path` | string | `""` | **Path expression** for a user-managed exact location; may interpolate `$`-folder variables, `$USER`/env, and `~`. After interpolation: absolute → used verbatim; relative → resolved against the project root. Bypasses the keyed `<root>/<key>` layout and download. See Storage. |
 | `store` | string | `default` | **Selector** choosing the folder the dataset is materialized into: a `$`-folder reference, optionally with a sub-path (`$data`, `$scratch`, `$cache/sub`). The dataset is keyed under it as `<resolved-folder>/<key>`. Omitted ⇒ the project-wide `[_STORAGE].default` selector (itself `$data`). See Storage. Honored under the `storage` capability; other tools preserve it verbatim. |
+| `scope` | string | (layer default) | **Partition segment** controlling sharing/ownership for this dataset — the top rung of the scope ladder (Storage §Content prefixes and scopes), parallel to a produced call's `scope=`. `""` ⇒ the unscoped/global store (shared across projects); a name ⇒ that partition (e.g. `"cmip"` for a shared pool). Omitted ⇒ the layer default (`DATAMANIFEST_SCOPE_DATASETS` → `[_STORAGE._SCOPE].datasets` → built-in, currently empty/shared). Lets a project share a few heavy datasets while scoping the rest. Honored under the `storage` capability; preserved verbatim by others. |
 | `sha256` | string | `""` | Expected SHA-256 of the downloaded file/folder. Auto-filled on first successful download and verified at fetch time; **not** re-verified on every load (re-verification is opt-in). |
 | `skip_checksum` | bool | `false` | Disable checksum verification for this dataset. |
 | `skip_download` | bool | `false` | Treat the dataset as externally provided; the documented `uri` is returned as the path and no download is attempted. |
@@ -398,8 +399,9 @@ Every storage *value* is one of two kinds:
   a `$`-folder reference, optionally with a literal sub-path: `default = "$data"`,
   `store = "$scratch"`, `store = "$cache/sub"`. It resolves to `<root>[/<subpath>]`; the
   consuming layer then appends its prefix, scope, and key — a fetched dataset lands at
-  `<root>[/<subpath>]/<datasets-prefix>/[<datasets-scope>/]<key>`. A dataset's `store`
-  defaults to `[_STORAGE].default`, which defaults to `$data`. The storage **key** (see
+  `<root>[/<subpath>]/<datasets-prefix>/[<datasets-scope>/]<key>`, where `<datasets-scope>`
+  comes from the scope ladder (above), including an optional per-dataset `scope`. A dataset's
+  `store` defaults to `[_STORAGE].default`, which defaults to `$data`. The storage **key** (see
   `key`) is independent of the selector, so the same dataset resolves under whichever folder
   is chosen.
 - **Path expressions** — `[_STORAGE]` folder values and `local_path`. A full path that may
@@ -421,9 +423,10 @@ never sets them:
   non-empty precisely to keep *fetched / produced / app-state* in separate subtrees (and to
   let produced-cache maintenance never reach the fetched tree), so emptying them is allowed but forfeits
   that separation.
-- **Scope** — the optional partition id controlling *sharing*. Resolves, first non-empty
-  wins: an optional **producing-call override** (for `cached`, the per-call `scope=` on the
-  produce surface — highest) → `DATAMANIFEST_SCOPE_<KIND>` → `[_STORAGE._SCOPE].<kind>` →
+- **Scope** — the optional partition id controlling *sharing*. Resolves, **first explicitly
+  set wins** (an explicit empty string `""` is a valid setting — the unscoped/global store —
+  not "unset"): a **per-item override** (a fetched dataset's `scope` field, or a produced
+  call's `scope=` — highest) → `DATAMANIFEST_SCOPE_<KIND>` → `[_STORAGE._SCOPE].<kind>` →
   built-in default: **empty for `datasets`** (shared across all projects — the dedup default
   for external data) and **the project id for `cached`** (project-isolated). Set it to a
   project id for full isolation, or to a group name to share within a set of projects (e.g. a
