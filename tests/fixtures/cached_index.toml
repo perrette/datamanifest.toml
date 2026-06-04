@@ -1,27 +1,38 @@
 # A `cached.toml` index (the produced-dataset registry — the Manifest.toml
-# analogue). Sibling to datasets.toml; lists produced datasets by portable key
-# (cachetype + hash), never by absolute path. Roots produced artifacts for GC.
+# analogue). Sibling to datasets.toml; lists produced datasets by portable
+# identity (scope, cachetype, version) + per-variation hash, never by absolute
+# path. Roots produced artifacts for GC.
 #
-# This models canonical *generated* writer output: each entry carries the
-# resolved `scope` partition segment (the cached default is the project id —
-# here `lgmpre`, the package name). The legacy `project` key is gone — neither
-# `_META` nor any entry may carry it in canonical output (the expectation's
-# `forbidden_keys` asserts this negatively).
+# Schema 2 is nested: one [[produced]] recipe per (scope, cachetype, version),
+# each with one [[produced.instances]] per produced variation (its parameter
+# hash + the params key table; params omitted when empty). Registering
+# accumulates instances. The legacy `project` key is gone — neither `_META` nor
+# any recipe may carry it in canonical output (the expectation's `forbidden_keys`
+# asserts this negatively). Each instance hash is the canonical-JSON SHA-256 of
+# its params, so the index is self-verifying.
 [_META]
-schema = 1
+schema = 2
 
-[load_20c_esm_anomaly]
+[[produced]]
 cachetype = "esm_20c_anomaly"
-hash      = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
-ref       = "lgmpre.data:load_20c_esm_anomaly"
 format    = "nc"
+ref       = "lgmpre.data:load_20c_esm_anomaly"
 scope     = "lgmpre"
 store     = "$cache"
 
-[load_lgm_esm_anomaly]
+  [[produced.instances]]
+  hash = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
+  [produced.instances.params]
+  grid        = "5x5"
+  skip_models = ["CESM.*", "FGOALS.*"]
+
+[[produced]]
 cachetype = "esm_lgm_anomaly"
-hash      = "40384c4db019d383728340a2d8c5db9c96eb41db0231e93dd944091ca180633c"
-ref       = "lgmpre.data:load_lgm_esm_anomaly"
 format    = "nc"
+ref       = "lgmpre.data:load_lgm_esm_anomaly"
 scope     = "lgmpre"
 store     = "$cache"
+
+  # a parameterless variation: empty key table, hash = SHA-256("{}")
+  [[produced.instances]]
+  hash = "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"

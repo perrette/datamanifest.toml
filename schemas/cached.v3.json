@@ -1,23 +1,24 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/cached.v3.json",
-  "title": "Produced-dataset index (cached.toml) — spec-v3",
-  "description": "JSON Schema for the JSON projection of a cached.toml produced-dataset index. Parse the TOML to JSON, then validate. spec-v3 adds the optional recipe `version` and `scope` (entry) and an optional declared default `scope` (_META).",
+  "title": "Produced-dataset index (cached.toml) — spec-v3, schema 2 (nested)",
+  "description": "JSON Schema for the JSON projection of a cached.toml produced-dataset index. Parse the TOML to JSON, then validate. This validates the canonical written form, schema 2 (nested): an array of `produced` recipe tables keyed by (scope, cachetype, version), each carrying one `instances` entry per produced variation (parameter hash + the params key table). Schema 1 (a flat table per registry name with a single `hash` and no params) is still read by tools but is always rewritten as schema 2, so it is not validated here.",
   "type": "object",
-  "required": ["_META"],
+  "required": ["_META", "produced"],
   "properties": {
     "_META": {
       "type": "object",
       "properties": {
-        "schema": { "const": 1 },
-        "scope": { "type": "string", "description": "Optional declared default scope (the cached partition segment) for this file; else the derived project id." }
+        "schema": { "const": 2 }
       },
       "required": ["schema"],
       "additionalProperties": true
+    },
+    "produced": {
+      "type": "array",
+      "description": "One recipe per (scope, cachetype, version). Order is canonical (sorted); not significant.",
+      "items": { "$ref": "#/$defs/recipe" }
     }
-  },
-  "patternProperties": {
-    "^[^_].*$": { "$ref": "#/$defs/entry" }
   },
   "additionalProperties": true,
   "$defs": {
@@ -25,23 +26,40 @@
       "type": "string",
       "pattern": "^\\$(\\{[A-Za-z_][A-Za-z0-9_]*\\}|[A-Za-z_][A-Za-z0-9_]*)(/.+)?$"
     },
-    "entry": {
+    "recipe": {
       "type": "object",
-      "description": "A produced dataset, addressed by portable key (cachetype + optional version + hash), never by absolute path.",
+      "description": "A produced-dataset recipe, identified by (scope, cachetype, version); never by absolute path. Recipe-level ref/format/store are refreshed on register (not hash inputs).",
       "properties": {
-        "cachetype": { "type": "string", "minLength": 1 },
-        "version": { "type": "string", "description": "Optional recipe/code version (a path segment when set)." },
-        "scope": { "type": "string", "description": "The cached partition segment for this artifact; defaults to _META.scope / the derived project id." },
+        "cachetype": { "type": "string", "minLength": 1, "description": "The producing function's importable name (default) or an explicit override." },
+        "scope": { "type": "string", "description": "The resolved ownership partition; recorded, not declared. Empty string = the unscoped global store." },
+        "version": { "type": "string", "description": "Optional recipe/code version (a path segment + part of the recipe identity when set)." },
+        "ref": { "type": "string", "description": "The producing module:function reference (refreshed across a refactor)." },
+        "format": { "type": "string" },
+        "store": { "$ref": "#/$defs/selector" },
+        "instances": {
+          "type": "array",
+          "description": "One entry per produced variation (deduped by hash).",
+          "items": { "$ref": "#/$defs/instance" }
+        }
+      },
+      "required": ["cachetype", "instances"],
+      "additionalProperties": true
+    },
+    "instance": {
+      "type": "object",
+      "description": "A single produced variation: its parameter hash and the key table that produced it.",
+      "properties": {
         "hash": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$",
           "description": "Lowercase 64-hex SHA-256 of the canonical-JSON key table."
         },
-        "ref": { "type": "string", "description": "The producing module:function reference." },
-        "format": { "type": "string" },
-        "store": { "$ref": "#/$defs/selector" }
+        "params": {
+          "type": "object",
+          "description": "The key table that produced this variation (the same table held by the config.toml sidecar). Omitted when empty."
+        }
       },
-      "required": ["cachetype", "hash"],
+      "required": ["hash"],
       "additionalProperties": true
     }
   }

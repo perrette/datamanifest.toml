@@ -297,35 +297,66 @@ def validate(toml_path, json_path):
             _err(errors, f"config_sidecar: key mismatch (expected {config_sidecar['key']}, derived {ct}/{computed})")
 
     # --- cached_index (optional; present for `inspect` fixtures) ---
+    # Schema 2 (nested): a top-level `produced` array of recipe tables keyed by
+    # (scope, cachetype, version), each with `instances` recording a variation's
+    # `hash` + `params`. The fixture is self-verifying — every instance hash MUST
+    # equal the canonical-JSON param-hash of its `params`.
     cached_index = expected.get("cached_index")
     if cached_index is not None:
+        cached_meta = manifest.get("_META", {})
+        exp_schema = cached_index.get("schema", 2)
+        if cached_meta.get("schema") != exp_schema:
+            _err(errors, f"cached_index: _META.schema is {cached_meta.get('schema')!r}, expected {exp_schema!r}")
+
         # `forbidden_keys` is the canonical *writer* contract: a generated
         # cached.toml must NOT carry these legacy/renamed keys (e.g. `project`,
-        # renamed to `scope`), in `_META` or any entry. Deliberately distinct
+        # renamed to `scope`), in `_META` or any recipe. Deliberately distinct
         # from the lenient round-trip preservation of unknown keys (R3/R4):
         # preservation governs foreign input copied verbatim; this governs what a
         # tool *emits*. Without it, `additionalProperties: true` (and the bespoke
         # positive-only checks here) would silently accept a stray `project`.
         forbidden = cached_index.get("forbidden_keys", [])
-        cached_meta = manifest.get("_META", {})
         for bad in forbidden:
             if bad in cached_meta:
                 _err(errors, f"cached_index[_META]: canonical output must not carry legacy key '{bad}'")
-        for name, exp in cached_index.get("entries", {}).items():
-            if name not in manifest:
-                _err(errors, f"cached_index: entry '{name}' not in manifest")
+
+        produced = manifest.get("produced", [])
+        if not isinstance(produced, list):
+            _err(errors, "cached_index: top-level 'produced' must be an array of recipe tables")
+            produced = []
+        by_id = {
+            (r.get("scope", ""), r.get("cachetype"), r.get("version", "")): r
+            for r in produced if isinstance(r, dict)
+        }
+        for exp_r in cached_index.get("recipes", []):
+            rid = (exp_r.get("scope", ""), exp_r.get("cachetype"), exp_r.get("version", ""))
+            r = by_id.get(rid)
+            if r is None:
+                _err(errors, f"cached_index: recipe {rid} not in manifest 'produced'")
                 continue
-            entry = manifest[name]
-            for field in ("cachetype", "hash", "ref", "scope"):
-                if field in exp and entry.get(field) != exp[field]:
-                    _err(errors, f"cached_index[{name}]: {field} mismatch (expected {exp[field]!r}, manifest has {entry.get(field)!r})")
-            if "store" in exp and entry.get("store", "$cache") != exp["store"]:
-                _err(errors, f"cached_index[{name}]: store mismatch (expected {exp['store']!r}, manifest has {entry.get('store')!r})")
+            for field in ("cachetype", "scope", "version", "ref", "format", "store"):
+                if field in exp_r and r.get(field) != exp_r[field]:
+                    _err(errors, f"cached_index{rid}: {field} mismatch (expected {exp_r[field]!r}, manifest has {r.get(field)!r})")
             for bad in forbidden:
-                if bad in entry:
-                    _err(errors, f"cached_index[{name}]: canonical output must not carry legacy key '{bad}' (renamed to 'scope')")
-            if not _HEX64.match(str(entry.get("hash", ""))):
-                _err(errors, f"cached_index[{name}]: hash is not 64 lowercase hex chars")
+                if bad in r:
+                    _err(errors, f"cached_index{rid}: canonical output must not carry legacy key '{bad}' (renamed to 'scope')")
+            inst_by_hash = {
+                i.get("hash"): i for i in r.get("instances", []) if isinstance(i, dict)
+            }
+            for exp_i in exp_r.get("instances", []):
+                h = exp_i.get("hash")
+                inst = inst_by_hash.get(h)
+                if inst is None:
+                    _err(errors, f"cached_index{rid}: instance hash {h!r} not in manifest recipe")
+                    continue
+                if not _HEX64.match(str(h)):
+                    _err(errors, f"cached_index{rid}: hash {h!r} is not 64 lowercase hex chars")
+                params = inst.get("params", {})
+                computed = _param_hash(params)
+                if computed != h:
+                    _err(errors, f"cached_index{rid}: hash {h} != recomputed param-hash {computed} of params {params!r}")
+                if "params" in exp_i and params != exp_i["params"]:
+                    _err(errors, f"cached_index{rid}: instance {h} params mismatch (expected {exp_i['params']!r}, manifest has {params!r})")
 
     if errors:
         raise AssertionError("\n  " + "\n  ".join(errors))

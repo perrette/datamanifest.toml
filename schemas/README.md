@@ -34,7 +34,10 @@ python -c 'import tomllib,json,sys; json.dump(tomllib.load(open(sys.argv[1],"rb"
 The `*.v2.1.json` files are kept alongside for tools pinned to the earlier spec. **spec-v3**
 changes storage (top-level folder roots; `[_STORAGE._PREFIX]` / `[_STORAGE._SCOPE]`;
 `_PROFILE` reserved) and adds the produced `version` / `scope` fields; `manifest.v3.json`
-allows the new `_STORAGE` sub-tables, and `cached`/`config` v3 type the new fields.
+allows the new `_STORAGE` sub-tables, and `config` v3 types the new fields. `cached.v3.json`
+validates the **nested schema-2** `cached.toml` (`_META.schema = 2`: an array of `produced`
+recipes keyed by `(scope, cachetype, version)`, each with per-variation `instances`); the
+flat schema-1 form is still read by tools but always rewritten as schema 2.
 
 ## Versioning
 

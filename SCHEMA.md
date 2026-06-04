@@ -421,24 +421,27 @@ never sets them:
   non-empty precisely to keep *fetched / produced / app-state* in separate subtrees (and to
   let produced-cache maintenance never reach the fetched tree), so emptying them is allowed but forfeits
   that separation.
-- **Scope** — the optional partition id controlling *sharing*. Resolves
-  `DATAMANIFEST_SCOPE_<KIND>` → `[_STORAGE._SCOPE].<kind>` → built-in default: **empty for
-  `datasets`** (shared across all projects — the dedup default for external data) and **the
-  project id for `cached`** (project-isolated). Set it to a project id for full isolation, or
-  to a group name to share within a set of projects (e.g. a lab sharing one download pool).
-  Because fetched datasets are never garbage-collected, the datasets scope is a pure
-  locality/dedup choice with **no GC consequence**; only the cached scope affects GC (its
-  project-id default preserves the no-cross-project-deletion guarantee — widening it to a
+- **Scope** — the optional partition id controlling *sharing*. Resolves, first non-empty
+  wins: an optional **producing-call override** (for `cached`, the per-call `scope=` on the
+  produce surface — highest) → `DATAMANIFEST_SCOPE_<KIND>` → `[_STORAGE._SCOPE].<kind>` →
+  built-in default: **empty for `datasets`** (shared across all projects — the dedup default
+  for external data) and **the project id for `cached`** (project-isolated). Set it to a
+  project id for full isolation, or to a group name to share within a set of projects (e.g. a
+  lab sharing one download pool); an explicitly empty value (`scope=""`) is one global,
+  unscoped store. Because fetched datasets are never garbage-collected, the datasets scope is
+  a pure locality/dedup choice with **no GC consequence**; only the cached scope affects GC
+  (its project-id default preserves the no-cross-project-deletion guarantee — widening it to a
   group trades isolation for sharing within that group).
 
-The default `cached` scope resolves, first non-empty wins: declared `[_META].scope` → the
-**project id**, i.e. the **package identity** at the project root (Python `[project].name` in
-`pyproject.toml`; Julia `uuid` else `name` in `Project.toml`) → a hash of the project root's
-absolute path (machine-local; does not coincide across clones, so clones do not share). Rungs
-1–2 are stable across clones and branches, which is what lets those clones share. A tool
-SHOULD render the chosen value to a single path-safe segment. A produced entry MAY carry its
-own `scope` to override this default per artifact (parallel to a dataset's `store`); there is
-no per-entry *project* — the project id is only the source of the scope default.
+The cached scope's built-in default — the bottom rung — is the **project id**: the **package
+identity** at the project root (Python `[project].name` in `pyproject.toml`; Julia `uuid` else
+`name` in `Project.toml`), else a hash of the project root's absolute path (machine-local;
+does not coincide across clones, so clones do not share). The package-name rung is stable
+across clones and branches, which is what lets those clones share. A tool SHOULD render the
+chosen value to a single path-safe segment, and MUST resolve the scope **once** and use that
+one value for **both** the on-disk path **and** the recorded `cached.toml` recipe — they must
+never diverge, since reachability is keyed on `(scope, cachetype, version, hash)` and a
+mismatch would make an artifact a false orphan.
 
 ### Host-aware resolution (`[_STORAGE]`)
 
@@ -648,6 +651,85 @@ stores the same key table in human-readable TOML; the hash is over its canonical
 
 [RFC 8785]: https://www.rfc-editor.org/rfc/rfc8785
 
+### Identity: the `cachetype` namespace
+
+`cachetype` is the disambiguation namespace that, paired with the parameter
+`hash`, identifies a produced artifact. It has a **default and an override**:
+
+- **Default — the producing function's canonical importable name.** Absent an
+  explicit `cachetype`, a tool MUST derive it from the function's
+  fully-qualified, *importable* name in the host language (Python:
+  `module.qualname`, e.g. `mypkg.analysis.produce`; the cross-language rule is
+  "the canonical name by which the runtime re-imports that callable"). An
+  explicit `cachetype = "<name>"` override remains — for a stable hand-chosen
+  name, or to deliberately group several functions under one namespace. **The
+  auto and explicit forms share one namespace**: an explicit `cachetype` equal to
+  the derived name denotes the same identity. (So the default `cachetype`
+  coincides with the `cached.toml` entry's `ref` — by default the namespace *is*
+  the producer's identity.)
+- **Why unique-per-function is the right default.** The worst cache failure is
+  silently *mixing* unrelated results under one key, so the default must be
+  unique per producing function. The accepted, **prominently documented**
+  consequence: renaming or moving the function (or restructuring its package)
+  changes its `cachetype` and **orphans** the prior artifacts — the correct
+  behavior, since the code identity that produced them is gone. `version` remains
+  the tool for *deliberate* busting; re-pinning an explicit `cachetype` is the
+  tool for *deliberate* continuity across a rename.
+- **No stable identity ⇒ require an explicit `cachetype`.** When the producing
+  function has **no stable importable identity** — a top-level script, a REPL, an
+  eval-string, a notebook — a tool **MUST NOT** synthesize an ambiguous
+  cachetype; it MUST **require an explicit `cachetype`** and error otherwise. This
+  is the same constraint native serialization already imposes (an object defined
+  in the entry-point module has no portable qualified name). *(Python reference,
+  non-normative: a `__main__` function is resolved via the launch's recorded
+  module identity — `__main__.__spec__.name`, which Python sets for `python -m
+  pkg.mod` → `pkg.mod` but leaves `None` for a loose script, `-c`, the REPL, and
+  notebooks — so those require an explicit `cachetype`.)*
+
+### Identity conflicts (same `(cachetype, version)`, same process)
+
+Because `cachetype` can be set explicitly, two *distinct* producing functions can
+be made to claim the **same** namespace. A tool SHOULD guard the dangerous case:
+if two distinct functions claim the **same `(cachetype, version)` pair** while
+*simultaneously live in one process*, it SHOULD raise immediately and name both,
+rather than let them silently share a key.
+
+- The key is the **pair**. The same `cachetype` with *different* `version`s is a
+  valid, tolerated case (e.g. two functions running `calibration` v1 and v2 at
+  once). `scope` is **irrelevant** to the check — a `cachetype` must be unique
+  regardless of which project owns a copy.
+- The guard is intentionally **same-process / same-time**. Equally-named
+  functions used in *separate* runs simply share the slot, which is permitted — a
+  user may engineer that, or split modules / set explicit cachetypes to keep them
+  apart. There is **no** static cross-process check, and none is wanted: "live in
+  one process at the same time" is exactly the boundary where a collision is
+  unambiguously a mistake.
+- **Transient functions are exempt.** Nested, local, or anonymous functions (a
+  closure, or a function defined inside another) are dynamic and short-lived, so
+  they are exempt from the guard — and they typically lack a stable importable
+  identity, so they already require an explicit `cachetype` (above) to be cached
+  at all.
+- The mechanism is implementation-defined. *(Reference, non-normative: a
+  process-local registry populated at decoration/registration time — keyed by the
+  function's `ref` so a re-import overwrites rather than duplicates — with **no
+  disk writes**; a tool that never imports the user's code never sees the recipes,
+  and separate processes keep separate registries, so the guard never entangles
+  caches across projects.)*
+
+> **When and how to detect is the implementer's call.** A tool SHOULD run the
+> check at the **earliest reasonable and practical point** for how its host
+> language loads and runs code. In a dynamically-loaded language (Python) that is
+> decoration / import time. In a language that mixes **ahead-of-time
+> precompilation** with live execution (notably Julia) the right point is less
+> obvious — registration done at top level may run during *precompilation* rather
+> than in the user's session — so a faithful, low-surprise guard might instead
+> belong at first call or a runtime-init hook, or, if precompilation makes a sound
+> guard impractical, be **narrowed or omitted**. The spec fixes only the
+> *semantics* — two distinct functions, the same `(cachetype, version)`,
+> simultaneously live — never the timing or mechanism; that is left to each
+> language's implementer to realize (or to judge infeasible), which is why the
+> guard is a **SHOULD**.
+
 ### Produced-artifact location
 
 A produced artifact composes its path exactly like any stored dataset (see Storage), using
@@ -657,12 +739,26 @@ the **`cached`** content prefix and the **cached scope**:
 <folder>/<cached-prefix>/[<cached-scope>/]<cachetype>/[<version>/]<hash>/
 ```
 
+A produced artifact resolves its store, prefix, and scope from the **same `[_STORAGE]`** as
+fetched data — the produce surface MUST read the nearest discovered manifest's `[_STORAGE]`
+(the same upward walk it uses to find the project root; a plain TOML read, no fetch layer),
+so produced and fetched data share one storage configuration (e.g. a cluster scratch
+partition) rather than diverging onto the platform default. Environment overrides still win
+at the top, and an explicitly supplied storage configuration wins over the manifest.
+
 - **folder** — defaults to `$cache`; a producing call MAY select another (e.g. `$scratch`
   for a huge artifact).
-- **cached scope** — defaults to the **project id**, so artifacts are project-isolated and
-  maintenance stays easy to scope (Storage §Content prefixes and scopes defines the
-  project-id ladder and the shared / group / isolated declensions). Because the default
-  scope is the project id, two clones of one project share, while distinct projects do not.
+- **cached scope** — defaults to the **project id**, and means **ownership, not
+  disambiguation**: `cachetype` + `hash` already identify the computation, so scope never
+  affects hit validity (below); it records *which project owns* a copy, so a human can
+  inspect and clean per project and *accidental* cross-project sharing is avoided. The
+  default is resolved from the **caller's** project at call time — the project that
+  *invokes* the function, not where it is defined — via the project-id ladder (Storage
+  §Content prefixes and scopes, which also defines the shared / group / isolated
+  declensions). **Isolation is the default; sharing is opt-in**: set an explicit shared or
+  group scope to deduplicate across projects (the cost of isolation is storing identical
+  data twice), but sharing is never implicit. Two clones of one project share; distinct
+  projects do not.
 - **version** — optional recipe/code version (below).
 - An **explicit location** — given per `@cached` call (`cache_dir = …`) or via project cache
   configuration — is used **verbatim** (`<explicit>/<cachetype>/[<version>/]<hash>`),
@@ -725,6 +821,14 @@ A tool with `cache-produce` MUST be able to recompute the hash from `config.toml
 key table and MUST treat a directory whose recomputed hash ≠ `_META.hash` as
 **not** a valid cache hit (re-produce).
 
+Because `format` is a serialization choice and **not** a hash input, several formats of
+the same computation share one `<cachetype>/[<version>/]<hash>` directory (a `data.<ext>`
+per format). A hit is therefore valid only when the data file **for the requested format**
+is present: a complete, hash-valid directory whose `data.<ext>` for *this* format is absent
+**recomputes** (writing that format) rather than failing — so two recipes that share a
+`cachetype` and hash to the same key but emit different formats coexist instead of
+colliding.
+
 **`metadata.toml`** (`cache-produce`) — provenance only, never an input to the
 hash and never an authority for cache validity:
 
@@ -746,6 +850,26 @@ dirty  = false
 cached_toml = "/home/mahe/proj/cached.toml"   # the index that roots this artifact
 ```
 
+### Default serialization format (per language)
+
+A produced dataset MAY omit `format`. When it does, a tool serializes the returned value
+with its **language-native default format** and reads it back with the matching built-in
+loader — so a bare return value round-trips with no configuration. This default is **per
+language and RECOMMENDED, not normative** (native serialization is language-private and
+version-sensitive; the spec pins cross-tool *addressing*, not the blob), but each
+conforming `cache-produce` tool SHOULD define one and SHOULD ship both the **saver** (value
+→ bytes) and the matching built-in loader (bytes → value):
+
+| Language | RECOMMENDED default `format` | saver / loader |
+|---|---|---|
+| Python | `pickle` (`data.pickle`) | `pickle.dump` / `pickle.load` |
+| Julia  | `jld2` (`data.jld2`)     | `JLD2.save` / `JLD2.load`   |
+
+An explicit `format` always overrides. Bytes in a language-native default format are **not**
+cross-language-loadable by construction (`pickle` is Python-only, `jld2` Julia-only) — which
+is consistent with the spec pinning only cross-tool addressing and maintenance, never the
+blob format.
+
 ### The `cached.toml` index
 
 Produced datasets are **not** written into the hand-authored `datasets.toml`
@@ -753,29 +877,94 @@ Produced datasets are **not** written into the hand-authored `datasets.toml`
 sibling **`cached.toml`** (the `Manifest.toml` analogue), by default alongside
 the manifest. `cached.toml` is the *liveness* root for produced artifacts: it
 lists them by **portable key** (`cachetype` + `hash`), never by absolute path.
+Its purpose is **transparency** — a readable, per-machine view of what the
+project currently has cached — so it is a **self-healing index that converges to
+what is present on disk** (see *Index lifecycle* below), not a write-once log.
+
+**Schema 2 is nested** (`_META.schema = 2`). A recipe called with different
+parameters produces several artifacts — one per parameter `hash` — and the index
+records **all** of them (an unrecorded variation would read as an orphan and risk
+deletion). So a `cached.toml` is an array of **recipe** tables, each keyed by its
+`(scope, cachetype, version)` identity and carrying one **instance** per produced
+variation:
 
 ```toml
 [_META]
-schema  = 1
-# scope = "lgmpre"   # optional declared default scope (else derived: package name / Julia uuid, else path hash)
+schema = 2
 
-[load_20c_esm_anomaly]
-cachetype = "esm_20c_anomaly"
-# version = "v3"      # optional recipe version (path segment when set)
-# scope   = "lgmpre"  # optional per-artifact scope override (else the _META / derived default)
-hash      = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
-ref       = "lgmpre.data:load_20c_esm_anomaly"   # the producing function
+[[produced]]                       # one recipe per (scope, cachetype, version)
+cachetype = "lgmpre.data.load_20c"  # the producing function's importable name (default) or an explicit name
+scope     = "lgmpre"                # the resolved ownership partition (see Storage)
+ref       = "lgmpre.data:load_20c"  # the producing module:function (refreshed across a refactor)
 format    = "nc"
+store     = "$cache"
+# version = "v3"                    # optional recipe version (a path segment + part of the recipe identity)
+
+  [[produced.instances]]           # one per produced variation (accumulated, deduped by hash)
+  hash = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
+  [produced.instances.params]      # the key table that produced it (omitted when empty)
+  grid = "5x5"
 ```
 
+- **Array-of-tables, keyed by identity.** Each `[[produced]]` is one recipe,
+  identified by `(scope, cachetype, version)`; the array form means the (often
+  dotted) `cachetype` needs no key-quoting. Each `[[produced.instances]]` records
+  a variation's parameter `hash` and the `params` (the same key table the
+  `config.toml` sidecar holds), so listing and reachability are param-aware
+  without stat'ing sidecars.
+- **Register accumulates, never overwrites.** Registering a new variation **adds**
+  an instance (deduped by `hash`); reachability spans every recorded
+  `(scope, cachetype, version, hash)`.
+- **Recipe metadata is refreshed, not pinned.** `ref` / `format` / `store` are
+  rewritten on each register — and on a cache *hit* if they drifted — so `ref`
+  tracks the producing function across a refactor (it is not in the hash and so
+  never invalidates a key).
+- **Back-compat:** `_META.schema = 1` (a flat table per registry *name*, single
+  `hash`, no `params`) is still **read** — each flat entry becomes a one-instance
+  recipe — but is always **rewritten as schema 2**.
 - `cached.toml` is a **defined structural sibling format**, with its own
-  `_META.schema = 1`. A tool that does not implement `inspect` need not read it.
+  `_META.schema`. A tool that does not implement `inspect` need not read it.
 - **Commit policy:** `cached.toml` is **gitignored per-machine state by default**
   (it indexes machine-local produced artifacts); a project that wants
   reproducible shared produced-caches MAY opt in to committing it (the
   `Manifest.toml` convention — libraries ignore, applications commit).
 - A produced dataset is registered in exactly one `cached.toml`; the
   `metadata.toml` `[origin].cached_toml` back-pointer names it (audit only).
+
+### Index lifecycle (self-healing)
+
+`cached.toml` is **not** authoritative for cache validity — the on-disk
+`config.toml` (the re-hashable key table) is. The index is a transparency view
+that a conforming tool keeps **converging to the set of artifacts present on
+disk**, in both directions, as part of normal produce/load:
+
+- **Register on produce (miss).** A produced artifact is written into
+  `cached.toml` (the entry described above).
+- **Register-if-missing on cache hit.** A hit proves the artifact exists, so the
+  tool ensures its entry is present, **adding it if absent**. The steady state
+  (entry already present) is a cheap **read-only** check — a write happens only
+  in the rare unlisted case — so this does **not** put I/O on the read hot path
+  (unlike the deliberately read-only `last-access`; see *Maintenance*). A
+  consequence: a **deleted or missing `cached.toml` repopulates** as datasets are
+  accessed.
+- **Prune on observed mismatch.** When a tool **observes** that an entry's
+  artifact is no longer on disk (a *stale entry*), it **removes that entry**. A
+  single-dataset operation reconciles only the entry it touched; an `inspect`
+  scan observes every entry and reconciles the whole file. Pruning a stale entry
+  is **bookkeeping, not deletion**: the bytes are already gone, so it does not
+  fall under the "never delete data automatically" rule (*Maintenance*) — that
+  rule protects present cached *bytes*, not dangling *pointers* to absent ones.
+
+This completes the orphan picture symmetrically: *present on disk but unlisted* =
+an **orphan** (a hit will register it; otherwise an `inspect`/cleanup candidate);
+*listed but absent from disk* = a **stale entry** (pruned). The net invariant a
+tool maintains is **`cached.toml` ⇒ currently present**.
+
+Index mutations (register / prune) **MUST** use the same atomic-write + lock
+discipline as a produce, and **MUST** be idempotent, so concurrent self-healing
+across processes converges without corruption. The exact timing is
+implementation-defined (a tool MAY check/repair lazily or batch it); only the
+**convergence invariant** is normative.
 
 ### Maintenance (inspect, filter, delete)
 
@@ -799,8 +988,10 @@ see *Why not automatic reachability* below.
   - `key` — `<key>` (fetched) or `<cachetype>[/<version>]/<hash>` (produced); `hash` for
     produced;
   - `location` — the resolved absolute path on disk;
-  - `referenced` — whether a still-present local `.toml` roots it (its key is listed in a
-    `datasets.toml` / `cached.toml`) or it is an **orphan**;
+  - `referenced` — whether a still-present local `.toml` roots it or it is an **orphan**. For
+    a produced artifact the match is the full **`(scope, cachetype, version, hash)`** tuple
+    against a `cached.toml` instance, so another project's artifact (a different `scope`) is
+    not mistaken for referenced; for a fetched dataset, its key listed in a `datasets.toml`;
   - `scope`, `format`, `size`, `created`, and a best-effort, filesystem-derived
     **last-access** time (read from `stat`, never written on read; MAY be unknown).
 
@@ -861,12 +1052,16 @@ cross-project wipe because deletion is always an explicit selection.
 
 - **The `@cached` macro / decorator API** (Julia macro, Python decorator) is the
   *ergonomic surface* over this model and is **per-language, not normative** — a
-  tool exposes it however fits the language. Only the on-disk formats (key hash,
+  tool exposes it however fits the language. Normative are: the on-disk formats (key hash,
   `config.toml`, `metadata.toml`, `cached.toml`), the path composition (folder / prefix /
-  scope), and the maintenance rules (user-driven; no automatic deletion) are normative.
+  scope), the identity rules (`cachetype` default + the stable-name requirement; the
+  `(cachetype, version)` same-process conflict guard; the index lifecycle), and the
+  maintenance rules (user-driven; no automatic deletion). *How* a tool derives a default
+  `cachetype` or detects the conflict is implementation-defined; *that* it does is not.
 - **The artifact serialization format** (`jls`/`jld2`/`pickle`/…) is a per-tool,
-  per-`format` choice (the existing `format` + loader concern); produced
-  artifacts are not assumed cross-language-loadable.
+  per-`format` choice; produced artifacts are not assumed cross-language-loadable. A tool
+  SHOULD define a RECOMMENDED language-native default for a format-less produced dataset
+  (see *Default serialization format*), but the spec does not mandate which.
 - **In-place / mounted access** (the former `mount` store) is out of scope: folders are
   *locations only*, with no materialization axis. It is deferred to a future revision —
   see `ROADMAP.md` — not part of this spec; no `mount` capability is defined.

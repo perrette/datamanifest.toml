@@ -181,13 +181,16 @@ sidecar minus `_META`, so the sidecar and the expectation cannot drift.
 
 Present for `inspect`-capability fixtures. Here the fixture `.toml` is itself a
 **`cached.toml`** index (not a `datasets.toml`), modelling canonical *generated* writer
-output. `cached_index.entries.<name>` asserts, per produced-dataset entry: `cachetype`,
-`hash` (64 lowercase hex), `ref` (the producing `module:function`), `scope` (the partition
-segment — the cached default is the project id), and `store`. Resolution / preservation
-blocks are empty for this fixture.
+output in the **nested schema-2** form (`_META.schema = 2`). `cached_index.recipes[]`
+asserts, per `[[produced]]` recipe (matched on its `(scope, cachetype, version)` identity):
+`cachetype`, `scope`, `version`, `ref` (the producing `module:function`), `format`, `store`,
+and its `instances`. Each instance asserts a `hash` (64 lowercase hex) and optional `params`;
+the validator **recomputes** the param-hash of `params` and requires it to equal `hash`, so
+the index is self-verifying. `cached_index.schema` pins `_META.schema` (default 2).
+Resolution / preservation blocks are empty for this fixture.
 
 `cached_index.forbidden_keys` is a **negative** assertion: a list of keys a canonical
-generated `cached.toml` must NOT carry — checked against `_META` and every entry. It pins
+generated `cached.toml` must NOT carry — checked against `_META` and every recipe. It pins
 renames/removals the positive field checks can't (e.g. `project`, renamed to `scope`).
 This is the *writer* contract and is deliberately distinct from the lenient round-trip
 **preservation** of unknown keys (R3/R4): preservation governs foreign input a tool copies
