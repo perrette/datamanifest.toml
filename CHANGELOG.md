@@ -30,12 +30,26 @@ spec-tag axis (as spec-v3 itself was). Existing stores need migration or a clean
   (a `$scratch` dataset stages on `$scratch`) — required for an atomic rename and so
   voluminous data never transits a small `~/.cache` first. The `datamanifest` appname is the
   home of explicit `scope = ""` *data* only.
-- **No guessing the scope.** The built-in default is the **project name** — Python
-  `[project].name`, Julia `Project.toml` **`name`** (the name, **not** the `uuid`). If no
-  project file declares a name, a tool MUST require an explicit scope (`[_STORAGE].scope` /
-  `DATAMANIFEST_SCOPE` / per-item `scope`) and **error** rather than synthesize one (no path
-  hash, no directory name) — mirroring the produced-dataset `cachetype` no-stable-identity
-  rule, now that scope governs where every byte lands.
+- **No guessing the scope; local-repo fallback.** The built-in default is the **project
+  name** — Python `[project].name`, Julia `Project.toml` **`name`** (the name, **not** the
+  `uuid`). A tool MUST NOT synthesize a scope (no path hash, no directory name). If no project
+  file declares a name, the **default store falls back to `$repo`** (the local working root),
+  which *absorbs* the scope → visible `./datasets/`, `./cached/` — friendly for getting
+  started, still deterministic, not a guess. (Unlike the produced `cachetype`, which *errors*
+  on no stable identity: a wrong cachetype is dangerous, a scope is just a location. A tool MAY
+  still error only when an explicit *centralized* store is asked for with no resolvable scope.)
+- **In-memory & multiple manifests (library use).** A manifest is a logical structure; it MAY
+  be built **in memory** (file-less) and **several MAY be live at once**, each resolving
+  independently (an in-memory manifest resolves identically to a file-backed one; the API is
+  per-language — Python `Database(persist=False)`, Julia in-memory `Database`). This is how a
+  **library** owns its data without touching the end user's `datasets.toml`: it builds an
+  in-memory manifest and sets its `scope` **explicitly** (auto-derivation finds the *end
+  user's* project, not the installed library's). Without an explicit scope, library data falls
+  back to the end user's project / `$repo` — the user owns the location.
+- **`DATAMANIFEST_DIR` kept, clarified.** It is the **single-base shortcut** (put `$data` and
+  `$cache` under one self-contained base — tests / containers / scratch), equivalent to
+  setting `DATAMANIFEST_DATA_DIR` + `DATAMANIFEST_CACHE_DIR` to that base. The stale "hosts the
+  tool's app-state" role is dropped (app-internal files are per-scope now).
 - **Three-level scope, one ladder.** Project-wide **`[_STORAGE].scope`** (new) → per-kind
   **`[_STORAGE._SCOPE].<kind>`** → per-item (a dataset's `scope` field / a produced `scope=`).
   Env mirrors: **`DATAMANIFEST_SCOPE`** (new) and `DATAMANIFEST_SCOPE_<KIND>`. Resolves

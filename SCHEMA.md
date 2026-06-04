@@ -395,11 +395,14 @@ owner of the data) never appears as a directory:
 So the scope appears once (appname / leading segment) or is absorbed (`$repo`); a store under a
 bare root ends in `…/<scope>/<prefix>/<key>`, owned by the project.
 
-- **`DATAMANIFEST_DIR` — the application base.** A single knob for "put everything here":
-  when set it is the base of `$data` and `$cache`, so fetched data lands under
-  `$DATAMANIFEST_DIR/<scope>/datasets/…`, produced under `$DATAMANIFEST_DIR/<scope>/cached/…`,
-  and the tool's own app-state files alongside. `$repo` is unaffected (always
-  project-relative). When unset, `$data` and `$cache` fall back to the OS split below.
+- **`DATAMANIFEST_DIR` — the single-base shortcut.** A convenience knob to put `$data` *and*
+  `$cache` under **one self-contained base** (they otherwise split across the OS data/cache
+  dirs) — handy for tests, containers, and scratch partitions. When set, fetched data lands
+  under `$DATAMANIFEST_DIR/<scope>/datasets/…`, produced under `$DATAMANIFEST_DIR/<scope>/cached/…`
+  (a bare base ⇒ the scope is a **leading segment**). It is equivalent to setting both
+  `DATAMANIFEST_DATA_DIR` and `DATAMANIFEST_CACHE_DIR` to that base, and the per-folder vars
+  override it. `$repo` is unaffected (always project-relative). When unset, `$data`/`$cache`
+  fall back to the OS split below.
 - **Built-in defaults are language-independent.** **Python's `platformdirs` is the normative
   reference:** `user_data_dir(<scope>)` (`$XDG_DATA_HOME/<scope>`, default
   `~/.local/share/<scope>`, on Linux; `~/Library/Application Support/<scope>` on macOS;
@@ -480,12 +483,19 @@ The scope's built-in default — the bottom rung, now the same for **both** `dat
 `cached` — is the **project name**: Python `[project].name` in `pyproject.toml`, Julia `name`
 in `Project.toml` (the **name**, not the `uuid` — a human-readable, path-safe segment), found
 by walking up from the working directory. This is stable across clones and branches, which is
-what lets clones share. **There is no guessing**: if no project definition file declares a
-name, a tool MUST NOT synthesize a scope (no path hash, no directory name) — it MUST require
-an explicit scope (`[_STORAGE].scope`, `DATAMANIFEST_SCOPE`, a per-item `scope`) and error
-otherwise. This mirrors the produced-dataset `cachetype` rule (no stable identity ⇒ require
-explicit), and reflects that scope now governs where every byte lands, so a wrong guess is
-expensive. A tool SHOULD render the chosen value to a single path-safe segment, and MUST
+what lets clones share. **There is no guessing**: if no project file declares a name, a tool
+MUST NOT synthesize a scope (no path hash, no directory name). Instead the **default store
+falls back to `$repo`** — the local working/project root — which *absorbs* the scope (above),
+so produced and fetched data land **visibly** at `./datasets/<key>` and `./cached/…` with no
+scope segment. This is the friendly default for getting started without a project file; it is
+**visible and deterministic**, not a guess, and the user can set an explicit scope
+(`[_STORAGE].scope`, `DATAMANIFEST_SCOPE`, a per-item `scope`) to centralize instead.
+(Contrast the produced-dataset `cachetype`, which *errors* on no stable identity: a wrong
+cachetype silently mixes unrelated caches and is dangerous, whereas a scope is only a
+location. The one case a tool MAY still error is an explicit *centralized* store —
+`$data`/`$cache` — with no resolvable and no explicit scope: that asks to centralize with
+nothing to partition by.) A tool SHOULD render the chosen value to a single path-safe segment,
+and MUST
 resolve the scope **once** and use that one value for **both** the on-disk path **and** the
 recorded `cached.toml` recipe — they must never diverge, since reachability is keyed on
 `(scope, cachetype, version, hash)` and a mismatch would make an artifact a false orphan.
@@ -496,6 +506,25 @@ recorded `cached.toml` recipe — they must never diverge, since reachability is
 > `rm`/tar/rsync-able subtree (`<folder>/<scope>/`). A project that wants a shared download
 > pool sets `[_STORAGE._SCOPE].datasets = "<pool>"` (or `""`); a single heavy archive is
 > shared per-dataset with `scope = ""`. See the CHANGELOG migration note.
+
+### In-memory manifests, multiple manifests, and library use
+
+A manifest is a **logical structure**; a `datasets.toml` file is its canonical serialized
+form, but a tool MAY construct and hold one **in memory** (file-less), and **several MAY be
+live at once** in one process — each resolving its own datasets, bindings, storage, and scope
+**independently**. An in-memory manifest MUST resolve identically to a file-backed one. The
+construction surface is per-language and non-normative (Python `Database(persist=False)`,
+Julia's in-memory `Database`); what is normative is that the resolution is the same.
+
+This is the supported way for a **library** to own its own data without touching the end
+user's `datasets.toml`: the library builds an in-memory manifest, declares its datasets via
+the language API, and **sets its `scope` explicitly** — because scope auto-derivation walks up
+from the working directory and would find the *end user's* project, never the installed
+library's. With an explicit `scope = "<library>"`, the library's datasets resolve under its own
+partition (e.g. `…/<library>/datasets/…`), shared across every consuming project, while the end
+user's own file-backed manifest stays separate. Without an explicit scope the library's data
+would, correctly, fall back to the **end user's** project (or its `$repo`) — the user owns the
+location, as they should.
 
 ### Host-aware resolution (`[_STORAGE]`)
 
