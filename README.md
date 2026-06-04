@@ -123,31 +123,42 @@ Where files land is composed as `<root>/<scope>/<prefix>/<key>` — a **folder**
 (`$data`/`$cache`/`$repo` or a user-defined one), the project **scope** (defaults to the
 project name, so each project is isolated by default), and the per-kind **prefix**
 (`datasets/` / `cached/`). All three are set in `[_STORAGE]`. For example — downloads in one
-shared pool, caches per-project under a versioned, per-user work dir:
+flat shared pool, caches per-project under a versioned work dir, with the **roots resolved
+per host** (laptop vs cluster):
 
 ```toml
 [_STORAGE]
-data  = "/data/all-project-data"   # all fetched data, shared across projects
-cache = "/work/$USER"              # caches, per user ($USER from the environment)
+# defaults (e.g. your laptop)
+data  = "~/Data/all-project-data"
+cache = "~/.cache/work"
+
+[_STORAGE._HOST."login*.hpc.edu"]  # on the cluster login nodes, different roots
+data  = "/data/all-project-data"
+cache = "/work/$USER"              # $USER from the environment
 
 [_STORAGE._SCOPE]
 datasets = ""                      # shared: no per-project segment for downloads
 # cached scope is left to default — the project name (pyproject.toml / Project.toml)
 
 [_STORAGE._PREFIX]
-cached = "2025.1"                  # a generic code/release version level for the cache
+datasets = ""                      # no 'datasets/' subfolder — straight under the root
+cached   = "2025.1"                # a generic code/release version level for the cache
 ```
 
-gives:
+On the cluster this gives:
 
-- fetched  → `/data/all-project-data/datasets/<key>`
+- fetched  → `/data/all-project-data/<key>`
 - produced → `/work/<user>/<project-name>/2025.1/<cachetype>/<hash>/…`
 
-The cache's `2025.1` here is your own version label (set it dynamically with
-`DATAMANIFEST_PREFIX_CACHED` if it changes per build); it is distinct from datamanifest's
-per-recipe `version`, which nests deeper at `<cachetype>/<version>/<hash>`. Scope is never
-guessed: if there is no `pyproject.toml`/`Project.toml` name, set `[_STORAGE].scope` (or
-`DATAMANIFEST_SCOPE`). See [SCHEMA.md §Storage](SCHEMA.md#storage).
+and on the laptop the same layout under `~/Data/all-project-data/<key>` and
+`~/.cache/work/<project-name>/2025.1/…`. The host-independent parts (the shared datasets
+scope, the empty datasets prefix, the cache version) stay in the base tables; only the
+**roots** vary per host via `[_STORAGE._HOST.<glob>]`. The cache's `2025.1` is your own
+version label (set it dynamically with `DATAMANIFEST_PREFIX_CACHED` if it changes per build);
+it is distinct from datamanifest's per-recipe `version`, which nests deeper at
+`<cachetype>/<version>/<hash>`. Scope is never guessed: if there is no
+`pyproject.toml`/`Project.toml` name, set `[_STORAGE].scope` (or `DATAMANIFEST_SCOPE`).
+See [SCHEMA.md §Storage](SCHEMA.md#storage).
 
 ## Implementations
 
