@@ -403,7 +403,10 @@ Either way a store ends in `…/<scope>/<prefix>/<key>`, owned by the project.
   Every implementation MUST resolve to the identical path from the same scope and MUST NOT
   substitute a language-native location (e.g. a package depot), so Python and Julia agree. The
   roots are **bare app dirs** — the `datasets/` / `cached/` subfolders leave the rest of the
-  dir free for a tool's own app-internal files (e.g. HTTP metadata).
+  dir free for a tool's own **app-internal files** (e.g. HTTP metadata). Those internal files
+  live under the **active scope's** root (`…/<scope>/`), like everything else — there is **no
+  separate global tool folder**. The `datamanifest` appname is reached **only** by an explicit
+  empty/global scope (`scope = ""`), and only for *data*, not tool bookkeeping.
 - **User-defined folders** are any other bare key under `[_STORAGE]` (`scratch = "…"` →
   `$scratch`). The reserved keys `default`, `scope`, `_HOST`, `_PREFIX`, `_SCOPE` (and the
   shelved `_PROFILE`) are not folder variables.
@@ -569,9 +572,12 @@ A folder may be shared between tools and between concurrent processes (e.g. HPC 
 materialization MUST be safe under concurrency, and peer tools sharing a folder MUST agree
 on these conventions:
 
-- **Atomic publish.** Materialize into a temporary path within the folder and atomically
-  rename it into place (`<key>.tmp` → `<key>`), so a killed process never leaves a partial
-  entry that looks complete.
+- **Atomic publish.** Materialize into a temporary path **within the same store partition as
+  the final path** (e.g. `<key>.tmp` beside `<key>`) and atomically rename it into place, so a
+  killed process never leaves a partial entry that looks complete. Staging is **never** a
+  central/global cache: a download (or produce) destined for `$scratch` stages **on
+  `$scratch`** — required for the rename to be atomic (same filesystem) and essential for
+  voluminous data, which must never transit a small `~/.cache` first.
 - **Completion marker.** An entry is *complete* iff its marker exists —
   `<key>/.complete` for a directory, `<key>.complete` for a file. Readers MUST treat an
   entry without its marker as absent (re-fetch); a writer MUST create the marker only

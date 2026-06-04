@@ -24,6 +24,12 @@ spec-tag axis (as spec-v3 itself was). Existing stores need migration or a clean
   appname (not also a segment); for `$DATAMANIFEST_DIR` / user folders it is the leading
   segment. `datamanifest` survives only as the appname for the empty/global scope (data owned
   by no single project).
+- **No global tool folder; staging is partition-local.** A tool's app-internal files (HTTP
+  metadata, etc.) live under the **active scope's** root, not a separate global
+  `~/.cache/datamanifest/`. And materialization stages **within the target store partition**
+  (a `$scratch` dataset stages on `$scratch`) — required for an atomic rename and so
+  voluminous data never transits a small `~/.cache` first. The `datamanifest` appname is the
+  home of explicit `scope = ""` *data* only.
 - **No guessing the scope.** The built-in default is the **project name** — Python
   `[project].name`, Julia `Project.toml` **`name`** (the name, **not** the `uuid`). If no
   project file declares a name, a tool MUST require an explicit scope (`[_STORAGE].scope` /
