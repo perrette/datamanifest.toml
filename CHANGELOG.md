@@ -1,32 +1,45 @@
 # Changelog
 
-## spec-v3.8 (schema `_META.schema = 1`) — unreleased
+## spec-v4 (schema `_META.schema = 1`) — unreleased
 
-A scope overhaul: everything is **project-scoped by default**, scope is configurable at
-three levels, and it is the **first** path segment (the project subtree).
+A **breaking storage-layout revision** centered on scope: everything is **project-scoped by
+default**, the project owns the namespace (the library does not), and scope is no longer
+guessed. The TOML *shape* is unchanged (additive keys + new resolution/layout), so
+`_META.schema` stays **1**; the break is in *where bytes land on disk*, versioned on the
+spec-tag axis (as spec-v3 itself was). Existing stores need migration or a clean re-fetch.
 
-- **Datasets default flipped: empty/shared → the project id.** Fetched datasets are now
+- **Datasets default flipped: empty/shared → the project name.** Fetched datasets are now
   project-isolated by default, like produced artifacts. Sequential projects — possibly built
   against different evolved spec versions — stay insulated, and a project's data is one
-  `rm`/tar/rsync-able subtree. **Breaking layout change** for anyone relying on a shared
-  download pool: set `[_STORAGE._SCOPE].datasets = "<pool>"` (or `""`) to restore sharing, or
-  `scope = ""` on the individual heavy datasets.
+  `rm`/tar/rsync-able subtree. Restore sharing via `[_STORAGE._SCOPE].datasets = "<pool>"`
+  (or `""`), or `scope = ""` on the individual heavy datasets.
 - **Scope is the first path segment (scope-first).** Composition changes from
-  `<root>/<prefix>/[<scope>/]<key>` to **`<root>/[<scope>/]<prefix>/<key>`** (and likewise
-  for produced: `<root>/[<scope>/]cached/<cachetype>/…`). A project's fetched and produced
-  data now live together under `<root>/<scope>/`. The reserved prefix names `datasets`/
-  `cached` may not be used as a scope, so global (empty-scope) data never collides with a
-  project subtree.
-- **Three-level scope, one ladder.** Project-wide **`[_STORAGE].scope`** (new; default = the
-  derived project id) → per-kind **`[_STORAGE._SCOPE].<kind>`** → per-item (a dataset's
-  `scope` field / a produced `scope=`). Env mirrors: **`DATAMANIFEST_SCOPE`** (new) and
-  `DATAMANIFEST_SCOPE_<KIND>`. Resolves **first-explicitly-set** (an explicit `""` is a real
-  value — the global store — not "unset"); the resolved value drives both the path and the
-  recorded entry. Host-specific scope, if needed, is just `DATAMANIFEST_SCOPE` per machine
-  (no `_HOST` scope table). `scope` becomes a reserved top-level `[_STORAGE]` key.
+  `<root>/<prefix>/[<scope>/]<key>` to **`<root>/[<scope>/]<prefix>/<key>`** (produced
+  likewise). A project's fetched and produced data now live together under `<root>/<scope>/`.
+  Reserved prefix names `datasets`/`cached` may not be used as a scope.
+- **The project owns the namespace, not `datamanifest`.** The built-in `$data`/`$cache`
+  defaults now use the **project scope as the platformdirs appname** (was the literal
+  `"datamanifest"`): `~/.local/share/<scope>/datasets/…` instead of
+  `~/.local/share/datamanifest/<scope>/…`. For these OS-default roots the scope is the
+  appname (not also a segment); for `$DATAMANIFEST_DIR` / user folders it is the leading
+  segment. `datamanifest` survives only as the appname for the empty/global scope (data owned
+  by no single project).
+- **No guessing the scope.** The built-in default is the **project name** — Python
+  `[project].name`, Julia `Project.toml` **`name`** (the name, **not** the `uuid`). If no
+  project file declares a name, a tool MUST require an explicit scope (`[_STORAGE].scope` /
+  `DATAMANIFEST_SCOPE` / per-item `scope`) and **error** rather than synthesize one (no path
+  hash, no directory name) — mirroring the produced-dataset `cachetype` no-stable-identity
+  rule, now that scope governs where every byte lands.
+- **Three-level scope, one ladder.** Project-wide **`[_STORAGE].scope`** (new) → per-kind
+  **`[_STORAGE._SCOPE].<kind>`** → per-item (a dataset's `scope` field / a produced `scope=`).
+  Env mirrors: **`DATAMANIFEST_SCOPE`** (new) and `DATAMANIFEST_SCOPE_<KIND>`. Resolves
+  **first-explicitly-set** (an explicit `""` is a real value — the global store — not
+  "unset"); the resolved value drives both the path and the recorded entry. Host-specific
+  scope, if needed, is just `DATAMANIFEST_SCOPE` per machine (no `_HOST` scope table). `scope`
+  becomes a reserved top-level `[_STORAGE]` key.
 - `manifest.v3.json` types the new `[_STORAGE].scope` and per-dataset `scope`; the storage
   conformance fixture asserts all three levels. `_META.project` is **not** introduced — the
-  project id only ever feeds the scope default, so `[_STORAGE].scope` is its sole home.
+  project name only ever feeds the scope default, so `[_STORAGE].scope` is its sole home.
 
 ## spec-v3.7 (schema `_META.schema = 1`)
 

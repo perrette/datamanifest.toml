@@ -216,7 +216,7 @@ store = "$scratch/derived"        # selector + sub-path
 - **Scope + content prefix** (added by the layer, not the selector) — **scope first**, then
   the per-kind prefix: fetched data → `<root>/[<scope>/]datasets/<key>`; produced artifacts →
   `<root>/[<scope>/]cached/<cachetype>/…`. So a project's data is one subtree
-  `<root>/<scope>/`. Both kinds default the scope to the **project id** (project-isolated);
+  `<root>/<scope>/`. Both kinds default the scope to the **project name** (project-isolated);
   set `[_STORAGE].scope` project-wide, `[_STORAGE._SCOPE].<kind>` per kind, a dataset's
   `scope` field per dataset, or `""` for a global shared store. Configure prefixes via
   `[_STORAGE._PREFIX]`.
