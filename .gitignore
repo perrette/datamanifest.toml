@@ -1,3 +1,7 @@
 # Autonomous roadmap workflows (local coordination artifacts; never committed)
 workflows/
 .worktrees/
+
+# Python bytecode (from running tests/validate_fixtures.py)
+__pycache__/
+*.pyc
