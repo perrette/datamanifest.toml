@@ -140,6 +140,8 @@ partition (`_SCOPE`) are applied by the layer.
 
 - `default` — the project-wide `[_STORAGE].default` selector (`$`-form; itself defaults to
   `$data`) — the selector a dataset assumes when it omits `store`.
+- `scope` — the project-wide `[_STORAGE].scope` (both kinds; default = the derived project
+  id). Overridden per-kind by `[_STORAGE._SCOPE].<kind>` and per-dataset by the `scope` field.
 - `datasets.<ds>` — the `$`-folder selector each dataset resolves to (its `store` field, or
   the default). The validator also asserts it is `$`-form.
 - `local_paths.<ds>` — the raw `local_path` path expression for datasets that bypass the

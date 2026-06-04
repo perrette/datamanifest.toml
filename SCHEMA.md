@@ -101,7 +101,7 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `key` | string | `""` | Storage key (relative path under the datasets folder). Derived from host + path + version when absent. |
 | `local_path` | string | `""` | **Path expression** for a user-managed exact location; may interpolate `$`-folder variables, `$USER`/env, and `~`. After interpolation: absolute → used verbatim; relative → resolved against the project root. Bypasses the keyed `<root>/<key>` layout and download. See Storage. |
 | `store` | string | `default` | **Selector** choosing the folder the dataset is materialized into: a `$`-folder reference, optionally with a sub-path (`$data`, `$scratch`, `$cache/sub`). The dataset is keyed under it as `<resolved-folder>/<key>`. Omitted ⇒ the project-wide `[_STORAGE].default` selector (itself `$data`). See Storage. Honored under the `storage` capability; other tools preserve it verbatim. |
-| `scope` | string | (layer default) | **Partition segment** controlling sharing/ownership for this dataset — the top rung of the scope ladder (Storage §Content prefixes and scopes), parallel to a produced call's `scope=`. `""` ⇒ the unscoped/global store (shared across projects); a name ⇒ that partition (e.g. `"cmip"` for a shared pool). Omitted ⇒ the layer default (`DATAMANIFEST_SCOPE_DATASETS` → `[_STORAGE._SCOPE].datasets` → built-in, currently empty/shared). Lets a project share a few heavy datasets while scoping the rest. Honored under the `storage` capability; preserved verbatim by others. |
+| `scope` | string | (layer default) | **Partition segment** controlling sharing/ownership for this dataset — the top rung of the scope ladder (Storage §Content prefixes and scopes), parallel to a produced call's `scope=`. `""` ⇒ the unscoped/global store (shared across projects); a name ⇒ that partition (e.g. `"cmip"` for a shared pool). Omitted ⇒ the layer default (`DATAMANIFEST_SCOPE_DATASETS` → `[_STORAGE._SCOPE].datasets` → `DATAMANIFEST_SCOPE` → `[_STORAGE].scope` → built-in **project id**). Lets a project share a few heavy datasets (`scope = ""`) while the rest stay project-scoped. Honored under the `storage` capability; preserved verbatim by others. |
 | `sha256` | string | `""` | Expected SHA-256 of the downloaded file/folder. Auto-filled on first successful download and verified at fetch time; **not** re-verified on every load (re-verification is opt-in). |
 | `skip_checksum` | bool | `false` | Disable checksum verification for this dataset. |
 | `skip_download` | bool | `false` | Treat the dataset as externally provided; the documented `uri` is returned as the path and no download is attempted. |
@@ -335,17 +335,23 @@ capability; the `delegate` field / `--delegate` toggles it.
 ## Storage
 
 A dataset's bytes are materialized under a **store folder** at a path the consuming layer
-composes: a fetched dataset lands at `<folder>/<datasets-prefix>/[<datasets-scope>/]<key>`,
-a produced one at `<folder>/<cached-prefix>/[<cached-scope>/]<cachetype>/…` (see *Produced
-datasets and caching*). Three independent pieces compose that path:
+composes: a fetched dataset lands at `<folder>/[<scope>/]<datasets-prefix>/<key>`,
+a produced one at `<folder>/[<scope>/]<cached-prefix>/<cachetype>/…` (see *Produced
+datasets and caching*). The **scope comes first** (the project subtree), then the per-kind
+prefix — so a project's fetched and produced data live together under `<folder>/<scope>/`.
+Three independent pieces compose that path:
 
 - **store folder** — a `$`-variable naming a top-level root (a *place* / partition): `$data`,
   `$cache`, `$repo`, or a user-defined one. A dataset's `store` **selector** picks it.
-- **content prefix** — the subfolder the layer writes under: `datasets/` (fetch) or
-  `cached/` (produce). A convention applied by the *layer*, never baked into the folder
-  variable; configurable (see below).
-- **scope** — an optional partition segment controlling *sharing*: empty ⇒ shared across
-  projects, a project id ⇒ project-isolated, a group name ⇒ shared within that group.
+- **scope** — the first segment under the folder: the **project subtree** controlling
+  *ownership / sharing*. Defaults to the project id (project-isolated); a group name shares
+  within a set of projects; empty ⇒ shared across all projects. Because it comes before the
+  prefix, a project's fetched *and* produced data sit together under `<folder>/<scope>/`. The
+  reserved prefix names `datasets`/`cached` may **not** be used as a scope, so global
+  (empty-scope) data at `<folder>/datasets/…` never collides with a project subtree.
+- **content prefix** — the subfolder *within the scope* the layer writes under: `datasets/`
+  (fetch) or `cached/` (produce). A convention applied by the *layer*, never baked into the
+  folder variable; configurable (see below).
 
 Storage is a portable *location* layer: a selector carries the same meaning in every
 implementation, and the built-in folders resolve to language-independent defaults so peer
@@ -384,8 +390,8 @@ layers without repeating it.
   Julia agree. The roots are the **bare app dirs** — the `datasets/` / `cached/` subfolders
   leave the rest of the dir free for a tool's own app-internal files (e.g. HTTP metadata).
 - **User-defined folders** are any other bare key under `[_STORAGE]` (`scratch = "…"` →
-  `$scratch`). The reserved keys `default`, `_HOST`, `_PREFIX`, `_SCOPE` (and the shelved
-  `_PROFILE`) are not folder variables.
+  `$scratch`). The reserved keys `default`, `scope`, `_HOST`, `_PREFIX`, `_SCOPE` (and the
+  shelved `_PROFILE`) are not folder variables.
 - **Definition vs reference.** A folder is *defined* with a **bare** key in `[_STORAGE]`
   (`scratch = "/scratch/$USER"`); it is *referenced* with **`$`** (`store = "$scratch"`).
   References always use `$` — no bare folder names anywhere (selectors included), removing any
@@ -398,9 +404,9 @@ Every storage *value* is one of two kinds:
 - **Selectors** — `[_STORAGE].default` (project-wide) and a dataset's `store`. A selector is
   a `$`-folder reference, optionally with a literal sub-path: `default = "$data"`,
   `store = "$scratch"`, `store = "$cache/sub"`. It resolves to `<root>[/<subpath>]`; the
-  consuming layer then appends its prefix, scope, and key — a fetched dataset lands at
-  `<root>[/<subpath>]/<datasets-prefix>/[<datasets-scope>/]<key>`, where `<datasets-scope>`
-  comes from the scope ladder (above), including an optional per-dataset `scope`. A dataset's
+  consuming layer then appends the scope, its prefix, and the key — a fetched dataset lands at
+  `<root>[/<subpath>]/[<scope>/]<datasets-prefix>/<key>`, where `<scope>` comes from the scope
+  ladder (below), including an optional per-dataset `scope`. A dataset's
   `store` defaults to `[_STORAGE].default`, which defaults to `$data`. The storage **key** (see
   `key`) is independent of the selector, so the same dataset resolves under whichever folder
   is chosen.
@@ -414,37 +420,51 @@ reference itself.
 
 ### Content prefixes and scopes
 
-The prefix and scope compose the path *above* the key, and both default so a casual user
-never sets them:
+The scope and prefix compose the path *above* the key — **scope first** (the project
+subtree), prefix within it — and both default so a casual user never sets them:
 
-- **Prefix** — the per-layer subfolder. Resolves `DATAMANIFEST_PREFIX_<KIND>` →
-  `[_STORAGE._PREFIX].<kind>` → built-in default (`datasets` for fetch, `cached` for
-  produce). An empty prefix puts content directly under the folder root; the defaults are
-  non-empty precisely to keep *fetched / produced / app-state* in separate subtrees (and to
-  let produced-cache maintenance never reach the fetched tree), so emptying them is allowed but forfeits
-  that separation.
-- **Scope** — the optional partition id controlling *sharing*. Resolves, **first explicitly
-  set wins** (an explicit empty string `""` is a valid setting — the unscoped/global store —
-  not "unset"): a **per-item override** (a fetched dataset's `scope` field, or a produced
-  call's `scope=` — highest) → `DATAMANIFEST_SCOPE_<KIND>` → `[_STORAGE._SCOPE].<kind>` →
-  built-in default: **empty for `datasets`** (shared across all projects — the dedup default
-  for external data) and **the project id for `cached`** (project-isolated). Set it to a
-  project id for full isolation, or to a group name to share within a set of projects (e.g. a
-  lab sharing one download pool); an explicitly empty value (`scope=""`) is one global,
-  unscoped store. Because fetched datasets are never garbage-collected, the datasets scope is
-  a pure locality/dedup choice with **no GC consequence**; only the cached scope affects GC
-  (its project-id default preserves the no-cross-project-deletion guarantee — widening it to a
-  group trades isolation for sharing within that group).
+- **Scope** — written **first**, the project subtree controlling *ownership / sharing*.
+  Resolves, **first explicitly set wins** (an explicit empty string `""` is a valid setting —
+  the unscoped/global store — not "unset"):
+  1. a **per-item override** — a fetched dataset's `scope` field, or a produced call's
+     `scope=` (highest);
+  2. `DATAMANIFEST_SCOPE_<KIND>` → `[_STORAGE._SCOPE].<kind>` — the **per-kind** rungs;
+  3. `DATAMANIFEST_SCOPE` → `[_STORAGE].scope` — the **project-wide** rungs;
+  4. the built-in default — **the project id, for both `datasets` and `cached`**
+     (project-isolated; derivation below).
 
-The cached scope's built-in default — the bottom rung — is the **project id**: the **package
-identity** at the project root (Python `[project].name` in `pyproject.toml`; Julia `uuid` else
-`name` in `Project.toml`), else a hash of the project root's absolute path (machine-local;
-does not coincide across clones, so clones do not share). The package-name rung is stable
-across clones and branches, which is what lets those clones share. A tool SHOULD render the
-chosen value to a single path-safe segment, and MUST resolve the scope **once** and use that
-one value for **both** the on-disk path **and** the recorded `cached.toml` recipe — they must
-never diverge, since reachability is keyed on `(scope, cachetype, version, hash)` and a
-mismatch would make an artifact a false orphan.
+  Set it to a group name to share within a set of projects (e.g. a lab sharing one download
+  pool), or to `""` for the single global/unscoped store (e.g. a heavy archive shared across
+  every project — typically combined with a `local_path` or a dedicated folder variable). The
+  reserved prefix names `datasets`/`cached` may **not** be used as a scope, so global
+  (empty-scope) data at `<root>/datasets/…` never collides with a project subtree. (Per-host
+  scope is just `DATAMANIFEST_SCOPE` set per machine; there is no `_HOST` scope table.) Only
+  the cached scope affects GC (fetched datasets are never garbage-collected, so the datasets
+  scope is a pure locality choice); the project-id default preserves the
+  no-cross-project-deletion guarantee.
+- **Prefix** — the per-layer subfolder **within the scope**. Resolves `DATAMANIFEST_PREFIX_<KIND>`
+  → `[_STORAGE._PREFIX].<kind>` → built-in default (`datasets` for fetch, `cached` for
+  produce). An empty prefix puts content directly under the scope; the defaults are non-empty
+  precisely to keep *fetched / produced / app-state* in separate subtrees **within each
+  project** (so produced-cache maintenance, which targets the `cached/` prefix, never touches
+  the fetched `datasets/` tree), so emptying them is allowed but forfeits that separation.
+
+The scope's built-in default — the bottom rung, now the same for **both** `datasets` and
+`cached` — is the **project id**: the **package identity** at the project root (Python
+`[project].name` in `pyproject.toml`; Julia `uuid` else `name` in `Project.toml`), else a hash
+of the project root's absolute path (machine-local; does not coincide across clones, so clones
+do not share). The package-name rung is stable across clones and branches, which is what lets
+those clones share. A tool SHOULD render the chosen value to a single path-safe segment, and
+MUST resolve the scope **once** and use that one value for **both** the on-disk path **and**
+the recorded `cached.toml` recipe — they must never diverge, since reachability is keyed on
+`(scope, cachetype, version, hash)` and a mismatch would make an artifact a false orphan.
+
+> **This flips the spec-v3 datasets default** (was empty/shared). Fetched datasets are now
+> project-scoped by default, so sequential projects — possibly built against different
+> evolved spec versions — stay insulated from one another, and a project's data is one
+> `rm`/tar/rsync-able subtree (`<folder>/<scope>/`). A project that wants a shared download
+> pool sets `[_STORAGE._SCOPE].datasets = "<pool>"` (or `""`); a single heavy archive is
+> shared per-dataset with `scope = ""`. See the CHANGELOG migration note.
 
 ### Host-aware resolution (`[_STORAGE]`)
 
@@ -454,6 +474,7 @@ mismatch would make an artifact a false orphan.
 ```toml
 [_STORAGE]
 default = "$data"                  # project-wide default selector ($-form)
+# scope = "myproj"                 # project-wide scope (both kinds; default: derived project id)
 scratch = "$TMPDIR"                # user-defined folder variable (a bare top-level root)
 
 [_STORAGE._HOST."login*.hpc.edu"]  # matched against the hostname (glob/regex)
@@ -464,9 +485,9 @@ data    = "/work/$USER"            # override a built-in root, host-specific
 datasets = "datasets"
 cached   = "cached"
 
-[_STORAGE._SCOPE]                  # optional: control sharing (empty = shared)
-# datasets = "climate-lab"         # share downloads within a group of projects
-# cached   = "myproj"              # (defaults to the project id)
+[_STORAGE._SCOPE]                  # optional: per-kind scope override (both default to project id)
+# datasets = "climate-lab"         # e.g. share all downloads within a group of projects
+# cached   = "myproj"              # (rarely needed; both already default to the project id)
 ```
 
 Normative rules:
@@ -515,10 +536,11 @@ Normative rules:
 
 > **Note — the `$cache` *folder* is not the `@cached` *mechanism*.** `store = "$cache"`
 > selects a *location* (the OS-reclaimable cache dir) and is independent of *how* a dataset
-> is produced. Under the `$cache` folder, fetched datasets live at `<cache>/datasets/<key>`
-> and produced artifacts at `<cache>/cached/<scope>/…` — **sibling subtrees**: the `datasets`
-> prefix holds fetched data (source-keyed), the `cached` prefix holds function results
-> (recipe-keyed, project-scoped). Any folder may hold either.
+> is produced. Under the `$cache` folder, within a project scope, fetched datasets live at
+> `<cache>/<scope>/datasets/<key>` and produced artifacts at
+> `<cache>/<scope>/cached/<cachetype>/…` — **sibling subtrees inside the scope**: the
+> `datasets` prefix holds fetched data (source-keyed), the `cached` prefix holds function
+> results (recipe-keyed). Any folder may hold either.
 
 ### Concurrent access and completeness
 
@@ -735,11 +757,11 @@ rather than let them silently share a key.
 
 ### Produced-artifact location
 
-A produced artifact composes its path exactly like any stored dataset (see Storage), using
-the **`cached`** content prefix and the **cached scope**:
+A produced artifact composes its path exactly like any stored dataset (see Storage) —
+**scope first**, then the **`cached`** content prefix:
 
 ```
-<folder>/<cached-prefix>/[<cached-scope>/]<cachetype>/[<version>/]<hash>/
+<folder>/[<scope>/]<cached-prefix>/<cachetype>/[<version>/]<hash>/
 ```
 
 A produced artifact resolves its store, prefix, and scope from the **same `[_STORAGE]`** as
@@ -784,7 +806,7 @@ stays `<cachetype>/<hash>`.
 ### Cache layout and sidecars
 
 A produced artifact is materialized at the composed path above —
-`<folder>/<cached-prefix>/[<cached-scope>/]<cachetype>/[<version>/]<hash>/` (see
+`<folder>/[<scope>/]<cached-prefix>/<cachetype>/[<version>/]<hash>/` (see
 *Produced-artifact location*) — via the same safe-materialization primitive (atomic publish,
 `.complete` marker, `.lock` pidfile) as any other store write. The directory is
 **self-describing** through two sidecars written next to the artifact:

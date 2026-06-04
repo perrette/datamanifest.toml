@@ -213,11 +213,13 @@ store = "$scratch/derived"        # selector + sub-path
 - **`store`** is a `$`-folder **selector** (`$folder` or `$folder/subpath`); omitted ⇒ the
   `default`. **`local_path`** is a path expression for an exact location that **bypasses**
   the keyed layout (interpolates `$`-folders, `$USER`/env, `~`).
-- **Content prefix + scope** (added by the layer, not the selector): fetched data →
-  `<root>/datasets/[<scope>/]<key>`; produced artifacts →
-  `<root>/cached/[<scope>/]<cachetype>/…`. The `datasets` scope is empty by default (downloads
-  shared across projects); `cached` defaults to the **project id**. Configure via
-  `[_STORAGE._PREFIX]` / `[_STORAGE._SCOPE]`.
+- **Scope + content prefix** (added by the layer, not the selector) — **scope first**, then
+  the per-kind prefix: fetched data → `<root>/[<scope>/]datasets/<key>`; produced artifacts →
+  `<root>/[<scope>/]cached/<cachetype>/…`. So a project's data is one subtree
+  `<root>/<scope>/`. Both kinds default the scope to the **project id** (project-isolated);
+  set `[_STORAGE].scope` project-wide, `[_STORAGE._SCOPE].<kind>` per kind, a dataset's
+  `scope` field per dataset, or `""` for a global shared store. Configure prefixes via
+  `[_STORAGE._PREFIX]`.
 - **Resolution precedence** for each folder: `DATAMANIFEST_<NAME>_DIR` env var → first
   matching `[_STORAGE._HOST.<glob>]` → `[_STORAGE].<name>` → built-in default. (`_PROFILE`
   is reserved/round-tripped but not applied.)
@@ -244,7 +246,7 @@ Beyond *fetching* declared datasets, a tool with the `cache-produce` capability 
   `hash`) and `metadata.toml` (provenance — timestamp, tool, git, host/user; never hashed,
   never an authority for validity). A tool MUST recompute the hash from `config.toml` and
   treat a mismatch as **not** a cache hit.
-- **Layout:** `<folder>/cached/[<scope>/]<cachetype>/[<version>/]<hash>/<basename>.<ext>`.
+- **Layout:** `<folder>/[<scope>/]cached/<cachetype>/[<version>/]<hash>/<basename>.<ext>`.
   The optional **`version`** is a human-set recipe/code version — a path segment that does
   **not** enter the hash, used to prevent a stale cross-branch hit.
 - **The `cached.toml` index** registers each produced dataset by its portable

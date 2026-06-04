@@ -27,7 +27,7 @@ KNOWN_CAPABILITIES = {
 }
 
 # Reserved keys under [_STORAGE] that are not folder-variable definitions.
-STORAGE_RESERVED = {"default", "_HOST", "_PROFILE", "_PREFIX", "_SCOPE"}
+STORAGE_RESERVED = {"default", "scope", "_HOST", "_PROFILE", "_PREFIX", "_SCOPE"}
 BUILTIN_FOLDERS = {"data", "cache", "repo"}
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -209,6 +209,9 @@ def validate(toml_path, json_path):
         manifest_default = st.get("default", "$data")
         if manifest_default != default_sel:
             _err(errors, f"storage.default: expected '{default_sel}', [_STORAGE] has '{manifest_default}'")
+        # project-wide scope ([_STORAGE].scope), if asserted
+        if "scope" in storage and st.get("scope") != storage["scope"]:
+            _err(errors, f"storage.scope: expected {storage['scope']!r}, [_STORAGE] has {st.get('scope')!r}")
         # selectors MUST be $-references (hard migration — no bare legacy names)
         for ds_name, sel in storage.get("datasets", {}).items():
             if ds_name not in manifest:

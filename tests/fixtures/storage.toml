@@ -3,6 +3,7 @@ schema = 1
 
 [_STORAGE]
 default = "$data"                  # project-wide default selector ($-form)
+scope   = "demoproj"               # project-wide scope (both kinds; default would be the derived project id)
 scratch = "$TMPDIR"                # user-defined folder variable (a bare top-level root)
 
 [_STORAGE._HOST."login*.hpc.edu"]
@@ -13,8 +14,8 @@ data    = "/work/$USER"            # override a built-in root, host-specific
 datasets = "datasets"
 cached   = "cached"
 
-[_STORAGE._SCOPE]                  # partition: empty datasets = shared; cached defaults to the project id
-datasets = "shared-pool"           # share fetched datasets within a named group
+[_STORAGE._SCOPE]                  # per-kind override (both kinds default to the project id)
+datasets = "shared-pool"           # e.g. share fetched datasets within a named group
 
 # Store omitted -> the project default selector ($data); this expensive sim is protected.
 # Per-dataset scope override: this huge archive is shared across projects under a named

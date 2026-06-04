@@ -10,6 +10,7 @@
   },
   "storage": {
     "default": "$data",
+    "scope": "demoproj",
     "datasets": {
       "bigsim": "$data",
       "scratch_run": "$cache",

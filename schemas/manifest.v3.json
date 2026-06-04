@@ -115,6 +115,7 @@
       "description": "[_STORAGE]: folder variables (bare key -> path expression to a top-level root), the project-wide default selector, _HOST overrides, the _PREFIX content-prefix map, and the _SCOPE partition map. _PROFILE is reserved (shelved).",
       "properties": {
         "default": { "$ref": "#/$defs/selector" },
+        "scope": { "type": "string", "description": "Project-wide scope (both kinds; default: derived project id). '' = the unscoped/global store. Overridden per-kind by _SCOPE, and per-item by a dataset's scope field / a produced scope=." },
         "_HOST": { "$ref": "#/$defs/storageOverrides" },
         "_PROFILE": { "$ref": "#/$defs/storageOverrides" },
         "_PREFIX": { "$ref": "#/$defs/contentMap" },

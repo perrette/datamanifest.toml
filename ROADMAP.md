@@ -62,6 +62,12 @@ originate in their host language.
   to record a pulled object in the local `cached.toml`/`datasets.toml` (so it shows as
   `referenced`), and a content checksum (e.g. a Merkle digest over a directory's files) for
   at-rest verification beyond the transport.
+- **Task-first "cookbook" docs.** The spec is a precise rulebook, but users shouldn't have to
+  hold the scope ladder or path composition in their heads. Add a recipe-oriented section
+  (in `docs/guide.md` or a new `docs/cookbook.md`): host-resolved heavy archive (`$cmip` via
+  `_HOST` + `local_path`), project-isolated caches, share-one-heavy-dataset (`scope = ""`),
+  `local_path` vs `store`, per-project cleanup (`list --scope … --delete`). Several recent
+  design exchanges are already draft entries.
 - **Scoped datasets without duplicating the heavy ones (hardlinks / reflink clones).** With
   per-dataset `scope` in place, a project can isolate its fetched datasets for clean per-project
   maintenance — but a genuinely shared heavy archive (CMIP, reanalysis) scoped per project would
