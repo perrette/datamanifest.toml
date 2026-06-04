@@ -46,6 +46,11 @@ spec-tag axis (as spec-v3 itself was). Existing stores need migration or a clean
 - `manifest.v3.json` types the new `[_STORAGE].scope` and per-dataset `scope`; the storage
   conformance fixture asserts all three levels. `_META.project` is **not** introduced — the
   project name only ever feeds the scope default, so `[_STORAGE].scope` is its sole home.
+- **Content prefixes may be multi-segment.** A `[_STORAGE._PREFIX].<kind>` value is a relative
+  path (path-safe; no leading `/` or `..`) — one segment by default, but it MAY be empty or
+  several segments (e.g. `cached = "cached/2025.1"` to add a generic version level under the
+  marker). README gains a "Storage layout" recipe (split roots: shared datasets pool +
+  per-project versioned cache).
 
 ## spec-v3.7 (schema `_META.schema = 1`)
 

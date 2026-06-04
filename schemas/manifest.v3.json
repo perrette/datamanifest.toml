@@ -103,7 +103,7 @@
     },
     "contentMap": {
       "type": "object",
-      "description": "Per-content-kind map for _PREFIX / _SCOPE: keys 'datasets' and 'cached' (string values; empty allowed).",
+      "description": "Per-content-kind map for _PREFIX / _SCOPE: keys 'datasets' and 'cached' (string values; empty allowed; a _PREFIX value may be a multi-segment relative path, e.g. 'cached/2025.1').",
       "properties": {
         "datasets": { "type": "string" },
         "cached": { "type": "string" }

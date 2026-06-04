@@ -117,6 +117,38 @@ format = "nc"
 loader = "myclimate.loaders:load_sea_ice"   # no [._LANG.python] — own language assumed
 ```
 
+## Storage layout
+
+Where files land is composed as `<root>/<scope>/<prefix>/<key>` — a **folder**
+(`$data`/`$cache`/`$repo` or a user-defined one), the project **scope** (defaults to the
+project name, so each project is isolated by default), and the per-kind **prefix**
+(`datasets/` / `cached/`). All three are set in `[_STORAGE]`. For example — downloads in one
+shared pool, caches per-project under a versioned, per-user work dir:
+
+```toml
+[_STORAGE]
+data  = "/data/all-project-data"   # all fetched data, shared across projects
+cache = "/work/$USER"              # caches, per user ($USER from the environment)
+
+[_STORAGE._SCOPE]
+datasets = ""                      # shared: no per-project segment for downloads
+# cached scope is left to default — the project name (pyproject.toml / Project.toml)
+
+[_STORAGE._PREFIX]
+cached = "2025.1"                  # a generic code/release version level for the cache
+```
+
+gives:
+
+- fetched  → `/data/all-project-data/datasets/<key>`
+- produced → `/work/<user>/<project-name>/2025.1/<cachetype>/<hash>/…`
+
+The cache's `2025.1` here is your own version label (set it dynamically with
+`DATAMANIFEST_PREFIX_CACHED` if it changes per build); it is distinct from datamanifest's
+per-recipe `version`, which nests deeper at `<cachetype>/<version>/<hash>`. Scope is never
+guessed: if there is no `pyproject.toml`/`Project.toml` name, set `[_STORAGE].scope` (or
+`DATAMANIFEST_SCOPE`). See [SCHEMA.md §Storage](SCHEMA.md#storage).
+
 ## Implementations
 
 Two implementations track the spec in parallel and on equal footing. Julia was the

@@ -462,10 +462,13 @@ subtree), prefix within it — and both default so a casual user never sets them
   no-cross-project-deletion guarantee.
 - **Prefix** — the per-layer subfolder **within the scope**. Resolves `DATAMANIFEST_PREFIX_<KIND>`
   → `[_STORAGE._PREFIX].<kind>` → built-in default (`datasets` for fetch, `cached` for
-  produce). An empty prefix puts content directly under the scope; the defaults are non-empty
-  precisely to keep *fetched / produced / app-state* in separate subtrees **within each
-  project** (so produced-cache maintenance, which targets the `cached/` prefix, never touches
-  the fetched `datasets/` tree), so emptying them is allowed but forfeits that separation.
+  produce). A prefix is a **relative path** (path-safe; no leading `/`, no `..`): usually one
+  segment, but it MAY be **empty** (content directly under the scope) or **multiple segments**
+  (e.g. `cached = "cached/2025.1"` to add a generic version level under the marker). The
+  defaults are non-empty precisely to keep *fetched / produced / app-state* in separate
+  subtrees **within each project** (so produced-cache maintenance, which targets the `cached/`
+  prefix, never touches the fetched `datasets/` tree), so emptying them is allowed but forfeits
+  that separation.
 
 The scope's built-in default — the bottom rung, now the same for **both** `datasets` and
 `cached` — is the **project name**: Python `[project].name` in `pyproject.toml`, Julia `name`
