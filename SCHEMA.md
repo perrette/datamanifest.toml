@@ -347,10 +347,10 @@ Three independent pieces compose that path:
   (before the prefix), so a project's fetched *and* produced data sit together under
   `…/<scope>/`. Defaults to the project name (project-isolated); a group name shares within a set
   of projects; empty ⇒ shared across all projects. It is the **leading path segment** under
-  explicit/custom roots, and the **platformdirs appname** for the built-in `$data`/`$cache`
-  OS defaults (see *Folder variables*) — not repeated in both. The reserved prefix names
-  `datasets`/`cached` may **not** be used as a scope, so global (empty-scope) data never
-  collides with a project subtree.
+  explicit/custom roots, the **platformdirs appname** for the default `$data`/`$cache`, and
+  **absorbed entirely under `$repo`** (the project root is already the project) — see *Folder
+  variables*; never repeated. The reserved prefix names `datasets`/`cached` may **not** be used
+  as a scope, so global (empty-scope) data never collides with a project subtree.
 - **content prefix** — the subfolder *within the scope* the layer writes under: `datasets/`
   (fetch) or `cached/` (produce). A convention applied by the *layer*, never baked into the
   folder variable; configurable (see below).
@@ -381,13 +381,19 @@ defines a path **once** (`$scratch = "/scratch/$USER"`) and reuses it for both l
 **Where the scope lands depends on the root** — but `datamanifest` (a *library*, not the
 owner of the data) never appears as a directory:
 
-- For the built-in `$data`/`$cache` OS defaults the project scope is the **platformdirs
+- **Default `$data`/`$cache` (platformdirs)** — the project scope is the **platformdirs
   appname** (replacing the old literal `"datamanifest"`), so the root *is* `…/<scope>` and the
   scope is **not** repeated as a segment.
-- For `$DATAMANIFEST_DIR` and user-defined folders the root is **bare** and the scope is the
-  **leading path segment** (those roots aren't project-named).
+- **`$repo`** — **scope-absorbing**: the project root already *is* the project, so the path is
+  `<repo>/<prefix>/<key>` with **no scope segment** at all. The scope still resolves (the
+  project name) and is recorded in the `cached.toml` entry for ownership, but the on-disk path
+  is scope-independent — so a tool MUST deterministically omit the segment for `$repo` on both
+  register and lookup (else reachability would mismatch).
+- **`$DATAMANIFEST_DIR`, an overridden `$data`/`$cache`, and user-defined folders** — the root
+  is **bare** (not project-named), so the scope is the **leading path segment** (`…/<scope>/…`).
 
-Either way a store ends in `…/<scope>/<prefix>/<key>`, owned by the project.
+So the scope appears once (appname / leading segment) or is absorbed (`$repo`); a store under a
+bare root ends in `…/<scope>/<prefix>/<key>`, owned by the project.
 
 - **`DATAMANIFEST_DIR` — the application base.** A single knob for "put everything here":
   when set it is the base of `$data` and `$cache`, so fetched data lands under

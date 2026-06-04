@@ -46,6 +46,13 @@ spec-tag axis (as spec-v3 itself was). Existing stores need migration or a clean
 - `manifest.v3.json` types the new `[_STORAGE].scope` and per-dataset `scope`; the storage
   conformance fixture asserts all three levels. `_META.project` is **not** introduced — the
   project name only ever feeds the scope default, so `[_STORAGE].scope` is its sole home.
+- **`$repo` absorbs the scope.** Under `$repo` (the project root) the path is
+  `<repo>/<prefix>/<key>` with **no scope segment** — the project root already *is* the
+  project. The scope still resolves and is recorded in `cached.toml` for ownership, but the
+  on-disk path is scope-independent (a tool omits the segment deterministically on register
+  and lookup). So the scope placement is: appname for the default `$data`/`$cache`, absorbed
+  for `$repo`, leading segment for `$DATAMANIFEST_DIR` / overridden `$data`/`$cache` / user
+  folders.
 - **Content prefixes may be multi-segment.** A `[_STORAGE._PREFIX].<kind>` value is a relative
   path (path-safe; no leading `/` or `..`) — one segment by default, but it MAY be empty or
   several segments (e.g. `cached = "cached/2025.1"` to add a generic version level under the
