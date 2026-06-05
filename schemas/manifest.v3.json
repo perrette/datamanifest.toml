@@ -117,7 +117,7 @@
       "type": "object",
       "description": "A dataset table: language-agnostic contract fields plus an optional _LANG sub-table.",
       "properties": {
-        "uri": { "type": "string" },
+        "uri": { "type": "string", "description": "Single source URI. HTTP(S), git/ssh/rsync/file, or an object-store scheme (s3:// gs:// gcs:// az:// abfs:// abfss:// adl:// gdrive://): fetch the object, then verify sha256. Mechanism is implementation-defined." },
         "uris": { "type": "array", "items": { "type": "string" } },
         "host": { "type": "string" },
         "path": { "type": "string" },
@@ -135,7 +135,8 @@
           "description": "Empty, or a 64-hex SHA-256 digest."
         },
         "skip_checksum": { "type": "boolean" },
-        "skip_download": { "type": "boolean" },
+        "skip_download": { "type": "boolean", "description": "Management mode: a passive, externally-managed dependency — not downloaded, not verified, never touched by maintenance; the uri/path is returned as-is. Distinct from lazy_access." },
+        "lazy_access": { "type": "boolean", "description": "Access mode: open the uri in place via a loader (no local copy, no checksum, no state-file record); a loader is required. Mechanism (stream/mount/FUSE) is implementation-defined. Distinct from skip_download." },
         "delegate": { "type": "boolean" },
         "extract": { "type": "boolean" },
         "format": { "type": "string" },

@@ -1,5 +1,36 @@
 # Changelog
 
+## spec-v4.3 (schema `_META.schema = 1`) — unreleased
+
+**Remote sources** — object-store download schemes, a `lazy_access` mode for never-materialized
+in-place access, and fail-loud identifier resolution. Additive (no `_META.schema` change); two
+new optional dataset fields.
+
+- **Object-store `uri` schemes are normative.** `s3://`, `gs://`, `gcs://`, `az://`, `abfs://`,
+  `abfss://`, `adl://`, `gdrive://` mean "fetch the named object, then verify `sha256` as usual."
+  The spec fixes the **scheme set and semantics, not the mechanism** — a tool fetches with any
+  backend (the Python tool via `fsspec`; a peer tool via its own packages), and a tool that
+  cannot serve a scheme **`delegate`s** it or errors *unsupported scheme* — never silently skips
+  it. HTTP/HTTPS keep their dedicated GET path and are deliberately **not** in this set. New
+  *Download schemes* section; `manifest.v3.json` documents the `uri` schemes.
+- **`lazy_access` (new bool) — an *access* mode.** Open the `uri` in place via a loader instead
+  of materializing a local copy: **no copy, no checksum, no state-file record**; a loader is
+  required (a bare `lazy_access` is an error). The mechanism — streaming, an sshfs/FUSE **mount**,
+  an object-store filesystem — is implementation-defined; this **subsumes the former deferred
+  standalone `mount` store** (one materialization axis: download vs. in-place), so no `mount`
+  capability is added. The "no materialization axis" / deferred-`mount` spec text is rewritten
+  accordingly.
+- **`skip_download` clarified — a *management* mode (unchanged behavior, sharpened wording).** It
+  marks a *passive, externally-managed dependency*: not downloaded, **not verified**, never
+  touched by maintenance (e.g. a large user-maintained archive). It is **orthogonal** to
+  `lazy_access` (who manages the bytes vs. how they are read) and the two are not meant to
+  combine. This **un-overloads** `skip_download`: in-place/on-the-fly access is now `lazy_access`,
+  not `skip_download` + a loader.
+- **Identifier resolution is exact-or-error.** Resolving a single dataset by `name` / `alias` /
+  `doi` to **more than one** match is a fail-loud error naming the candidates, never a silent
+  first-match — a `doi` may be shared across split datasets. New *Identifier resolution* rule; the
+  sync addressing contract now references it.
+
 ## spec-v4.2 (schema `_META.schema = 1`) — unreleased
 
 **Read pools** — reuse a dataset or `@cached` result that already exists elsewhere on the

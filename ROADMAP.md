@@ -44,10 +44,12 @@ originate in their host language.
 
 ## Deferred / reserved
 
-- **In-place / mounted access** (the former `mount` store). Deferred, not abandoned: the
-  spec-v2 storage model is locations-only and has no home for never-materialized in-place
-  access. A future revision is expected to reintroduce it as a distinct concept alongside
-  folders. Until then it is not part of the spec and tools must not advertise it.
+- **In-place / mounted access** — **shipped** (spec-v4.3) as the **`lazy_access`** dataset
+  mode: a never-materialized dataset opened where it lives by a loader. The mechanism
+  (streaming, sshfs/FUSE **mount**, an object-store filesystem) is implementation-defined, so
+  the former standalone `mount` store is subsumed rather than reintroduced as a separate
+  concept. What remains open is per-mechanism ergonomics (e.g. a tool managing the lifecycle of
+  an actual FUSE mount) — a tooling concern, not a spec one.
 
 ## Possible future directions
 

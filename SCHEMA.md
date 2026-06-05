@@ -89,7 +89,7 @@ Types are TOML types (`string`, `array of string`, `bool`).
 
 | Field | Type | Default | Semantics |
 |---|---|---|---|
-| `uri` | string | `""` | Single source URI. HTTP(S), `git`/`ssh+git`/`*.git`, `ssh`/`sshfs`/`rsync`, or `file://`. Mutually exclusive with `uris`. |
+| `uri` | string | `""` | Single source URI. HTTP(S), `git`/`ssh+git`/`*.git`, `ssh`/`sshfs`/`rsync`, `file://`, or an **object-store scheme** (`s3://`, `gs://`, `gcs://`, `az://`, `abfs://`, `abfss://`, `adl://`, `gdrive://` — see *Download schemes*). Mutually exclusive with `uris`. |
 | `uris` | array of string | `[]` | Batch of source URIs written into a single dataset folder under disambiguated relative paths. Mutually exclusive with `uri`. |
 | `host` | string | `""` | Parsed from the URI (derived; tools omit it on write). |
 | `path` | string | `""` | Parsed from the URI (derived; tools omit it on write). |
@@ -103,7 +103,8 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `storage_path` | string | `$datasets_dir/$key` | **Path expression** for where this dataset lives on disk, overriding the default. May interpolate `$`-symbols (`$datasets_dir`, `$key`, `$user_data_dir`, `$scratch`, …), `$USER`/env, and `~`; relative ⇒ resolved against the project root. Containing **`$key`** ⇒ a tool-managed keyed location; an **exact path without `$key`** ⇒ a user-managed location used verbatim that maintenance never touches. Generalizes the former `local_path` and subsumes the former `store`. See Storage. Honored under the `storage` capability; other tools preserve it verbatim. |
 | `sha256` | string | `""` | Expected SHA-256 of the downloaded file/folder. Auto-filled on first successful download and verified at fetch time; **not** re-verified on every load (re-verification is opt-in). |
 | `skip_checksum` | bool | `false` | Disable checksum verification for this dataset. |
-| `skip_download` | bool | `false` | Treat the dataset as externally provided; the documented `uri` is returned as the path and no download is attempted. |
+| `skip_download` | bool | `false` | **Management mode** — treat the dataset as a *passive, externally-managed dependency*: it is **not** downloaded, **not** checksum-verified, and **never** moved or deleted by maintenance; the documented `uri`/path is returned as-is. For data the user provides and maintains (e.g. a large shared archive that should not be fetched over the network). Distinct from `lazy_access` — this is about *who manages the bytes*, not *how they are read*. |
+| `lazy_access` | bool | `false` | **Access mode** — access the dataset *in place* instead of materializing a local copy: the `uri` is handed to a **loader** that opens it where it lives (typically a remote object store), with **no local copy, no checksum, and no state-file record**. Requires a loader (a bare `lazy_access` with no loader is an **error**). The access mechanism (streaming, mount, FUSE, …) is **implementation-defined** — the spec fixes only that the bytes are not materialized. Distinct from `skip_download` (a management mode); the two are independent and not meant to combine. |
 | `delegate` | bool | *(run default)* | Force the cross-language fetch rung (rung 3) on (`true`) or off (`false`) for this dataset. When omitted, the tool's run-level default applies (`--delegate` / configuration). Honored under the `delegation` capability; other tools preserve it verbatim. See Cross-language fetch. |
 | `extract` | bool | `false` | After download, extract the archive (`zip` / `tar` / `tar.gz`) and use the extracted directory as the dataset path. |
 | `format` | string | `""` | Data format hint used to pick a default loader (`csv`, `parquet`, `nc`, `json`, `yaml`, `toml`, `md`, `txt`, `zip`, `tar`, `tar.gz`, …). Inferred from the URI when absent. |
@@ -111,6 +112,14 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `fetcher` | string \| table | `""` | **Language-implicit** fetcher binding — read as the running tool's own language (see *Language-implicit bindings*). Equivalent to `[<dataset>._LANG.<self>].fetcher`. |
 | `loader` | string \| table | `""` | **Language-implicit** loader binding — read as the running tool's own language. Equivalent to `[<dataset>._LANG.<self>].loader`. |
 | `shell` | string | `""` | **Language-agnostic** shell fetcher — a command template run as a subprocess (the same command for every tool). Fetcher only; see *`shell` fetcher*. |
+
+**Identifier resolution is exact-or-error.** A dataset is looked up by its **name**, an
+**`alias`**, or its **`doi`**. When an operation must resolve to a **single** dataset, an
+identifier matching **more than one** dataset is a **fail-loud error** that names the
+candidates — never a silent first-match. This matters because a `doi` may be shared by
+several datasets (e.g. one archive split into parts), and acting on an arbitrary one of *N*
+is a correctness footgun. (The same rule governs sync addressing, where an ambiguous id
+requires an explicit `--batch`; see *Cross-machine sync*.)
 
 ## Language bindings (`_LANG`)
 
@@ -285,8 +294,32 @@ The tool tries each rung in order, using the first that applies:
 3. **cross-language fetch** — the rare case: run a fetcher defined in another language
    (mechanism implementation-defined; the Python CLI can serve as a fallback), controlled
    by `delegate` / `--delegate`; see Cross-language fetch below;
-4. plain `uri` download (if `uri` is set);
+4. plain `uri` download (if `uri` is set) — dispatched by scheme (see *Download schemes*);
 5. else error.
+
+### Download schemes
+
+The plain-`uri` rung dispatches on the URI **scheme**. The spec fixes the **scheme set and
+its semantics — "fetch the named object, then verify `sha256` as usual"** — but **not the
+mechanism**: each implementation fetches with whatever backend fits the language.
+
+| Scheme(s) | Fetch |
+|---|---|
+| `http` / `https` | streaming GET |
+| `git` / `ssh+git` / `https://*.git` | shallow clone (`--branch` honors `branch`) |
+| `ssh` / `sshfs` / `rsync` | rsync over SSH |
+| `file://` | copy (or rsync from a remote host) |
+| **object stores** — `s3://`, `gs://`, `gcs://`, `az://`, `abfs://`, `abfss://`, `adl://`, `gdrive://` | fetch the object from the named store, then verify `sha256` |
+
+- **Object-store schemes are normative**, but mechanism-agnostic: a tool MAY implement them
+  with any backend (the Python tool uses `fsspec` behind an optional extra; a peer tool uses
+  its own packages). A tool that cannot serve a scheme **`delegate`s** it (cross-language
+  fetch) or errors with *unsupported scheme* — it MUST NOT silently skip it.
+- **HTTP/HTTPS are deliberately not in the object-store set** — they keep their own dedicated
+  GET path.
+- A `uri` fetched by **any** scheme is `sha256`-verified like any other download; an
+  object-store URI is just another source of bytes. (To open such a URI *without* downloading,
+  set `lazy_access`; see the field table.)
 
 ### Load ladder
 
@@ -1004,8 +1037,9 @@ see *Why not automatic reachability* below.
   **`--dry-run` preview**. Deletion is always of a user-chosen set, never an automatic sweep.
 - **Protections (the rule is unchanged, generalized).** Maintenance never touches data the
   user owns: a fetched dataset whose `storage_path` is a **user-managed exact path** (no
-  `$key`) or that is **`skip_download`** (the URI *is* the file) is reported as *skipped*,
-  never moved or deleted — the same guard already used for deletion, applied to both kinds.
+  `$key`) or that is **`skip_download`** (a passive, externally-managed dependency) is reported
+  as *skipped*, never moved or deleted — the same guard already used for deletion, applied to
+  both kinds. A **`lazy_access`** dataset has no local copy to touch in the first place.
   Tool-managed (keyed) objects under `datasets_dir` / `datacache_dir` are fair game.
 
 **Both kinds are reclaimable, with different regeneration costs.** Deleting a fetched
@@ -1060,9 +1094,12 @@ risks an accidental cross-project wipe because deletion is always an explicit se
   per-`format` choice; produced artifacts are not assumed cross-language-loadable. A tool
   SHOULD define a RECOMMENDED language-native default for a format-less produced dataset
   (see *Default serialization format*), but the spec does not mandate which.
-- **In-place / mounted access** (the former `mount` store) is out of scope: folders are
-  *locations only*, with no materialization axis. It is deferred to a future revision —
-  see `ROADMAP.md` — not part of this spec; no `mount` capability is defined.
+- **In-place access** (no local copy) is the **`lazy_access`** mode (see the dataset field
+  table): the `uri` is opened where it lives by a loader. The **mechanism** — streaming, an
+  sshfs/FUSE **mount**, an object-store filesystem — is implementation-defined and **not**
+  specced; the former standalone `mount` store is subsumed by `lazy_access` (one materialization
+  axis: download vs. in-place), so no separate `mount` capability is defined. What a tool
+  actually supports depends on its loaders and backends.
 - **Cloud / `fsspec` / CAS backends** are not a core model; if a tool adds them,
   they are optional per-language extras behind the recipe interface, not a spec
   contract.
@@ -1099,8 +1136,9 @@ the physical root differs. Sync is a transfer between two stores, gated by the o
 
 **Addressing for sync.** An object is named by its identifier: a fetched dataset by `name` /
 `alias` / `doi`; a produced artifact by `cachetype[/version]/hash` (full, or an unambiguous
-hash prefix). Resolution to **exactly one** object is the contract; a bare `cachetype` (or
-any token matching several) is ambiguous.
+hash prefix). Resolution to **exactly one** object is the contract — an identifier matching
+several is a fail-loud error (the general *exact-or-error* rule; see *Identifier resolution*),
+so a bare `cachetype` or a shared `doi` is ambiguous and must be disambiguated.
 
 > **Reference CLI (non-normative).** First-order `datamanifest push <id> <ssh-host>` /
 > `pull <id> <ssh-host>` transfer a **single** object; an ambiguous `<id>` errors unless

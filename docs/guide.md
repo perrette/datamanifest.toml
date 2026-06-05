@@ -66,7 +66,7 @@ ones:
 
 | Field | Meaning |
 |---|---|
-| `uri` | Source to download (`https`, `git`/GitHub, `ssh`, …). `uris` for mirrors. |
+| `uri` | Source to download (`https`, `git`/GitHub, `ssh`, an object store `s3://`/`gs://`/`az://`/…, …). `uris` for mirrors. |
 | `sha256` | Expected digest; auto-filled on first download, verified at fetch. |
 | `format` | Format hint (`csv`, `nc`, `parquet`, `zip`, …) that picks a default loader; inferred from the URI when absent. |
 | `extract` | After download, unpack the archive and use the extracted directory as the path. |
@@ -76,7 +76,9 @@ ones:
 | `requires` | Names of datasets to fetch first (a dependency graph, resolved in order). |
 | `description` | Human-readable note (replaces TOML comments). |
 | `storage_path` | Where the dataset lives on disk (overrides the default `$datasets_dir/$key`) — see [Storage](#storage). |
-| `skip_checksum` / `skip_download` | Disable verification / treat as externally provided. |
+| `skip_checksum` | Disable checksum verification. |
+| `skip_download` | *Management* mode: a passive dependency you maintain yourself — not downloaded, not verified, never touched by maintenance (e.g. a large shared archive). |
+| `lazy_access` | *Access* mode: open the `uri` in place via a loader (e.g. a remote object store) — no local copy, no checksum, no record; a loader is required. Mechanism (stream/mount) is implementation-defined. |
 | `fetcher` / `loader` / `shell` | How to obtain/load it — see [Language bindings](#language-bindings). |
 
 ```toml
