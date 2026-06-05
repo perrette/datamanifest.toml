@@ -33,9 +33,10 @@ python -c 'import tomllib,json,sys; json.dump(tomllib.load(open(sys.argv[1],"rb"
 
 The `*.v2.1.json` files are kept alongside for tools pinned to the earlier spec. **spec-v4**
 simplifies storage to two folder fields — `[_STORAGE].datasets_dir` / `datacache_dir`
-(relative ⇒ repo-relative, local by default) — plus reusable `$`-symbols
+(relative ⇒ repo-relative, local by default) — plus optional read-pool lists
+(`datasets_pools` / `datacache_pools`), reusable `$`-symbols
 (`$user_data_dir` / `$user_cache_dir` / `$repo` + user-defined) and `_HOST` host-overrides; a
-dataset's `path` replaces the former `store` / `local_path`. There is no scope, prefix, or
+dataset's `storage_path` replaces the former `store` / `local_path`. There is no scope, prefix, or
 appname. `state.v4.json` validates the **state file** (`_META.schema = 5`): a git-ignored,
 regenerable per-machine inventory of *where each object actually landed* — fetched datasets
 under `datasets` (key ⇒ resolved `storage_path` + actual `sha256`) and produced artifacts

@@ -224,9 +224,15 @@ storage_path = "$scratch/$key"      # this dataset, parked on scratch ($key => t
 - **Per-dataset `storage_path`** overrides where one dataset lives (default `$datasets_dir/$key`):
   contains `$key` ⇒ tool-managed/keyed; an exact path without `$key` ⇒ user-managed and never
   touched by maintenance. (It is *not* called `path` — that is the URI's parsed component.)
-- **Environment:** two overrides — `DATAMANIFEST_DATASETS_DIR` / `DATAMANIFEST_DATACACHE_DIR`
-  (user symbols override as `DATAMANIFEST_<NAME>`); `$user_data_dir`/`$user_cache_dir` keep
-  their per-OS resolution.
+- **Read pools** (`datasets_pools` / `datacache_pools`) — optional lists of read-only folders
+  checked *before* downloading/producing, so a dataset or `@cached` result another project
+  already has is reused **in place** (checksum-verified for datasets, recorded in the state
+  file, never copied). `datasets_pools` defaults to well-known shared folders; `datacache_pools`
+  is opt-in. An empty list disables them. See [SCHEMA.md §Storage](../SCHEMA.md#storage).
+- **Environment:** overrides for the folders — `DATAMANIFEST_DATASETS_DIR` /
+  `DATAMANIFEST_DATACACHE_DIR` (user symbols override as `DATAMANIFEST_<NAME>`; pools as
+  `DATAMANIFEST_DATASETS_POOLS` / `DATAMANIFEST_DATACACHE_POOLS`); `$user_data_dir`/`$user_cache_dir`
+  keep their per-OS resolution.
 - **Concurrency:** writes are atomic (temp + rename) under a `.lock` pidfile with a
   `.complete` marker, so concurrent readers never see a half-materialized dataset.
 

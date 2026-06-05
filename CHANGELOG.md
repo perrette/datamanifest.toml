@@ -1,5 +1,33 @@
 # Changelog
 
+## spec-v4.2 (schema `_META.schema = 1`) — unreleased
+
+**Read pools** — reuse a dataset or `@cached` result that already exists elsewhere on the
+machine instead of fetching or recomputing it — plus two resolution/maintenance
+clarifications. Additive: no `_META.schema` change.
+
+- **`[_STORAGE].datasets_pools` / `datacache_pools`.** Optional lists of **read-only
+  locations** added to read-resolution: probed after the recorded and directive-derived
+  location and **before** downloading/producing. A `datasets_pools` hit is **checksum-verified**
+  against the declared `sha256` (mismatch skipped), **recorded in the state file**, and used
+  **in place — no copy** (a genuine download still goes to `datasets_dir`; gold standard).
+  `datacache_pools` is symmetric (`<pool>/<cachetype>[/<version>]/<hash>`, `config.toml`-gated).
+  Defaults differ by **trust**: `datasets_pools` absent ⇒ built-in well-known pools
+  (`~/.cache/Datasets`, `$user_data_dir/datamanifest/datasets`), since a fetched dataset is
+  checksum-verifiable; `datacache_pools` absent ⇒ **no pools** (opt-in), since produced
+  artifacts have no de-facto shared location and no content checksum. An explicit list is used
+  verbatim, an empty list disables. Host-composable via `[_STORAGE._HOST]`; env
+  `DATAMANIFEST_DATASETS_POOLS` / `DATAMANIFEST_DATACACHE_POOLS`. `manifest.v3.json` types both.
+- **Single recorded location (multiple locations decided *out*).** The state file keeps **one**
+  `storage_path` per object — the last location it was found at or written to, refreshed by
+  self-heal, never grown into a set. Resolution only needs to find one copy; a stray second copy
+  reads as `untracked` and is cleaned up explicitly, and a shared copy elsewhere is found via a
+  read pool. (Reclassifies the spec-v4.1 ROADMAP deferral as out-of-scope.)
+- **Maintenance applies on the explicit selection.** A filtered `list … --delete` / `--move` is
+  itself the explicit user selection, so a tool MAY apply directly and SHOULD offer a
+  `--dry-run` preview (the spec-v4.1 "default to a dry run" wording is relaxed; the hard rules —
+  never delete everything by default, never as a side effect — stand).
+
 ## spec-v4.1 (schema `_META.schema = 1`) — unreleased
 
 **Unify the produced-only `cached.toml` index into a single git-ignored state file,

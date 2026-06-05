@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/manifest.v3.json",
   "title": "datamanifest manifest (datasets.toml) — spec-v3",
-  "description": "JSON Schema for the JSON projection of a datamanifest manifest TOML file (spec-v3). Parse the TOML to JSON, then validate. _META.schema is asserted as 1. spec-v4 storage: [_STORAGE] sets two folder fields (datasets_dir / datacache_dir; relative => repo-relative) plus reusable $-symbols and _HOST host-overrides; a dataset's `path` overrides its location. Lenient about underscore-prefixed structural keys (preserved verbatim); rejects unknown plain dataset fields (typos).",
+  "description": "JSON Schema for the JSON projection of a datamanifest manifest TOML file (spec-v3). Parse the TOML to JSON, then validate. _META.schema is asserted as 1. spec-v4 storage: [_STORAGE] sets two folder fields (datasets_dir / datacache_dir; relative => repo-relative) plus optional read-pool lists (datasets_pools / datacache_pools), reusable $-symbols, and _HOST host-overrides; a dataset's `storage_path` overrides its location. Lenient about underscore-prefixed structural keys (preserved verbatim); rejects unknown plain dataset fields (typos).",
   "type": "object",
   "properties": {
     "_META": { "$ref": "#/$defs/meta" },
@@ -90,18 +90,25 @@
     },
     "storageOverrides": {
       "type": "object",
-      "description": "_HOST (hostname glob/regex) -> { symbol-or-field-name: path-expression } host-specific overrides.",
+      "description": "_HOST (hostname glob/regex) -> { symbol-or-field-name: path-expression } host-specific overrides. A pool field (datasets_pools / datacache_pools) may be overridden host-specifically as a list.",
       "additionalProperties": {
         "type": "object",
-        "additionalProperties": { "type": "string" }
+        "additionalProperties": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        }
       }
     },
     "storage": {
       "type": "object",
-      "description": "[_STORAGE]: two folder fields (datasets_dir / datacache_dir; relative => repo-relative, $-symbols allowed), reusable $-symbols (any other bare key -> path expression; predefined $user_data_dir / $user_cache_dir / $repo), and _HOST host-overrides.",
+      "description": "[_STORAGE]: two folder fields (datasets_dir / datacache_dir; relative => repo-relative, $-symbols allowed), optional read-pool lists (datasets_pools / datacache_pools), reusable $-symbols (any other bare key -> path expression; predefined $user_data_dir / $user_cache_dir / $repo), and _HOST host-overrides.",
       "properties": {
         "datasets_dir": { "type": "string", "description": "Where fetched datasets go (default 'datasets'; relative => <repo>/datasets/)." },
         "datacache_dir": { "type": "string", "description": "Where the produced cache goes (default 'cached'; relative => <repo>/cached/)." },
+        "datasets_pools": { "type": "array", "items": { "type": "string" }, "description": "Read-only locations probed for an already-present fetched dataset before downloading (a hit is checksum-verified, recorded, and reused in place; new downloads still go to datasets_dir). Each entry is a path expression. Omitted => built-in well-known defaults; an empty list => disabled." },
+        "datacache_pools": { "type": "array", "items": { "type": "string" }, "description": "Read-only locations probed for an already-produced @cached artifact (at <pool>/<cachetype>[/<version>]/<hash>, config-validated) before recomputing. Opt-in: omitted => no pools. Each entry is a path expression." },
         "_HOST": { "$ref": "#/$defs/storageOverrides" }
       },
       "additionalProperties": { "type": "string" }

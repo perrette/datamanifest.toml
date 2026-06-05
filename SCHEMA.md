@@ -42,7 +42,8 @@ A v1 manifest is a TOML document with:
   bindings, and optional **bare (language-implicit) `fetcher`/`loader` bindings** (see
   *Language-implicit bindings*).
 - **`[_STORAGE]`** — optional storage configuration: the two folder fields
-  (`datasets_dir` / `datacache_dir`), reusable `$`-symbols (predefined `$user_data_dir`
+  (`datasets_dir` / `datacache_dir`), optional read-pool lists (`datasets_pools` /
+  `datacache_pools`), reusable `$`-symbols (predefined `$user_data_dir`
   / `$user_cache_dir` / `$repo` plus user-defined keys), and the `_HOST` host-override
   sub-table. See Storage.
 - **`[_LOADERS]`** — a language-implicit `format → binding` loaders map (tolerated; the
@@ -356,6 +357,41 @@ produced datasets are the cache layer's concern (see *Produced datasets and cach
 core fetch engine's. `[_STORAGE]` and its `_HOST` sub-table are **defined structural keys**: a
 conforming tool parses them identically and preserves them verbatim (a tool without the
 `storage` capability treats the whole table as a preserved unknown).
+
+### Read pools (reuse what is already on the machine)
+
+Two optional `[_STORAGE]` list fields name **read-only locations to reuse before
+materializing**, so an object another project already has is not fetched or
+recomputed again:
+
+```toml
+[_STORAGE]
+datasets_pools  = ["~/.cache/Datasets", "$user_data_dir/datamanifest/datasets"]
+datacache_pools = ["$team/cache"]        # opt-in; no default
+```
+
+- **`datasets_pools` — fetched datasets.** Resolution probes each pool (at the
+  dataset's keyed sub-path) **after the recorded and directive-derived locations
+  and before downloading**. On a hit the declared `sha256` is **verified** (a
+  mismatch is skipped, never trusted), the location is **recorded in the state
+  file**, and the bytes are used **in place — no copy**. A genuine download still
+  goes to `datasets_dir` (the directive — gold standard). **Default when the field
+  is absent:** the built-in well-known pools (`~/.cache/Datasets`,
+  `$user_data_dir/datamanifest/datasets`); an **explicit list** is used verbatim;
+  an **empty list disables** pools.
+- **`datacache_pools` — produced artifacts.** Symmetric: the produced-dataset
+  hit-search also probes each pool at `<pool>/<cachetype>[/<version>]/<hash>`, gated
+  by the usual `config.toml` validation, and self-heals the record on a hit. It is
+  **opt-in — absent means no pools** (and no built-in default): there is no de-facto
+  shared compute location, and a produced artifact carries no content checksum
+  (only its `cachetype`/`version`/`hash` identity), so cross-project adoption must
+  be deliberate.
+- **Read-only and host-local.** Pools are never written to and never edit
+  `datasets.toml`; they only add candidate *locations* to read-resolution. They are
+  resolved like any other path expression (`$`-symbols, `~`, env) and are
+  **host-composable** via `[_STORAGE._HOST]` (a pool list set per hostname glob);
+  environment overrides are `DATAMANIFEST_DATASETS_POOLS` / `DATAMANIFEST_DATACACHE_POOLS`.
+  Honored under the `storage` capability; other tools preserve the fields verbatim.
 
 ### Symbols
 
@@ -874,8 +910,10 @@ only short-circuits the lookup.
   consults the recorded `storage_path` **ahead of any derivation rule**: if the
   bytes are actually there (and, for a dataset, checksum-valid when a digest is
   recorded), that is a hit — no re-derive, no re-download, no recompute. Only on a
-  miss does resolution fall back to the directive-derived path and then fetch or
-  produce. This is how a **moved** object is still found at its new home.
+  miss does resolution fall back to the directive-derived path, then any
+  **read pools** (§Storage — reuse a copy another project already has, recording it
+  on a hit), and only then fetch or produce. This is how a **moved** object is still
+  found at its new home.
 - **Self-heal is additive, never destructive.** Active resolution refreshes the
   record to match reality: a *relocated* object (bytes at the derived path, record
   stale) has its recorded location **refreshed**; an *untracked* object (bytes
@@ -961,8 +999,9 @@ see *Why not automatic reachability* below.
   **repoint the recorded `storage_path`** — `datasets.toml` is *not* edited, so a later
   re-fetch still follows the `datasets_dir` directive; gold standard). A tool **MUST NOT**
   delete everything by default and **MUST NOT** delete as a side effect of any other
-  command; it SHOULD default to a **dry run** and require explicit confirmation. Deletion is
-  always of a user-chosen set, never an automatic sweep.
+  command. The **explicit filter + action is itself the selection** (typing the action over a
+  filtered set is the confirmation), so a tool MAY apply directly; it SHOULD offer a
+  **`--dry-run` preview**. Deletion is always of a user-chosen set, never an automatic sweep.
 - **Protections (the rule is unchanged, generalized).** Maintenance never touches data the
   user owns: a fetched dataset whose `storage_path` is a **user-managed exact path** (no
   `$key`) or that is **`skip_download`** (the URI *is* the file) is reported as *skipped*,
@@ -1101,7 +1140,7 @@ fixture-suite tests tagged for those capabilities.
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write (full lossless round-trip). |
 | `shell-fetch` | Execute the dataset's `shell` command template in the fetch ladder. |
 | `delegation` | Cross-language fetch (rung 3, the rare case): run a fetcher defined in another language — mechanism implementation-defined (call the language's runtime, or a peer `datamanifest` CLI), with fall-through to `uri` — controlled by `delegate` / `--delegate` (see Cross-language fetch, Peer-CLI contract). |
-| `storage` | Honor the `datasets_dir` / `datacache_dir` folders, `$`-symbol resolution (`$user_data_dir` / `$user_cache_dir` / `$repo` + user-defined, host-aware via `_HOST`), and per-dataset `storage_path` (see Storage). |
+| `storage` | Honor the `datasets_dir` / `datacache_dir` folders, the optional `datasets_pools` / `datacache_pools` read pools, `$`-symbol resolution (`$user_data_dir` / `$user_cache_dir` / `$repo` + user-defined, host-aware via `_HOST`), and per-dataset `storage_path` (see Storage). |
 | `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, or Julia `write(...; canonical=true)`). |
 | `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
 | `cache-produce` | **Cache-layer** produce-or-load: function-backed (produced) datasets with parameter-hash keying, optional recipe `version`, the `config.toml` / `metadata.toml` sidecars, and the state file's `datacache` inventory, materialized under the `datacache_dir` folder (§Produced datasets). Declared by the cache layer, never by the core fetch capability (packaging — separate package or submodule — is unconstrained). |

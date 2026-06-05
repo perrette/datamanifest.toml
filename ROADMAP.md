@@ -82,8 +82,12 @@ originate in their host language.
   with different meanings (directive/contract vs. resolved/actual) — an intentional, harmless
   duplication. Deferred cleanups: a defined **expected-vs-actual `sha256`** relationship and
   re-verification policy (with `skip_checksum`); moving the *resolved* `storage_path` / *actual*
-  `sha256` fully into the state file so `datasets.toml` is pure recipe; **multiple recorded
-  locations** for one object (synced to two places); and the **`modified`** dirty state in full.
+  `sha256` fully into the state file so `datasets.toml` is pure recipe; and the **`modified`**
+  dirty state in full. (**Decided out of scope, not deferred:** *multiple recorded locations*
+  per object — `storage_path` stays a single value, the last location the object was found at or
+  written to. Resolution only needs to find one copy; a stray second copy reads as `untracked`
+  and is cleaned up explicitly. A shared copy elsewhere on the machine is found via a read
+  pool, not by growing the record into a set.)
 - **Cloud / `fsspec` / CAS backends** — optional per-language extras behind the recipe
   interface, never a core spec contract.
 
