@@ -74,7 +74,7 @@ ones:
 | `version` | Dataset version; part of the storage key, so versions coexist on disk. |
 | `requires` | Names of datasets to fetch first (a dependency graph, resolved in order). |
 | `description` | Human-readable note (replaces TOML comments). |
-| `local_path` | Where the dataset lives on disk (overrides the default `$datasets_dir/$key`) — see [Storage](#storage). |
+| `storage_path` | Where the dataset lives on disk (overrides the default `$datasets_dir/$key`) — see [Storage](#storage). |
 | `skip_checksum` / `skip_download` | Disable verification / treat as externally provided. |
 | `fetcher` / `loader` / `shell` | How to obtain/load it — see [Language bindings](#language-bindings). |
 
@@ -207,7 +207,7 @@ datacache_dir = "$scratch/cache"  # a field, host-specific
 
 [big]
 uri        = "https://example.com/big.nc"
-local_path = "$scratch/$key"      # this dataset, parked on scratch ($key => tool-managed)
+storage_path = "$scratch/$key"      # this dataset, parked on scratch ($key => tool-managed)
 ```
 
 - **Paths default local.** Relative ⇒ relative to the project root (`$repo`). A fetched
@@ -220,7 +220,7 @@ local_path = "$scratch/$key"      # this dataset, parked on scratch ($key => too
   `$USER`/env and `~` also expand.
 - **Centralize / share** across clones or projects with one edit:
   `datasets_dir = "$user_data_dir/myproj"`, `datacache_dir = "$user_cache_dir/myproj"`.
-- **Per-dataset `local_path`** overrides where one dataset lives (default `$datasets_dir/$key`):
+- **Per-dataset `storage_path`** overrides where one dataset lives (default `$datasets_dir/$key`):
   contains `$key` ⇒ tool-managed/keyed; an exact path without `$key` ⇒ user-managed and never
   touched by maintenance. (It is *not* called `path` — that is the URI's parsed component.)
 - **Environment:** two overrides — `DATAMANIFEST_DATASETS_DIR` / `DATAMANIFEST_DATACACHE_DIR`

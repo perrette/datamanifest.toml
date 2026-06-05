@@ -121,7 +121,7 @@
         "aliases": { "type": "array", "items": { "type": "string" } },
         "description": { "type": "string" },
         "key": { "type": "string" },
-        "local_path": { "type": "string", "description": "Path expression for where this dataset lives on disk (default $datasets_dir/$key). Contains $key => keyed/tool-managed; exact path without $key => user-managed, untouched by maintenance. Generalizes the former local_path and subsumes the former store. (Not `path`, which is the URI's parsed path component.)" },
+        "storage_path": { "type": "string", "description": "Path expression for where this dataset lives on disk (default $datasets_dir/$key). Contains $key => keyed/tool-managed; exact path without $key => user-managed, untouched by maintenance. Generalizes the former local_path and subsumes the former store. (Not `path`, which is the URI's parsed path component.)" },
         "sha256": {
           "type": "string",
           "pattern": "^([0-9a-fA-F]{64})?$",

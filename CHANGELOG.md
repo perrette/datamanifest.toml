@@ -20,9 +20,9 @@ write the two paths directly.
   `platformdirs`, **bare** — no app name) and **`$repo`**; any other bare `[_STORAGE]` key is a
   user-defined symbol, made host-specific in `[_STORAGE._HOST."<glob>"]`. `$USER`/env and `~`
   expand. Centralize/share with one edit, e.g. `datasets_dir = "$user_data_dir/myproj"`.
-- **Per-dataset `local_path`** replaces both the former `store` and `local_path`. Default
+- **Per-dataset `storage_path`** replaces both the former `store` and `local_path`. Default
   `$datasets_dir/$key`; contains `$key` ⇒ tool-managed/keyed, an exact path without `$key` ⇒
-  user-managed and never touched by maintenance. (Named `local_path`, not `path` — `path` is
+  user-managed and never touched by maintenance. (Named `storage_path`, not `path` — `path` is
   the URI's parsed component.)
 - **Two environment variables**, `DATAMANIFEST_DATASETS_DIR` / `DATAMANIFEST_DATACACHE_DIR`
   (user symbols override as `DATAMANIFEST_<NAME>`); `$user_data_dir` / `$user_cache_dir` keep
@@ -43,7 +43,7 @@ write the two paths directly.
   — rather than touching the end user's `datasets.toml`; without explicit folders its data falls
   back to the end user's project, who owns the location.
 - `manifest.v3.json` types `[_STORAGE].datasets_dir` / `datacache_dir` and the dataset
-  `local_path`; `cached.v3.json` drops the recipe `scope` / `store`. README and the reference
+  `storage_path`; `cached.v3.json` drops the recipe `scope` / `store`. README and the reference
   guide carry the storage recipe (shared downloads pool + per-project versioned cache, per-host
   roots).
 

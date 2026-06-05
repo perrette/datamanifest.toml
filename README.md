@@ -14,7 +14,7 @@ One `datasets.toml` is read by tools in different languages — today
 [Julia](https://github.com/awi-esc/DataManifest.jl) — and covers fetching (download,
 checksum, extract, load), portable storage, per-language bindings, and an optional
 produce-or-load cache layer. The data model is `_META.schema = 1`; behavioural revisions
-are tracked by spec tags (currently `spec-v3.6`).
+are tracked by spec tags (currently `spec-v4`).
 
 ➡️ **[Reference guide: `docs/guide.md`](docs/guide.md)** — readable walkthrough of every aspect  
 ➡️ **[Normative spec: `SCHEMA.md`](SCHEMA.md)**  
@@ -97,7 +97,7 @@ shell  = "make model_output OUTPUT=$download_path"
 uri        = "https://example.com/era5_slice.nc"
 sha256     = "f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1"
 format     = "nc"
-local_path = "$user_cache_dir/$key"
+storage_path = "$user_cache_dir/$key"
 ```
 
 A binding (a `fetcher`/`loader`, or a `[_LANG.<lang>.loaders]` entry) is either a
@@ -153,7 +153,7 @@ the roots vary per host via `[_STORAGE._HOST.<glob>]`; the two env vars
 `DATAMANIFEST_DATASETS_DIR` / `DATAMANIFEST_DATACACHE_DIR` override them. (`2025.1` here is your
 own label, distinct from datamanifest's per-recipe `version`, which nests at
 `<cachetype>/<version>/<hash>`.) A single dataset can be placed elsewhere with a per-dataset
-`local_path`. See [SCHEMA.md §Storage](SCHEMA.md#storage).
+`storage_path`. See [SCHEMA.md §Storage](SCHEMA.md#storage).
 
 ## Implementations
 

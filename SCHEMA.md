@@ -99,7 +99,7 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `aliases` | array of string | `[]` | Alternative names this dataset can be looked up by. |
 | `description` | string | `""` | Human-readable description (replaces TOML comments). |
 | `key` | string | `""` | Storage key (relative path under the datasets folder). Derived from host + path + version when absent. |
-| `local_path` | string | `$datasets_dir/$key` | **Path expression** for where this dataset lives on disk, overriding the default. May interpolate `$`-symbols (`$datasets_dir`, `$key`, `$user_data_dir`, `$scratch`, …), `$USER`/env, and `~`; relative ⇒ resolved against the project root. Containing **`$key`** ⇒ a tool-managed keyed location; an **exact path without `$key`** ⇒ a user-managed location used verbatim that maintenance never touches. Generalizes the former `local_path` and subsumes the former `store`. See Storage. Honored under the `storage` capability; other tools preserve it verbatim. |
+| `storage_path` | string | `$datasets_dir/$key` | **Path expression** for where this dataset lives on disk, overriding the default. May interpolate `$`-symbols (`$datasets_dir`, `$key`, `$user_data_dir`, `$scratch`, …), `$USER`/env, and `~`; relative ⇒ resolved against the project root. Containing **`$key`** ⇒ a tool-managed keyed location; an **exact path without `$key`** ⇒ a user-managed location used verbatim that maintenance never touches. Generalizes the former `local_path` and subsumes the former `store`. See Storage. Honored under the `storage` capability; other tools preserve it verbatim. |
 | `sha256` | string | `""` | Expected SHA-256 of the downloaded file/folder. Auto-filled on first successful download and verified at fetch time; **not** re-verified on every load (re-verification is opt-in). |
 | `skip_checksum` | bool | `false` | Disable checksum verification for this dataset. |
 | `skip_download` | bool | `false` | Treat the dataset as externally provided; the documented `uri` is returned as the path and no download is attempted. |
@@ -220,8 +220,8 @@ is a command template supporting variable substitutions: `$download_path`, `$pro
 `$uri`, `$key`, `$version`, `$doi`, `$format`, `$branch`, `$path_<ref>`, `$path_<i>`,
 `$requires_paths`.
 
-The legacy `[<dataset>._LANG.shell].fetcher` form is still read and preserved verbatim;
-the bare `shell` field is the canonical form.
+The bare `shell` field is the canonical (and only) form; the former
+`[<dataset>._LANG.shell].fetcher` is **not** part of the spec.
 
 ### Project-wide loaders
 
@@ -280,8 +280,7 @@ The tool tries each rung in order, using the first that applies:
 
 1. `[<dataset>._LANG.<self>].fetcher`, else the bare `[<dataset>].fetcher` — in-process
    call (own language, fastest);
-2. the dataset's `shell` command (else legacy `[<dataset>._LANG.shell].fetcher`) — run the
-   command template (cheap subprocess);
+2. the dataset's `shell` command — run the command template (cheap subprocess);
 3. **cross-language fetch** — the rare case: run a fetcher defined in another language
    (mechanism implementation-defined; the Python CLI can serve as a fallback), controlled
    by `delegate` / `--delegate`; see Cross-language fetch below;
@@ -411,18 +410,18 @@ Exactly **two** environment variables override the fields — for HPC / CI / con
 editing the manifest is inconvenient: **`DATAMANIFEST_DATASETS_DIR`** and
 **`DATAMANIFEST_DATACACHE_DIR`**. (User-defined symbols override as `DATAMANIFEST_<NAME>`.)
 
-### Per-dataset path (`local_path`)
+### Per-dataset path (`storage_path`)
 
-A dataset MAY override where *it* lives with the **`local_path`** field — a path expression
+A dataset MAY override where *it* lives with the **`storage_path`** field — a path expression
 that defaults to **`$datasets_dir/$key`** (`$key` is the dataset's storage key, see `key`). It
 generalizes the former `local_path` (which was exact-only) and subsumes the former `store`; the
 only distinction was whether the key is appended:
 
 - contains **`$key`** ⇒ a **tool-managed, keyed** location; the dataset is materialized there
-  and maintenance MAY act on it. `local_path = "$scratch/$key"` parks one heavy dataset on
+  and maintenance MAY act on it. `storage_path = "$scratch/$key"` parks one heavy dataset on
   scratch.
 - an **exact path without `$key`** ⇒ a **user-managed** location, used verbatim, bypassing the
-  keyed layout — and **maintenance never touches it**. `local_path = "$cmip/AMIP/tas.nc"`
+  keyed layout — and **maintenance never touches it**. `storage_path = "$cmip/AMIP/tas.nc"`
   points at a file you manage; with `$cmip` resolved host-specifically, that is the
   heavy-archive-per-host pattern (host-specificity in the symbol, never a per-dataset host map).
 
@@ -929,7 +928,7 @@ see *Why not automatic reachability* below.
 dataset under `datasets/` just means it re-downloads on next use; deleting a produced
 artifact under `cached/` means it recomputes. Neither destroys irreplaceable state — the
 manifest and the producing function are the sources of truth — which is exactly why a
-curated delete is safe and an automatic collector is unnecessary. `local_path` data and
+curated delete is safe and an automatic collector is unnecessary. `storage_path` data and
 anything outside the tool-managed `datasets/` / `cached/` trees are never touched by
 maintenance.
 
@@ -1055,9 +1054,9 @@ fixture-suite tests tagged for those capabilities.
 |---|---|
 | `lang-read` | Parse `[<ds>._LANG.<lang>]` and `[_LANG.<lang>.loaders]`; apply the load ladder. |
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write (full lossless round-trip). |
-| `shell-fetch` | Execute the dataset's `shell` command template (or legacy `[<ds>._LANG.shell].fetcher`) in the fetch ladder. |
+| `shell-fetch` | Execute the dataset's `shell` command template in the fetch ladder. |
 | `delegation` | Cross-language fetch (rung 3, the rare case): run a fetcher defined in another language — mechanism implementation-defined (call the language's runtime, or a peer `datamanifest` CLI), with fall-through to `uri` — controlled by `delegate` / `--delegate` (see Cross-language fetch, Peer-CLI contract). |
-| `storage` | Honor the `datasets_dir` / `datacache_dir` folders, `$`-symbol resolution (`$user_data_dir` / `$user_cache_dir` / `$repo` + user-defined, host-aware via `_HOST`), and per-dataset `local_path` (see Storage). |
+| `storage` | Honor the `datasets_dir` / `datacache_dir` folders, `$`-symbol resolution (`$user_data_dir` / `$user_cache_dir` / `$repo` + user-defined, host-aware via `_HOST`), and per-dataset `storage_path` (see Storage). |
 | `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, or Julia `write(...; canonical=true)`). |
 | `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
 | `cache-produce` | **Cache-layer** produce-or-load: function-backed (produced) datasets with parameter-hash keying, optional recipe `version`, the `config.toml` / `metadata.toml` sidecars, materialized under the `datacache_dir` folder (§Produced datasets). Declared by the cache layer, never by the core fetch capability (packaging — separate package or submodule — is unconstrained). |

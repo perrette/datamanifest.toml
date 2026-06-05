@@ -59,7 +59,7 @@ An array of capability tags from SCHEMA.md's Conformance-levels table:
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write |
 | `shell-fetch` | Execute the dataset's bare `shell` command template in the fetch ladder |
 | `delegation` | Opt-in peer-CLI delegation (fetch-ladder rung 3) |
-| `storage` | Honor `datasets_dir` / `datacache_dir`, `$`-symbol resolution, `_HOST` host-overrides, and per-dataset `local_path` |
+| `storage` | Honor `datasets_dir` / `datacache_dir`, `$`-symbol resolution, `_HOST` host-overrides, and per-dataset `storage_path` |
 | `byte-identity` | Emit canonical lexicographic key ordering (cross-tool byte-identical output) |
 | `binding-args` | Execute the `{ ref, args }` table form of a binding |
 | `cache-produce` | Companion-layer produced (function-backed) datasets keyed by parameter hash + `config.toml`/`metadata.toml` sidecars |
@@ -134,14 +134,14 @@ Present for `storage`-capability fixtures. Asserts the `[_STORAGE]` configuratio
 absolute on-disk paths, which are machine-dependent — `platformdirs` / env / host). In the
 spec-v4 model storage is **two folder fields** (`datasets_dir` / `datacache_dir`; relative ⇒
 repo-relative, local by default) plus reusable `$`-symbols and `_HOST` host-overrides; a
-dataset's `local_path` overrides its location. No scope, prefix, or appname.
+dataset's `storage_path` overrides its location. No scope, prefix, or appname.
 
 - `datasets_dir` / `datacache_dir` — the two project-wide folder fields.
 - `symbols` — user-defined `$`-symbols that MUST be defined in `[_STORAGE]` (bare keys, not the
   reserved `datasets_dir` / `datacache_dir` / `_HOST`, nor the predefined `user_data_dir` /
   `user_cache_dir` / `repo`).
 - `host_patterns` — `[_STORAGE._HOST.<glob>]` host-override keys present.
-- `local_paths.<ds>` — the per-dataset `local_path` override (default `$datasets_dir/$key`),
+- `storage_paths.<ds>` — the per-dataset `storage_path` override (default `$datasets_dir/$key`),
   compared exactly (so `$key`-keyed vs an exact user-managed path is distinguished).
 
 ### `config_sidecar` (optional)

@@ -221,15 +221,15 @@ def validate(toml_path, json_path):
         for pat in storage.get("host_patterns", []):
             if pat not in host:
                 _err(errors, f"storage.host_patterns: '{pat}' not in [_STORAGE._HOST]")
-        # per-dataset `local_path` overrides (default is $datasets_dir/$key; $key present =>
+        # per-dataset `storage_path` overrides (default is $datasets_dir/$key; $key present =>
         # keyed/managed, exact path => user-managed). Compared exactly.
-        for ds_name, lp in storage.get("local_paths", {}).items():
+        for ds_name, lp in storage.get("storage_paths", {}).items():
             if ds_name not in manifest:
-                _err(errors, f"storage.local_paths: '{ds_name}' not in manifest")
+                _err(errors, f"storage.storage_paths: '{ds_name}' not in manifest")
                 continue
-            actual = manifest[ds_name].get("local_path")
+            actual = manifest[ds_name].get("storage_path")
             if actual != lp:
-                _err(errors, f"storage.local_paths[{ds_name}]: expected {lp!r}, manifest has {actual!r}")
+                _err(errors, f"storage.storage_paths[{ds_name}]: expected {lp!r}, manifest has {actual!r}")
 
     # --- binding_args (optional; present for `binding-args`-capability fixtures) ---
     binding_args = expected.get("binding_args")

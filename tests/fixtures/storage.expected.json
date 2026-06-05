@@ -13,7 +13,7 @@
     "datacache_dir": "cached",
     "symbols": ["scratch"],
     "host_patterns": ["login*.hpc.edu"],
-    "local_paths": {
+    "storage_paths": {
       "big": "$scratch/$key",
       "pinned": "$scratch/exact/file.nc"
     }

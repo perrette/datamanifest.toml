@@ -19,9 +19,9 @@ format = "nc"
 [big]
 uri        = "https://example.com/big.nc"
 format     = "nc"
-local_path = "$scratch/$key"
+storage_path = "$scratch/$key"
 
 # exact path (no $key): user-managed, maintenance never touches it
 [pinned]
 format     = "nc"
-local_path = "$scratch/exact/file.nc"
+storage_path = "$scratch/exact/file.nc"
