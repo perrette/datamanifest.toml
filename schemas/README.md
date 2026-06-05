@@ -31,13 +31,14 @@ python -c 'import tomllib,json,sys; json.dump(tomllib.load(open(sys.argv[1],"rb"
 | `config-sidecar.v3.json` | a produced artifact's `config.toml` (re-hashable key table) | `cache-produce` |
 | `metadata-sidecar.v3.json` | a produced artifact's `metadata.toml` (provenance) | `cache-produce` |
 
-The `*.v2.1.json` files are kept alongside for tools pinned to the earlier spec. **spec-v3**
-changes storage (top-level folder roots; `[_STORAGE._PREFIX]` / `[_STORAGE._SCOPE]`;
-`_PROFILE` reserved) and adds the produced `version` / `scope` fields; `manifest.v3.json`
-allows the new `_STORAGE` sub-tables, and `config` v3 types the new fields. `cached.v3.json`
-validates the **nested schema-2** `cached.toml` (`_META.schema = 2`: an array of `produced`
-recipes keyed by `(scope, cachetype, version)`, each with per-variation `instances`); the
-flat schema-1 form is still read by tools but always rewritten as schema 2.
+The `*.v2.1.json` files are kept alongside for tools pinned to the earlier spec. **spec-v4**
+simplifies storage to two folder fields — `[_STORAGE].datasets_dir` / `datacache_dir`
+(relative ⇒ repo-relative, local by default) — plus reusable `$`-symbols
+(`$user_data_dir` / `$user_cache_dir` / `$repo` + user-defined) and `_HOST` host-overrides; a
+dataset's `path` replaces the former `store` / `local_path`. There is no scope, prefix, or
+appname. `cached.v3.json` validates the **nested schema-2** `cached.toml` (`_META.schema = 2`:
+an array of `produced` recipes keyed by `(cachetype, version)`, each with per-variation
+`instances`); the flat schema-1 form is still read by tools but always rewritten as schema 2.
 
 ## Versioning
 
@@ -45,8 +46,8 @@ Two version axes govern the format (see `SCHEMA.md` §Versioning), and they map 
 files as follows:
 
 - **Filename carries the spec-document tag** (`*.v2.1.json`). The JSON Schema encodes
-  prose-level structural rules — e.g. that a `store` selector must be a `$`-reference,
-  which is a spec-v2 rule, not a `_META.schema` change. So the right axis to version a
+  prose-level structural rules — e.g. the shape of `[_STORAGE]` and the dataset fields,
+  which is a spec-document concern, not a `_META.schema` change. So the right axis to version a
   schema file by is the spec tag, and **older versions stay alongside** new ones
   (a tool pinned to an earlier spec keeps using its file). spec-v2.1 is structurally
   identical to spec-v2 (the v2.1 change was prose only); these files apply to both.

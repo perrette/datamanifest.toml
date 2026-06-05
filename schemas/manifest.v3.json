@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/manifest.v3.json",
   "title": "datamanifest manifest (datasets.toml) — spec-v3",
-  "description": "JSON Schema for the JSON projection of a datamanifest manifest TOML file (spec-v3). Parse the TOML to JSON, then validate. _META.schema is asserted as 1. spec-v3 storage: folder variables are bare top-level roots; the datasets/ and cached/ content prefixes and the scope partition are applied by the layer and configured via [_STORAGE._PREFIX] / [_STORAGE._SCOPE]. Lenient about underscore-prefixed structural keys (preserved verbatim); rejects unknown plain dataset fields (typos).",
+  "description": "JSON Schema for the JSON projection of a datamanifest manifest TOML file (spec-v3). Parse the TOML to JSON, then validate. _META.schema is asserted as 1. spec-v4 storage: [_STORAGE] sets two folder fields (datasets_dir / datacache_dir; relative => repo-relative) plus reusable $-symbols and _HOST host-overrides; a dataset's `path` overrides its location. Lenient about underscore-prefixed structural keys (preserved verbatim); rejects unknown plain dataset fields (typos).",
   "type": "object",
   "properties": {
     "_META": { "$ref": "#/$defs/meta" },
@@ -51,11 +51,6 @@
         }
       ]
     },
-    "selector": {
-      "type": "string",
-      "pattern": "^\\$(\\{[A-Za-z_][A-Za-z0-9_]*\\}|[A-Za-z_][A-Za-z0-9_]*)(/.+)?$",
-      "description": "A storage selector: a $-folder reference, optionally with a literal sub-path ($data, $scratch, $cache/sub). Bare folder names are not valid."
-    },
     "langTop": {
       "type": "object",
       "description": "Top-level [_LANG.<lang>] project-wide execution-context config.",
@@ -95,31 +90,19 @@
     },
     "storageOverrides": {
       "type": "object",
-      "description": "_HOST (hostname glob/regex) -> { folder-name: path-expression }. _PROFILE has the same shape but is reserved (shelved) in spec-v3.",
+      "description": "_HOST (hostname glob/regex) -> { symbol-or-field-name: path-expression } host-specific overrides.",
       "additionalProperties": {
         "type": "object",
         "additionalProperties": { "type": "string" }
       }
     },
-    "contentMap": {
-      "type": "object",
-      "description": "Per-content-kind map for _PREFIX / _SCOPE: keys 'datasets' and 'cached' (string values; empty allowed; a _PREFIX value may be a multi-segment relative path, e.g. 'cached/2025.1').",
-      "properties": {
-        "datasets": { "type": "string" },
-        "cached": { "type": "string" }
-      },
-      "additionalProperties": { "type": "string" }
-    },
     "storage": {
       "type": "object",
-      "description": "[_STORAGE]: folder variables (bare key -> path expression to a top-level root), the project-wide default selector, _HOST overrides, the _PREFIX content-prefix map, and the _SCOPE partition map. _PROFILE is reserved (shelved).",
+      "description": "[_STORAGE]: two folder fields (datasets_dir / datacache_dir; relative => repo-relative, $-symbols allowed), reusable $-symbols (any other bare key -> path expression; predefined $user_data_dir / $user_cache_dir / $repo), and _HOST host-overrides.",
       "properties": {
-        "default": { "$ref": "#/$defs/selector" },
-        "scope": { "type": "string", "description": "Project-wide scope (both kinds; default: derived project id). '' = the unscoped/global store. Overridden per-kind by _SCOPE, and per-item by a dataset's scope field / a produced scope=." },
-        "_HOST": { "$ref": "#/$defs/storageOverrides" },
-        "_PROFILE": { "$ref": "#/$defs/storageOverrides" },
-        "_PREFIX": { "$ref": "#/$defs/contentMap" },
-        "_SCOPE": { "$ref": "#/$defs/contentMap" }
+        "datasets_dir": { "type": "string", "description": "Where fetched datasets go (default 'datasets'; relative => <repo>/datasets/)." },
+        "datacache_dir": { "type": "string", "description": "Where the produced cache goes (default 'cached'; relative => <repo>/cached/)." },
+        "_HOST": { "$ref": "#/$defs/storageOverrides" }
       },
       "additionalProperties": { "type": "string" }
     },
@@ -138,9 +121,7 @@
         "aliases": { "type": "array", "items": { "type": "string" } },
         "description": { "type": "string" },
         "key": { "type": "string" },
-        "local_path": { "type": "string" },
-        "store": { "$ref": "#/$defs/selector" },
-        "scope": { "type": "string", "description": "Optional per-dataset partition segment (the top rung of the scope ladder); '' = the unscoped/global store, a name = that partition. Omitted = the layer default." },
+        "local_path": { "type": "string", "description": "Path expression for where this dataset lives on disk (default $datasets_dir/$key). Contains $key => keyed/tool-managed; exact path without $key => user-managed, untouched by maintenance. Generalizes the former local_path and subsumes the former store. (Not `path`, which is the URI's parsed path component.)" },
         "sha256": {
           "type": "string",
           "pattern": "^([0-9a-fA-F]{64})?$",

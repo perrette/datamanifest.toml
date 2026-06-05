@@ -107,11 +107,11 @@ format      = "nc"
 loader      = "myclimate.loaders:load_sea_ice"   # language-implicit (own language)
 description = "Sea-ice concentration"
 
-# Storage selector: a big, re-fetchable input parked on the OS-reclaimable cache
-# folder instead of the default data folder.
+# Per-dataset location: a big, re-fetchable input parked on the OS-reclaimable
+# cache folder instead of the default datasets folder ($key keeps it tool-managed).
 [reanalysis]
 uri         = "https://example.com/era5_slice.nc"
 sha256      = "f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1"
 format      = "nc"
-store       = "$cache"
+local_path  = "$user_cache_dir/$key"
 description = "ERA5 reanalysis slice"

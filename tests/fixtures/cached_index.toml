@@ -1,15 +1,16 @@
 # A `cached.toml` index (the produced-dataset registry — the Manifest.toml
 # analogue). Sibling to datasets.toml; lists produced datasets by portable
-# identity (scope, cachetype, version) + per-variation hash, never by absolute
-# path. Roots produced artifacts for GC.
+# identity (cachetype, version) + per-variation hash, never by absolute path.
+# Roots produced artifacts for GC; their on-disk location is the manifest's
+# datacache_dir.
 #
-# Schema 2 is nested: one [[produced]] recipe per (scope, cachetype, version),
-# each with one [[produced.instances]] per produced variation (its parameter
-# hash + the params key table; params omitted when empty). Registering
-# accumulates instances. The legacy `project` key is gone — neither `_META` nor
-# any recipe may carry it in canonical output (the expectation's `forbidden_keys`
-# asserts this negatively). Each instance hash is the canonical-JSON SHA-256 of
-# its params, so the index is self-verifying.
+# Schema 2 is nested: one [[produced]] recipe per (cachetype, version), each with
+# one [[produced.instances]] per produced variation (its parameter hash + the
+# params key table; params omitted when empty). Registering accumulates instances.
+# The legacy `project`/`scope` keys are gone — neither `_META` nor any recipe may
+# carry them in canonical output (the expectation's `forbidden_keys` asserts this
+# negatively). Each instance hash is the canonical-JSON SHA-256 of its params, so
+# the index is self-verifying.
 [_META]
 schema = 2
 
@@ -17,8 +18,6 @@ schema = 2
 cachetype = "esm_20c_anomaly"
 format    = "nc"
 ref       = "lgmpre.data:load_20c_esm_anomaly"
-scope     = "lgmpre"
-store     = "$cache"
 
   [[produced.instances]]
   hash = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
@@ -30,8 +29,6 @@ store     = "$cache"
 cachetype = "esm_lgm_anomaly"
 format    = "nc"
 ref       = "lgmpre.data:load_lgm_esm_anomaly"
-scope     = "lgmpre"
-store     = "$cache"
 
   # a parameterless variation: empty key table, hash = SHA-256("{}")
   [[produced.instances]]

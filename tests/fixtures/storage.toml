@@ -2,49 +2,26 @@
 schema = 1
 
 [_STORAGE]
-default = "$data"                  # project-wide default selector ($-form)
-scope   = "demoproj"               # project-wide scope (both kinds; default would be the derived project id)
-scratch = "$TMPDIR"                # user-defined folder variable (a bare top-level root)
+datasets_dir  = "$user_data_dir/proj"   # centralized fetched data under a chosen name
+datacache_dir = "cached"                # produced cache, local (relative => <repo>/cached/)
+scratch       = "$TMPDIR"               # user-defined reusable $-symbol
 
-[_STORAGE._HOST."login*.hpc.edu"]
-scratch = "/scratch/$USER"         # same variable, host-specific resolution
-data    = "/work/$USER"            # override a built-in root, host-specific
+[_STORAGE._HOST."login*.hpc.edu"]       # host-specific resolution (hostname glob)
+scratch       = "/scratch/$USER"        # the symbol, host-specific
+datacache_dir = "$scratch/cache"        # a field, host-specific
 
-[_STORAGE._PREFIX]                 # content prefixes applied by the consuming layer
-datasets = "datasets"
-cached   = "cached"
-
-[_STORAGE._SCOPE]                  # per-kind override (both kinds default to the project id)
-datasets = "shared-pool"           # e.g. share fetched datasets within a named group
-
-# Store omitted -> the project default selector ($data); this expensive sim is protected.
-# Per-dataset scope override: this huge archive is shared across projects under a named
-# pool, overriding the layer default ("shared-pool") for just this dataset.
-[bigsim]
-uri    = "https://example.com/bigsim.nc"
+# default location: $datasets_dir/$key (no override)
+[plain]
+uri    = "https://example.com/plain.nc"
 format = "nc"
-scope  = "cmip"
 
-# Disposable, re-fetchable input on the OS-reclaimable cache folder.
-# Per-dataset scope = "" -> the unscoped/global store (explicit empty overrides the layer).
-[scratch_run]
-uri    = "https://example.com/scratch_run.nc"
-format = "nc"
-store  = "$cache"
-scope  = ""
-
-# Keyed under the host-resolved user-defined scratch folder.
+# keyed override: parked on scratch, still tool-managed ($key present)
 [big]
-uri    = "https://example.com/big.nc"
-format = "nc"
-store  = "$scratch"
-
-# Sub-path selector: keyed under the resolved cache folder's datasets/ prefix, beneath derived/.
-[derived_table]
-format = "csv"
-store  = "$cache/derived"
-
-# Explicit host-specific exact path via a folder variable (bypasses the keyed layout).
-[pinned]
-local_path = "$scratch/exact/file.nc"
+uri        = "https://example.com/big.nc"
 format     = "nc"
+local_path = "$scratch/$key"
+
+# exact path (no $key): user-managed, maintenance never touches it
+[pinned]
+format     = "nc"
+local_path = "$scratch/exact/file.nc"

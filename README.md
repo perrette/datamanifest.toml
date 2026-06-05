@@ -94,10 +94,10 @@ shell  = "make model_output OUTPUT=$download_path"
 
 # A re-fetchable input parked on the OS-reclaimable cache folder.
 [reanalysis]
-uri    = "https://example.com/era5_slice.nc"
-sha256 = "f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1"
-format = "nc"
-store  = "$cache"
+uri        = "https://example.com/era5_slice.nc"
+sha256     = "f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1"
+format     = "nc"
+local_path = "$user_cache_dir/$key"
 ```
 
 A binding (a `fetcher`/`loader`, or a `[_LANG.<lang>.loaders]` entry) is either a
@@ -119,46 +119,41 @@ loader = "myclimate.loaders:load_sea_ice"   # no [._LANG.python] — own languag
 
 ## Storage layout
 
-Where files land is composed as `<root>/<scope>/<prefix>/<key>` — a **folder**
-(`$data`/`$cache`/`$repo` or a user-defined one), the project **scope** (defaults to the
-project name, so each project is isolated by default), and the per-kind **prefix**
-(`datasets/` / `cached/`). All three are set in `[_STORAGE]`. For example — downloads in one
-flat shared pool, caches per-project under a versioned work dir, with the **roots resolved
-per host** (laptop vs cluster):
+Storage is **two paths**: where fetched datasets go (`datasets_dir`) and where the produced
+cache goes (`datacache_dir`). Both **default to local, repo-relative folders** — `./datasets/`
+and `./cached/` — so out of the box everything is local and visible, nothing derived. A
+fetched dataset lands at `<datasets_dir>/<key>`, a produced artifact at
+`<datacache_dir>/<cachetype>/[<version>/]<hash>/`.
+
+To centralize, point the two fields wherever you like — they can use `$user_data_dir` /
+`$user_cache_dir` (the machine's data/cache dirs, from `platformdirs`) and resolve **per host**
+via `[_STORAGE._HOST]`. For example — a shared downloads pool, plus a per-project, versioned
+cache, with different roots on laptop vs cluster:
 
 ```toml
 [_STORAGE]
 # defaults (e.g. your laptop)
-data  = "~/Data/all-project-data"
-cache = "~/.cache/work"
+datasets_dir  = "$user_data_dir/all-project-data"
+datacache_dir = "$user_cache_dir/myproj/2025.1"
 
-[_STORAGE._HOST."login*.hpc.edu"]  # on the cluster login nodes, different roots
-data  = "/data/all-project-data"
-cache = "/work/$USER"              # $USER from the environment
-
-[_STORAGE._SCOPE]
-datasets = ""                      # shared: no per-project segment for downloads
-# cached scope is left to default — the project name (pyproject.toml / Project.toml)
-
-[_STORAGE._PREFIX]
-datasets = ""                      # no 'datasets/' subfolder — straight under the root
-cached   = "2025.1"                # a generic code/release version level for the cache
+[_STORAGE._HOST."login*.hpc.edu"]   # on the cluster login nodes, different roots
+datasets_dir  = "/data/all-project-data"
+datacache_dir = "/work/$USER/myproj/2025.1"
 ```
 
 On the cluster this gives:
 
 - fetched  → `/data/all-project-data/<key>`
-- produced → `/work/<user>/<project-name>/2025.1/<cachetype>/<hash>/…`
+- produced → `/work/<user>/myproj/2025.1/<cachetype>/<hash>/…`
 
-and on the laptop the same layout under `~/Data/all-project-data/<key>` and
-`~/.cache/work/<project-name>/2025.1/…`. The host-independent parts (the shared datasets
-scope, the empty datasets prefix, the cache version) stay in the base tables; only the
-**roots** vary per host via `[_STORAGE._HOST.<glob>]`. The cache's `2025.1` is your own
-version label (set it dynamically with `DATAMANIFEST_PREFIX_CACHED` if it changes per build);
-it is distinct from datamanifest's per-recipe `version`, which nests deeper at
-`<cachetype>/<version>/<hash>`. Scope is never guessed: if there is no
-`pyproject.toml`/`Project.toml` name, set `[_STORAGE].scope` (or `DATAMANIFEST_SCOPE`).
-See [SCHEMA.md §Storage](SCHEMA.md#storage).
+and on the laptop the same under `$user_data_dir/all-project-data/` and
+`$user_cache_dir/myproj/2025.1/`. The `myproj` and `2025.1` are just literal path parts you
+chose — there is no scope, prefix, or derived name; the folder you set *is* the location. Only
+the roots vary per host via `[_STORAGE._HOST.<glob>]`; the two env vars
+`DATAMANIFEST_DATASETS_DIR` / `DATAMANIFEST_DATACACHE_DIR` override them. (`2025.1` here is your
+own label, distinct from datamanifest's per-recipe `version`, which nests at
+`<cachetype>/<version>/<hash>`.) A single dataset can be placed elsewhere with a per-dataset
+`local_path`. See [SCHEMA.md §Storage](SCHEMA.md#storage).
 
 ## Implementations
 

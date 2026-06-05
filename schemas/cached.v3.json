@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/cached.v3.json",
   "title": "Produced-dataset index (cached.toml) — spec-v3, schema 2 (nested)",
-  "description": "JSON Schema for the JSON projection of a cached.toml produced-dataset index. Parse the TOML to JSON, then validate. This validates the canonical written form, schema 2 (nested): an array of `produced` recipe tables keyed by (scope, cachetype, version), each carrying one `instances` entry per produced variation (parameter hash + the params key table). Schema 1 (a flat table per registry name with a single `hash` and no params) is still read by tools but is always rewritten as schema 2, so it is not validated here.",
+  "description": "JSON Schema for the JSON projection of a cached.toml produced-dataset index. Parse the TOML to JSON, then validate. This validates the canonical written form, schema 2 (nested): an array of `produced` recipe tables keyed by (cachetype, version), each carrying one `instances` entry per produced variation (parameter hash + the params key table). Schema 1 (a flat table per registry name with a single `hash` and no params) is still read by tools but is always rewritten as schema 2, so it is not validated here.",
   "type": "object",
   "required": ["_META", "produced"],
   "properties": {
@@ -16,26 +16,20 @@
     },
     "produced": {
       "type": "array",
-      "description": "One recipe per (scope, cachetype, version). Order is canonical (sorted); not significant.",
+      "description": "One recipe per (cachetype, version). Order is canonical (sorted); not significant.",
       "items": { "$ref": "#/$defs/recipe" }
     }
   },
   "additionalProperties": true,
   "$defs": {
-    "selector": {
-      "type": "string",
-      "pattern": "^\\$(\\{[A-Za-z_][A-Za-z0-9_]*\\}|[A-Za-z_][A-Za-z0-9_]*)(/.+)?$"
-    },
     "recipe": {
       "type": "object",
-      "description": "A produced-dataset recipe, identified by (scope, cachetype, version); never by absolute path. Recipe-level ref/format/store are refreshed on register (not hash inputs).",
+      "description": "A produced-dataset recipe, identified by (cachetype, version); never by absolute path. Recipe-level ref/format are refreshed on register (not hash inputs). Its on-disk location is the manifest's datacache_dir.",
       "properties": {
         "cachetype": { "type": "string", "minLength": 1, "description": "The producing function's importable name (default) or an explicit override." },
-        "scope": { "type": "string", "description": "The resolved ownership partition; recorded, not declared. Empty string = the unscoped global store." },
         "version": { "type": "string", "description": "Optional recipe/code version (a path segment + part of the recipe identity when set)." },
         "ref": { "type": "string", "description": "The producing module:function reference (refreshed across a refactor)." },
         "format": { "type": "string" },
-        "store": { "$ref": "#/$defs/selector" },
         "instances": {
           "type": "array",
           "description": "One entry per produced variation (deduped by hash).",

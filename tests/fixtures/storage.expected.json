@@ -9,26 +9,13 @@
     }
   },
   "storage": {
-    "default": "$data",
-    "scope": "demoproj",
-    "datasets": {
-      "bigsim": "$data",
-      "scratch_run": "$cache",
-      "big": "$scratch",
-      "derived_table": "$cache/derived"
-    },
+    "datasets_dir": "$user_data_dir/proj",
+    "datacache_dir": "cached",
+    "symbols": ["scratch"],
+    "host_patterns": ["login*.hpc.edu"],
     "local_paths": {
+      "big": "$scratch/$key",
       "pinned": "$scratch/exact/file.nc"
-    },
-    "scopes": {
-      "bigsim": "cmip",
-      "scratch_run": ""
-    },
-    "folders": {
-      "builtin": ["data", "cache", "repo"],
-      "user": ["scratch"],
-      "host_patterns": ["login*.hpc.edu"],
-      "profiles": []
     }
   }
 }

@@ -6,7 +6,7 @@ outcomes), these are complete, readable, copy-and-adapt starting points.
 
 | File | What it shows |
 |---|---|
-| `datasets.toml` | A full manifest: plain/DOI/GitHub downloads with checksums and extraction, project-wide format-default loaders, per-dataset loader/fetcher bindings in both the **string** and `{ ref, args, kwargs }` **table** forms, a `shell` fetcher, and a `store` storage selector. |
+| `datasets.toml` | A full manifest: plain/DOI/GitHub downloads with checksums and extraction, project-wide format-default loaders, per-dataset loader/fetcher bindings in both the **string** and `{ ref, args, kwargs }` **table** forms, a `shell` fetcher, and a per-dataset `local_path` location override. |
 
 The datasets above the first divider in `datasets.toml` are real and public and fetch
 out of the box; the ones below are illustrative and reference example `module:function`

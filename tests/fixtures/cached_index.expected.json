@@ -10,14 +10,12 @@
   },
   "cached_index": {
     "schema": 2,
-    "forbidden_keys": ["project"],
+    "forbidden_keys": ["project", "scope"],
     "recipes": [
       {
         "cachetype": "esm_20c_anomaly",
-        "scope": "lgmpre",
         "ref": "lgmpre.data:load_20c_esm_anomaly",
         "format": "nc",
-        "store": "$cache",
         "instances": [
           {
             "hash": "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b",
@@ -27,10 +25,8 @@
       },
       {
         "cachetype": "esm_lgm_anomaly",
-        "scope": "lgmpre",
         "ref": "lgmpre.data:load_lgm_esm_anomaly",
         "format": "nc",
-        "store": "$cache",
         "instances": [
           { "hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a" }
         ]

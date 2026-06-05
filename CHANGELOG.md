@@ -2,76 +2,51 @@
 
 ## spec-v4 (schema `_META.schema = 1`) — unreleased
 
-A **breaking storage-layout revision** centered on scope: everything is **project-scoped by
-default**, the project owns the namespace (the library does not), and scope is no longer
-guessed. The TOML *shape* is unchanged (additive keys + new resolution/layout), so
-`_META.schema` stays **1**; the break is in *where bytes land on disk*, versioned on the
-spec-tag axis (as spec-v3 itself was). Existing stores need migration or a clean re-fetch.
+A **breaking storage-layout revision** that radically simplifies storage to **two paths** and
+makes everything **local by default**. The TOML *shape* stays additive (`_META.schema` = 1);
+the break is in *where bytes land on disk* (versioned on the spec-tag axis, as spec-v3 was).
+Existing stores need migration or a clean re-fetch. The machinery of the earlier spec-v4
+drafts — scope, content prefixes, the `datamanifest` appname, project-name derivation,
+`DATAMANIFEST_DIR`, and the scope/prefix ladders — is **removed** in favor of letting the user
+write the two paths directly.
 
-- **Datasets default flipped: empty/shared → the project name.** Fetched datasets are now
-  project-isolated by default, like produced artifacts. Sequential projects — possibly built
-  against different evolved spec versions — stay insulated, and a project's data is one
-  `rm`/tar/rsync-able subtree. Restore sharing via `[_STORAGE._SCOPE].datasets = "<pool>"`
-  (or `""`), or `scope = ""` on the individual heavy datasets.
-- **Scope is the first path segment (scope-first).** Composition changes from
-  `<root>/<prefix>/[<scope>/]<key>` to **`<root>/[<scope>/]<prefix>/<key>`** (produced
-  likewise). A project's fetched and produced data now live together under `<root>/<scope>/`.
-  Reserved prefix names `datasets`/`cached` may not be used as a scope.
-- **The project owns the namespace, not `datamanifest`.** The built-in `$data`/`$cache`
-  defaults now use the **project scope as the platformdirs appname** (was the literal
-  `"datamanifest"`): `~/.local/share/<scope>/datasets/…` instead of
-  `~/.local/share/datamanifest/<scope>/…`. For these OS-default roots the scope is the
-  appname (not also a segment); for `$DATAMANIFEST_DIR` / user folders it is the leading
-  segment. `datamanifest` survives only as the appname for the empty/global scope (data owned
-  by no single project).
-- **No global tool folder; staging is partition-local.** A tool's app-internal files (HTTP
-  metadata, etc.) live under the **active scope's** root, not a separate global
-  `~/.cache/datamanifest/`. And materialization stages **within the target store partition**
-  (a `$scratch` dataset stages on `$scratch`) — required for an atomic rename and so
-  voluminous data never transits a small `~/.cache` first. The `datamanifest` appname is the
-  home of explicit `scope = ""` *data* only.
-- **No guessing the scope; local-repo fallback.** The built-in default is the **project
-  name** — Python `[project].name`, Julia `Project.toml` **`name`** (the name, **not** the
-  `uuid`). A tool MUST NOT synthesize a scope (no path hash, no directory name). If no project
-  file declares a name, the **default store falls back to `$repo`** (the local working root),
-  which *absorbs* the scope → visible `./datasets/`, `./cached/` — friendly for getting
-  started, still deterministic, not a guess. (Unlike the produced `cachetype`, which *errors*
-  on no stable identity: a wrong cachetype is dangerous, a scope is just a location. A tool MAY
-  still error only when an explicit *centralized* store is asked for with no resolvable scope.)
-- **In-memory & multiple manifests (library use).** A manifest is a logical structure; it MAY
-  be built **in memory** (file-less) and **several MAY be live at once**, each resolving
-  independently (an in-memory manifest resolves identically to a file-backed one; the API is
-  per-language — Python `Database(persist=False)`, Julia in-memory `Database`). This is how a
-  **library** owns its data without touching the end user's `datasets.toml`: it builds an
-  in-memory manifest and sets its `scope` **explicitly** (auto-derivation finds the *end
-  user's* project, not the installed library's). Without an explicit scope, library data falls
-  back to the end user's project / `$repo` — the user owns the location.
-- **`DATAMANIFEST_DIR` kept, clarified.** It is the **single-base shortcut** (put `$data` and
-  `$cache` under one self-contained base — tests / containers / scratch), equivalent to
-  setting `DATAMANIFEST_DATA_DIR` + `DATAMANIFEST_CACHE_DIR` to that base. The stale "hosts the
-  tool's app-state" role is dropped (app-internal files are per-scope now).
-- **Three-level scope, one ladder.** Project-wide **`[_STORAGE].scope`** (new) → per-kind
-  **`[_STORAGE._SCOPE].<kind>`** → per-item (a dataset's `scope` field / a produced `scope=`).
-  Env mirrors: **`DATAMANIFEST_SCOPE`** (new) and `DATAMANIFEST_SCOPE_<KIND>`. Resolves
-  **first-explicitly-set** (an explicit `""` is a real value — the global store — not
-  "unset"); the resolved value drives both the path and the recorded entry. Host-specific
-  scope, if needed, is just `DATAMANIFEST_SCOPE` per machine (no `_HOST` scope table). `scope`
-  becomes a reserved top-level `[_STORAGE]` key.
-- `manifest.v3.json` types the new `[_STORAGE].scope` and per-dataset `scope`; the storage
-  conformance fixture asserts all three levels. `_META.project` is **not** introduced — the
-  project name only ever feeds the scope default, so `[_STORAGE].scope` is its sole home.
-- **`$repo` absorbs the scope.** Under `$repo` (the project root) the path is
-  `<repo>/<prefix>/<key>` with **no scope segment** — the project root already *is* the
-  project. The scope still resolves and is recorded in `cached.toml` for ownership, but the
-  on-disk path is scope-independent (a tool omits the segment deterministically on register
-  and lookup). So the scope placement is: appname for the default `$data`/`$cache`, absorbed
-  for `$repo`, leading segment for `$DATAMANIFEST_DIR` / overridden `$data`/`$cache` / user
-  folders.
-- **Content prefixes may be multi-segment.** A `[_STORAGE._PREFIX].<kind>` value is a relative
-  path (path-safe; no leading `/` or `..`) — one segment by default, but it MAY be empty or
-  several segments (e.g. `cached = "cached/2025.1"` to add a generic version level under the
-  marker). README gains a "Storage layout" recipe (split roots: shared datasets pool +
-  per-project versioned cache).
+- **Two folder fields, local by default.** `[_STORAGE].datasets_dir` (fetched) and
+  `datacache_dir` (produced) are the whole model. They default to the relative paths
+  `"datasets"` / `"cached"` ⇒ repo-relative ⇒ visible `./datasets/`, `./cached/`. A fetched
+  dataset lands at `<datasets_dir>/<key>`, a produced artifact at
+  `<datacache_dir>/<cachetype>/[<version>/]<hash>/` — no scope, no prefix, no derived name in
+  between. Adding a `pyproject.toml` no longer moves anything.
+- **`$`-symbols.** Predefined **`$user_data_dir`** / **`$user_cache_dir`** (straight from
+  `platformdirs`, **bare** — no app name) and **`$repo`**; any other bare `[_STORAGE]` key is a
+  user-defined symbol, made host-specific in `[_STORAGE._HOST."<glob>"]`. `$USER`/env and `~`
+  expand. Centralize/share with one edit, e.g. `datasets_dir = "$user_data_dir/myproj"`.
+- **Per-dataset `local_path`** replaces both the former `store` and `local_path`. Default
+  `$datasets_dir/$key`; contains `$key` ⇒ tool-managed/keyed, an exact path without `$key` ⇒
+  user-managed and never touched by maintenance. (Named `local_path`, not `path` — `path` is
+  the URI's parsed component.)
+- **Two environment variables**, `DATAMANIFEST_DATASETS_DIR` / `DATAMANIFEST_DATACACHE_DIR`
+  (user symbols override as `DATAMANIFEST_<NAME>`); `$user_data_dir` / `$user_cache_dir` keep
+  per-OS resolution. `DATAMANIFEST_DIR`, `DATAMANIFEST_SCOPE`, `DATAMANIFEST_PREFIX_*` are gone.
+- **Partition-local staging.** Materialization stages within the target folder's partition (a
+  `$scratch` dataset stages on `$scratch`) — required for an atomic rename and so voluminous
+  data never transits a small `~/.cache`. A tool's app-internal files live alongside, never in
+  a separate global folder.
+- **`cached.toml` drops `scope` (and the recipe `store`).** Recipes are keyed by
+  `(cachetype, version)`; the on-disk location is the manifest's `datacache_dir`, and
+  reachability is `(cachetype, version, hash)`. (Schema-2 nested structure, hit self-healing,
+  and the index lifecycle are unchanged from spec-v3.7.)
+- **In-memory & multiple manifests (library use).** A manifest is a logical structure that MAY
+  be built in memory and **several MAY be live at once**, each resolving independently (the API
+  is per-language — Python / Julia `Database`; whether/where it persists is the author's
+  choice). **Recommended:** a library shipping data dependencies owns them this way — its own
+  manifest with explicit `datasets_dir` / `datacache_dir` (e.g. under `$user_data_dir/<library>`)
+  — rather than touching the end user's `datasets.toml`; without explicit folders its data falls
+  back to the end user's project, who owns the location.
+- `manifest.v3.json` types `[_STORAGE].datasets_dir` / `datacache_dir` and the dataset
+  `local_path`; `cached.v3.json` drops the recipe `scope` / `store`. README and the reference
+  guide carry the storage recipe (shared downloads pool + per-project versioned cache, per-host
+  roots).
+
 
 ## spec-v3.7 (schema `_META.schema = 1`)
 

@@ -74,7 +74,7 @@ ones:
 | `version` | Dataset version; part of the storage key, so versions coexist on disk. |
 | `requires` | Names of datasets to fetch first (a dependency graph, resolved in order). |
 | `description` | Human-readable note (replaces TOML comments). |
-| `store` / `local_path` | Where the dataset lives on disk — see [Storage](#storage). |
+| `local_path` | Where the dataset lives on disk (overrides the default `$datasets_dir/$key`) — see [Storage](#storage). |
 | `skip_checksum` / `skip_download` | Disable verification / treat as externally provided. |
 | `fetcher` / `loader` / `shell` | How to obtain/load it — see [Language bindings](#language-bindings). |
 
@@ -191,38 +191,41 @@ implementation-defined; the Python CLI is the reference peer), controlled by `de
 
 ## Storage
 
-DataManifest uses a portable **`$`-folder-variable** model. A folder names a **bare root**;
-the consuming layer composes the rest of the path.
+Storage is **two paths**: where fetched datasets go and where the produced cache goes. Both
+are set in `[_STORAGE]` and **default to local, repo-relative folders**, so a casual user gets
+`./datasets/` and `./cached/` with no configuration.
 
 ```toml
 [_STORAGE]
-default = "$data"                 # project-wide default selector (itself $data)
-scratch = "/scratch/$USER"        # user-defined folder variable -> $scratch
+datasets_dir  = "datasets"        # fetched datasets (default; relative -> <repo>/datasets/)
+datacache_dir = "cached"          # produced cache   (default; relative -> <repo>/cached/)
+scratch       = "/scratch/$USER"  # a reusable $-symbol -> $scratch
 
 [_STORAGE._HOST."login*.hpc.edu"]
-data = "/work/$USER"              # host-specific root override (glob on hostname)
+scratch       = "/work/$USER"     # host-specific symbol value (glob on hostname)
+datacache_dir = "$scratch/cache"  # a field, host-specific
 
 [big]
-uri   = "https://example.com/big.nc"
-store = "$scratch/derived"        # selector + sub-path
+uri        = "https://example.com/big.nc"
+local_path = "$scratch/$key"      # this dataset, parked on scratch ($key => tool-managed)
 ```
 
-- **Built-in folders:** `$data` and `$cache` resolve to `DATAMANIFEST_DIR` (if set) else
-  the platform data/cache dir for `datamanifest`; `$repo` is the project root. Any other
-  `[_STORAGE]` key is a **user-defined** folder.
-- **`store`** is a `$`-folder **selector** (`$folder` or `$folder/subpath`); omitted ⇒ the
-  `default`. **`local_path`** is a path expression for an exact location that **bypasses**
-  the keyed layout (interpolates `$`-folders, `$USER`/env, `~`).
-- **Scope + content prefix** (added by the layer, not the selector) — **scope first**, then
-  the per-kind prefix: fetched data → `<root>/[<scope>/]datasets/<key>`; produced artifacts →
-  `<root>/[<scope>/]cached/<cachetype>/…`. So a project's data is one subtree
-  `<root>/<scope>/`. Both kinds default the scope to the **project name** (project-isolated);
-  set `[_STORAGE].scope` project-wide, `[_STORAGE._SCOPE].<kind>` per kind, a dataset's
-  `scope` field per dataset, or `""` for a global shared store. Configure prefixes via
-  `[_STORAGE._PREFIX]`.
-- **Resolution precedence** for each folder: `DATAMANIFEST_<NAME>_DIR` env var → first
-  matching `[_STORAGE._HOST.<glob>]` → `[_STORAGE].<name>` → built-in default. (`_PROFILE`
-  is reserved/round-tripped but not applied.)
+- **Paths default local.** Relative ⇒ relative to the project root (`$repo`). A fetched
+  dataset lands at `<datasets_dir>/<key>`, a produced artifact at
+  `<datacache_dir>/<cachetype>/[<version>/]<hash>/`. No scope, no prefix, no derived name —
+  the folder you set **is** the location.
+- **Symbols.** A path may use `$`-symbols: predefined **`$user_data_dir`** / **`$user_cache_dir`**
+  (the machine's data/cache dirs, straight from `platformdirs`) and **`$repo`**; any other
+  bare `[_STORAGE]` key is a user-defined symbol, made host-specific in `[_STORAGE._HOST]`.
+  `$USER`/env and `~` also expand.
+- **Centralize / share** across clones or projects with one edit:
+  `datasets_dir = "$user_data_dir/myproj"`, `datacache_dir = "$user_cache_dir/myproj"`.
+- **Per-dataset `local_path`** overrides where one dataset lives (default `$datasets_dir/$key`):
+  contains `$key` ⇒ tool-managed/keyed; an exact path without `$key` ⇒ user-managed and never
+  touched by maintenance. (It is *not* called `path` — that is the URI's parsed component.)
+- **Environment:** two overrides — `DATAMANIFEST_DATASETS_DIR` / `DATAMANIFEST_DATACACHE_DIR`
+  (user symbols override as `DATAMANIFEST_<NAME>`); `$user_data_dir`/`$user_cache_dir` keep
+  their per-OS resolution.
 - **Concurrency:** writes are atomic (temp + rename) under a `.lock` pidfile with a
   `.complete` marker, so concurrent readers never see a half-materialized dataset.
 
@@ -246,7 +249,7 @@ Beyond *fetching* declared datasets, a tool with the `cache-produce` capability 
   `hash`) and `metadata.toml` (provenance — timestamp, tool, git, host/user; never hashed,
   never an authority for validity). A tool MUST recompute the hash from `config.toml` and
   treat a mismatch as **not** a cache hit.
-- **Layout:** `<folder>/[<scope>/]cached/<cachetype>/[<version>/]<hash>/<basename>.<ext>`.
+- **Layout:** `<datacache_dir>/<cachetype>/[<version>/]<hash>/<basename>.<ext>`.
   The optional **`version`** is a human-set recipe/code version — a path segment that does
   **not** enter the hash, used to prevent a stale cross-branch hit.
 - **The `cached.toml` index** registers each produced dataset by its portable
@@ -273,7 +276,7 @@ hash      = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
 Both fetched and produced objects accumulate, so a tool with the `inspect` capability can
 enumerate the store, filter it, and delete an explicit selection. Each object exposes
 `kind` (`data`/`cached`), `key`/`hash`, `location`, `referenced` (rooted by a present
-`.toml`, or an **orphan**), `scope`, `format`, `size`, `created`, and a best-effort
+`.toml`, or an **orphan**), `format`, `size`, `created`, and a best-effort
 `last-access`.
 
 Maintenance is **user-driven, never automatic** — there is no garbage collector; deletion is
@@ -310,7 +313,7 @@ Two version axes (see [SCHEMA.md §Versioning](../SCHEMA.md#versioning)):
 
 - **`_META.schema`** — the data-model version (always **1** today). A reader rejects a
   schema it doesn't understand.
-- **Spec tag** (`spec-v3.6`, …) — the document/behavior revision. Carried by git tags and by
+- **Spec tag** (`spec-v4`, …) — the document/behavior revision. Carried by git tags and by
   the JSON Schema filenames in [`schemas/`](../schemas/); older versions stay alongside.
 
 A tool advertises **capabilities** and runs only the shared conformance fixtures whose
@@ -321,7 +324,7 @@ capability set it supports:
 | `lang-read` / `lang-write` | Read/regenerate own `_LANG` bindings, preserve foreign ones verbatim |
 | `shell-fetch` | Execute the `shell` command template |
 | `delegation` | Cross-language fetch (rung 3) |
-| `storage` | `$`-folder selectors + `[_STORAGE]` resolution |
+| `storage` | `datasets_dir`/`datacache_dir` + `$`-symbols + `[_STORAGE]` host-aware resolution |
 | `byte-identity` | Canonical key ordering across tools |
 | `binding-args` | The `{ ref, args, kwargs }` table binding form |
 | `cache-produce` | Produced datasets + `config.toml`/`metadata.toml` sidecars |

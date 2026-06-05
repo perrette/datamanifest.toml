@@ -57,9 +57,9 @@ An array of capability tags from SCHEMA.md's Conformance-levels table:
 |-----|---------|
 | `lang-read` | Parse `_LANG.<lang>` tables and apply the load ladder |
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write |
-| `shell-fetch` | Execute `_LANG.shell.fetcher` command templates in the fetch ladder |
+| `shell-fetch` | Execute the dataset's bare `shell` command template in the fetch ladder |
 | `delegation` | Opt-in peer-CLI delegation (fetch-ladder rung 3) |
-| `storage` | Honor the `store` / `default` `$`-folder selectors and `[_STORAGE]` folder-variable resolution |
+| `storage` | Honor `datasets_dir` / `datacache_dir`, `$`-symbol resolution, `_HOST` host-overrides, and per-dataset `local_path` |
 | `byte-identity` | Emit canonical lexicographic key ordering (cross-tool byte-identical output) |
 | `binding-args` | Execute the `{ ref, args }` table form of a binding |
 | `cache-produce` | Companion-layer produced (function-backed) datasets keyed by parameter hash + `config.toml`/`metadata.toml` sidecars |
@@ -80,7 +80,7 @@ implementation MUST resolve for that dataset. Each is expressed as `{"rung": <na
 | Rung | Meaning |
 |------|---------|
 | `"own-fetcher"` | `[<ds>._LANG.<self>].fetcher`, or the bare `[<ds>].fetcher` (own language, rung 1) |
-| `"shell"` | `[<ds>._LANG.shell].fetcher` command template (rung 2) |
+| `"shell"` | the dataset's bare `shell` command template (rung 2) |
 | `"delegation"` | Peer-CLI delegation, opt-in (rung 3) |
 | `"uri"` | Plain `uri` download (rung 4) |
 | `"error"` | No rung applies — implementation MUST error |
@@ -110,8 +110,8 @@ read-then-write round-trip.
 - **`lang_namespaces.per_dataset`** — per-dataset `_LANG.<lang>` sub-tables present in
   the manifest. A writer of language `L` preserves every entry where `<lang> ≠ L`.
 
-`_LANG.shell` is never "owned" by any writer language, so it always appears in the
-foreign set and must always be preserved verbatim.
+The bare `shell` field is **language-agnostic** (a command template, the same for every tool),
+so it sits directly on the dataset — not under `_LANG` — and is preserved by all writers.
 
 ### Parameterized bindings and `resolution`
 
@@ -130,30 +130,19 @@ bare-string form have no entry here.
 
 ### `storage` (optional)
 
-Present for `storage`-capability fixtures. Asserts selector resolution and the
-`[_STORAGE]` folder-variable namespace (but not absolute on-disk paths, which are
-machine-dependent — `platformdirs` / env / host). In the spec-v3 folder model, folder
-variables are **bare top-level roots** and `store` / `default` are `$`-folder **selectors**
-(a `$`-reference, optionally with a sub-path); a bare folder name is not a valid selector
-(hard migration). The `datasets/` / `cached/` content prefixes (`_PREFIX`) and the `scope`
-partition (`_SCOPE`) are applied by the layer.
+Present for `storage`-capability fixtures. Asserts the `[_STORAGE]` configuration (but not
+absolute on-disk paths, which are machine-dependent — `platformdirs` / env / host). In the
+spec-v4 model storage is **two folder fields** (`datasets_dir` / `datacache_dir`; relative ⇒
+repo-relative, local by default) plus reusable `$`-symbols and `_HOST` host-overrides; a
+dataset's `local_path` overrides its location. No scope, prefix, or appname.
 
-- `default` — the project-wide `[_STORAGE].default` selector (`$`-form; itself defaults to
-  `$data`) — the selector a dataset assumes when it omits `store`.
-- `scope` — the project-wide `[_STORAGE].scope` (both kinds; default = the derived project
-  id). Overridden per-kind by `[_STORAGE._SCOPE].<kind>` and per-dataset by the `scope` field.
-- `datasets.<ds>` — the `$`-folder selector each dataset resolves to (its `store` field, or
-  the default). The validator also asserts it is `$`-form.
-- `local_paths.<ds>` — the raw `local_path` path expression for datasets that bypass the
-  keyed `<root>/<key>` layout.
-- `scopes.<ds>` — the per-dataset `scope` override (the top rung of the scope ladder).
-  Compared exactly, so an explicit empty string `""` (the unscoped/global store) is
-  distinguished from an absent field.
-- `folders.builtin` — the built-in folder names (`data`, `cache`, `repo`).
-- `folders.user` — user-defined folder variables that MUST be defined in `[_STORAGE]`
-  (bare keys, excluding the reserved `default` / `_HOST` / `_PREFIX` / `_SCOPE` / `_PROFILE`).
-- `folders.host_patterns` / `folders.profiles` — `_HOST` / `_PROFILE` override keys present
-  (`_PROFILE` is shelved in spec-v3, so `profiles` is normally empty).
+- `datasets_dir` / `datacache_dir` — the two project-wide folder fields.
+- `symbols` — user-defined `$`-symbols that MUST be defined in `[_STORAGE]` (bare keys, not the
+  reserved `datasets_dir` / `datacache_dir` / `_HOST`, nor the predefined `user_data_dir` /
+  `user_cache_dir` / `repo`).
+- `host_patterns` — `[_STORAGE._HOST.<glob>]` host-override keys present.
+- `local_paths.<ds>` — the per-dataset `local_path` override (default `$datasets_dir/$key`),
+  compared exactly (so `$key`-keyed vs an exact user-managed path is distinguished).
 
 ### `config_sidecar` (optional)
 
@@ -187,16 +176,16 @@ sidecar minus `_META`, so the sidecar and the expectation cannot drift.
 Present for `inspect`-capability fixtures. Here the fixture `.toml` is itself a
 **`cached.toml`** index (not a `datasets.toml`), modelling canonical *generated* writer
 output in the **nested schema-2** form (`_META.schema = 2`). `cached_index.recipes[]`
-asserts, per `[[produced]]` recipe (matched on its `(scope, cachetype, version)` identity):
-`cachetype`, `scope`, `version`, `ref` (the producing `module:function`), `format`, `store`,
-and its `instances`. Each instance asserts a `hash` (64 lowercase hex) and optional `params`;
+asserts, per `[[produced]]` recipe (matched on its `(cachetype, version)` identity):
+`cachetype`, `version`, `ref` (the producing `module:function`), `format`, and its
+`instances`. Each instance asserts a `hash` (64 lowercase hex) and optional `params`;
 the validator **recomputes** the param-hash of `params` and requires it to equal `hash`, so
 the index is self-verifying. `cached_index.schema` pins `_META.schema` (default 2).
 Resolution / preservation blocks are empty for this fixture.
 
 `cached_index.forbidden_keys` is a **negative** assertion: a list of keys a canonical
 generated `cached.toml` must NOT carry — checked against `_META` and every recipe. It pins
-renames/removals the positive field checks can't (e.g. `project`, renamed to `scope`).
+renames/removals the positive field checks can't (e.g. the removed `project` / `scope`).
 This is the *writer* contract and is deliberately distinct from the lenient round-trip
 **preservation** of unknown keys (R3/R4): preservation governs foreign input a tool copies
 verbatim; `forbidden_keys` governs what a tool *emits*. (Note `cached.v3.json` keeps

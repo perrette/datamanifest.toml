@@ -27,8 +27,10 @@ KNOWN_CAPABILITIES = {
 }
 
 # Reserved keys under [_STORAGE] that are not folder-variable definitions.
-STORAGE_RESERVED = {"default", "scope", "_HOST", "_PROFILE", "_PREFIX", "_SCOPE"}
-BUILTIN_FOLDERS = {"data", "cache", "repo"}
+# Reserved bare keys under [_STORAGE] (the two folder fields + the host sub-table); every
+# other bare key is a user-defined symbol. Predefined $-symbols are not defined in [_STORAGE].
+STORAGE_RESERVED = {"datasets_dir", "datacache_dir", "_HOST"}
+PREDEFINED_SYMBOLS = {"user_data_dir", "user_cache_dir", "repo"}
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -204,62 +206,30 @@ def validate(toml_path, json_path):
     storage = expected.get("storage")
     if storage is not None:
         st = manifest.get("_STORAGE", {})
-        # `default` selector ($-form), itself defaulting to "$data"
-        default_sel = storage.get("default", "$data")
-        manifest_default = st.get("default", "$data")
-        if manifest_default != default_sel:
-            _err(errors, f"storage.default: expected '{default_sel}', [_STORAGE] has '{manifest_default}'")
-        # project-wide scope ([_STORAGE].scope), if asserted
-        if "scope" in storage and st.get("scope") != storage["scope"]:
-            _err(errors, f"storage.scope: expected {storage['scope']!r}, [_STORAGE] has {st.get('scope')!r}")
-        # selectors MUST be $-references (hard migration — no bare legacy names)
-        for ds_name, sel in storage.get("datasets", {}).items():
-            if ds_name not in manifest:
-                _err(errors, f"storage.datasets: '{ds_name}' not in manifest")
-                continue
-            if not sel.startswith("$"):
-                _err(errors, f"storage.datasets[{ds_name}]: selector '{sel}' must be a $-reference")
-            actual = manifest[ds_name].get("store", default_sel)
-            if isinstance(actual, str) and actual and not actual.startswith("$"):
-                _err(errors, f"storage.datasets[{ds_name}]: manifest store '{actual}' is a bare name (spec-v1.1 form); must be $-form")
-            if actual != sel:
-                _err(errors, f"storage.datasets[{ds_name}]: expected selector '{sel}', manifest has '{actual}'")
-        # local_path datasets (bypass the keyed layout)
+        # the two folder fields
+        for field in ("datasets_dir", "datacache_dir"):
+            if field in storage and st.get(field) != storage[field]:
+                _err(errors, f"storage.{field}: expected {storage[field]!r}, [_STORAGE] has {st.get(field)!r}")
+        # user-defined symbols MUST be defined in [_STORAGE], and not reserved/predefined
+        for name in storage.get("symbols", []):
+            if name in STORAGE_RESERVED or name in PREDEFINED_SYMBOLS:
+                _err(errors, f"storage.symbols: '{name}' is reserved/predefined, not a user symbol")
+            elif name not in st:
+                _err(errors, f"storage.symbols: '{name}' not defined in [_STORAGE]")
+        # _HOST host-override patterns present
+        host = st.get("_HOST", {})
+        for pat in storage.get("host_patterns", []):
+            if pat not in host:
+                _err(errors, f"storage.host_patterns: '{pat}' not in [_STORAGE._HOST]")
+        # per-dataset `local_path` overrides (default is $datasets_dir/$key; $key present =>
+        # keyed/managed, exact path => user-managed). Compared exactly.
         for ds_name, lp in storage.get("local_paths", {}).items():
             if ds_name not in manifest:
                 _err(errors, f"storage.local_paths: '{ds_name}' not in manifest")
                 continue
             actual = manifest[ds_name].get("local_path")
             if actual != lp:
-                _err(errors, f"storage.local_paths[{ds_name}]: expected '{lp}', manifest has '{actual!r}'")
-        # per-dataset scope overrides (the top rung of the scope ladder). An explicit
-        # empty string "" is a valid, intentional value (the unscoped/global store),
-        # distinct from an absent field — so compare exact, not truthy.
-        for ds_name, sc in storage.get("scopes", {}).items():
-            if ds_name not in manifest:
-                _err(errors, f"storage.scopes: '{ds_name}' not in manifest")
-                continue
-            actual = manifest[ds_name].get("scope")
-            if actual != sc:
-                _err(errors, f"storage.scopes[{ds_name}]: expected scope {sc!r}, manifest has {actual!r}")
-        # folder-variable namespace
-        folders = storage.get("folders", {})
-        for name in folders.get("builtin", []):
-            if name not in BUILTIN_FOLDERS:
-                _err(errors, f"storage.folders.builtin: '{name}' is not a built-in folder {sorted(BUILTIN_FOLDERS)}")
-        for name in folders.get("user", []):
-            if name in STORAGE_RESERVED or name in BUILTIN_FOLDERS:
-                _err(errors, f"storage.folders.user: '{name}' is reserved or built-in, not a user folder")
-            elif name not in st:
-                _err(errors, f"storage.folders.user: '{name}' not defined in [_STORAGE]")
-        host = st.get("_HOST", {})
-        for pat in folders.get("host_patterns", []):
-            if pat not in host:
-                _err(errors, f"storage.folders.host_patterns: '{pat}' not in [_STORAGE._HOST]")
-        prof = st.get("_PROFILE", {})
-        for name in folders.get("profiles", []):
-            if name not in prof:
-                _err(errors, f"storage.folders.profiles: '{name}' not in [_STORAGE._PROFILE]")
+                _err(errors, f"storage.local_paths[{ds_name}]: expected {lp!r}, manifest has {actual!r}")
 
     # --- binding_args (optional; present for `binding-args`-capability fixtures) ---
     binding_args = expected.get("binding_args")
@@ -338,16 +308,16 @@ def validate(toml_path, json_path):
             _err(errors, "cached_index: top-level 'produced' must be an array of recipe tables")
             produced = []
         by_id = {
-            (r.get("scope", ""), r.get("cachetype"), r.get("version", "")): r
+            (r.get("cachetype"), r.get("version", "")): r
             for r in produced if isinstance(r, dict)
         }
         for exp_r in cached_index.get("recipes", []):
-            rid = (exp_r.get("scope", ""), exp_r.get("cachetype"), exp_r.get("version", ""))
+            rid = (exp_r.get("cachetype"), exp_r.get("version", ""))
             r = by_id.get(rid)
             if r is None:
                 _err(errors, f"cached_index: recipe {rid} not in manifest 'produced'")
                 continue
-            for field in ("cachetype", "scope", "version", "ref", "format", "store"):
+            for field in ("cachetype", "version", "ref", "format"):
                 if field in exp_r and r.get(field) != exp_r[field]:
                     _err(errors, f"cached_index{rid}: {field} mismatch (expected {exp_r[field]!r}, manifest has {r.get(field)!r})")
             for bad in forbidden:
