@@ -486,8 +486,8 @@ on these conventions:
 > produced dataset reuses the existing **engine** — the storage model, the
 > safe-materialization primitive, and the load ladder — but is **not declared in
 > `datasets.toml`**; its only on-disk record is the machine-generated `config.toml` /
-> `metadata.toml` sidecars and the `cached.toml` index, each carrying its own
-> `_META.schema = 1`. The format is gated by two independent capabilities, `cache-produce`
+> `metadata.toml` sidecars (each `_META.schema = 1`) and the project's state file
+> (`_META.schema = 5`). The format is gated by two independent capabilities, `cache-produce`
 > and `inspect`, so a companion may ship neither, one, or both.
 
 A **produced dataset** is one whose bytes come from running a project function rather
@@ -507,12 +507,13 @@ normative axis is **parameter-hash keying** and its on-disk bookkeeping.
 that a tool exposes through its produce-or-load surface (the `@cached` decorator /
 macro — per-language and non-normative; see below), and is recorded only after it
 runs. `cachetype` is therefore **not** a `datasets.toml` field; it is a namespace that
-appears solely in the machine-generated records — the `cached.toml` index entry, the
-`config.toml` `[_META]` block, and the on-disk path. A conforming fetch path
+appears solely in the machine-generated records — the state file's `datacache` entry,
+the `config.toml` `[_META]` block, and the on-disk path. A conforming fetch path
 (`download_dataset` and the fetch ladder) **never encounters a produced dataset**: the
 two concerns share the *engine*, not the *manifest*. This keeps `datasets.toml` clean
-(the `Project.toml` analogue) and confines produced, parameter-hash-keyed churn to
-`cached.toml` (the `Manifest.toml` analogue).
+(the hand-authored, git-committed **spec**) and confines produced,
+parameter-hash-keyed churn to the git-ignored **state file** (regenerable ground
+truth).
 
 A produced dataset is identified **by its keyword parameters**, not by content: its
 storage **key** is `<cachetype>/<param-hash>`, its parameters *are* the hash inputs,
@@ -595,8 +596,8 @@ stores the same key table in human-readable TOML; the hash is over its canonical
   name, or to deliberately group several functions under one namespace. **The
   auto and explicit forms share one namespace**: an explicit `cachetype` equal to
   the derived name denotes the same identity. (So the default `cachetype`
-  coincides with the `cached.toml` entry's `ref` — by default the namespace *is*
-  the producer's identity.)
+  coincides with the state file's `datacache` entry `ref` — by default the
+  namespace *is* the producer's identity.)
 - **Why unique-per-function is the right default.** The worst cache failure is
   silently *mixing* unrelated results under one key, so the default must be
   unique per producing function. The accepted, **prominently documented**
@@ -688,7 +689,7 @@ The location affects *location only* — never hit validity, which is the key
 **Recipe version (optional).** A producing call MAY carry a short **`version`** string
 (e.g. `"v3"`, a date). When set it becomes a path segment between `cachetype` and `hash`
 (`<cachetype>/<version>/<hash>`) and is recorded in the `config.toml` sidecar and the
-`cached.toml` entry. `version` does **not** enter the parameter hash; it is an explicit,
+state file's `datacache` entry (in the recipe key, `<cachetype>@<version>`). `version` does **not** enter the parameter hash; it is an explicit,
 human-set **recipe/code** version, orthogonal to the parameter key and distinct from
 `_META.schema` (the on-disk *format* version). Its purpose is correctness under sharing: a
 change to a function's *logic* that leaves its *parameters* unchanged would otherwise read a
@@ -764,7 +765,7 @@ branch = "main"
 dirty  = false
 
 [origin]
-cached_toml = "/home/mahe/proj/cached.toml"   # the index that roots this artifact
+state_file = "/home/mahe/proj/.datamanifest-state.toml"   # the state file that inventories this artifact
 ```
 
 ### Default serialization format (per language)
@@ -787,99 +788,136 @@ cross-language-loadable by construction (`pickle` is Python-only, `jld2` Julia-o
 is consistent with the spec pinning only cross-tool addressing and maintenance, never the
 blob format.
 
-### The `cached.toml` index
+### The state file (`.datamanifest-state.toml`)
 
-Produced datasets are **not** written into the hand-authored `datasets.toml`
-(which stays clean — the `Project.toml` analogue). They are registered in a
-sibling **`cached.toml`** (the `Manifest.toml` analogue), by default alongside
-the manifest. `cached.toml` is the *liveness* root for produced artifacts: it
-lists them by **portable key** (`cachetype` + `hash`), never by absolute path.
-Its purpose is **transparency** — a readable, per-machine view of what the
-project currently has cached — so it is a **self-healing index that converges to
-what is present on disk** (see *Index lifecycle* below), not a write-once log.
+The hand-authored `datasets.toml` stays clean — it is the **spec**: *what* to
+track and *how* to obtain it (a dataset's `uri`/`fetcher`/`shell`, a `@cached`
+function's code), hand-authored and **git-committed**, the source of intent. What
+it records is the **expectation** — a per-dataset directive `storage_path` (where
+bytes *should* go) and a contract `sha256` (what they *should* hash to).
 
-**Schema 2 is nested** (`_META.schema = 2`). A recipe called with different
-parameters produces several artifacts — one per parameter `hash` — and the index
-records **all** of them (an unrecorded variation would read as an orphan and risk
-deletion). So a `cached.toml` is an array of **recipe** tables, each keyed by its
-`(cachetype, version)` identity and carrying one **instance** per produced
-variation:
+*Where each object actually landed on this machine* is recorded separately, in a
+sibling **`.datamanifest-state.toml`** — the **state file**: a tool-maintained,
+per-object inventory of resolved on-disk locations. It is the machine analogue of
+a lockfile, except it is **not a committed reproducibility lock** — it says
+nothing about *how* to re-obtain a resource (that lives in the spec), so it is no
+help to a fresh clone; it is **regenerable local state**, and therefore
+**git-ignored by default**. (Produced artifacts and many fetched datasets live on
+one machine, often outside the repo, and cannot be pulled from the internet — so
+committing the inventory would only record paths no other clone can use. A project
+whose data sits on a shared drive every clone can reach MAY choose to track it,
+but that is a user's setup, not the design intent.) The leading dot marks it as a
+CLI-read dotfile, not a hand-edited document.
+
+The state file inventories **both kinds** of materialized object — fetched
+datasets and produced artifacts — under two top-level namespaces (`datasets` and
+`datacache`) parallel to the two storage folders, so the two never collide and
+each is greppable on its own. `_META.schema = 5`:
 
 ```toml
 [_META]
-schema = 2
+schema = 5
 
-[[produced]]                       # one recipe per (cachetype, version)
-cachetype = "lgmpre.data.load_20c"  # the producing function's importable name (default) or an explicit name
-ref       = "lgmpre.data:load_20c"  # the producing module:function (refreshed across a refactor)
-format    = "nc"
-# version = "v3"                    # optional recipe version (a path segment + part of the recipe identity)
+# --- fetched datasets: storage key → resolved location (+ actual checksum) ---
+[datasets."example.com/foo.nc"]
+storage_path = "datasets/example.com/foo.nc"   # where the bytes actually are
+sha256       = "abc123…"                         # actual digest; omitted under skip_checksum
 
-  [[produced.instances]]           # one per produced variation (accumulated, deduped by hash)
-  hash = "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b"
-  [produced.instances.params]      # the key table that produced it (omitted when empty)
-  grid = "5x5"
+# --- produced artifacts: cachetype[@version] → instances{hash → location} ---
+[datacache."lgmpre.data.load_20c@v3"]            # bare cachetype when unversioned
+ref    = "lgmpre.data:load_20c"                  # producing module:function (refreshed across a refactor)
+format = "nc"
+
+  [datacache."lgmpre.data.load_20c@v3".instances]
+  "83425a30d111562d46c1fce9de7618ea7f1f54e1be72e086cba0ac63c6f2ce9b" = "cached/lgmpre.data.load_20c/v3/83425a30…"
 ```
 
-- **Array-of-tables, keyed by identity.** Each `[[produced]]` is one recipe,
-  identified by `(cachetype, version)`; the array form means the (often
-  dotted) `cachetype` needs no key-quoting. Each `[[produced.instances]]` records
-  a variation's parameter `hash` and the `params` (the same key table the
-  `config.toml` sidecar holds), so listing and reachability are param-aware
-  without stat'ing sidecars.
-- **Register accumulates, never overwrites.** Registering a new variation **adds**
-  an instance (deduped by `hash`); reachability spans every recorded
-  `(cachetype, version, hash)`.
-- **Recipe metadata is refreshed, not pinned.** `ref` / `format` are
-  rewritten on each register — and on a cache *hit* if they drifted — so `ref`
-  tracks the producing function across a refactor (it is not in the hash and so
-  never invalidates a key).
-- **Back-compat:** `_META.schema = 1` (a flat table per registry *name*, single
-  `hash`, no `params`) is still **read** — each flat entry becomes a one-instance
-  recipe — but is always **rewritten as schema 2**.
-- `cached.toml` is a **defined structural sibling format**, with its own
-  `_META.schema`. A tool that does not implement `inspect` need not read it.
-- **Commit policy:** `cached.toml` is **gitignored per-machine state by default**
-  (it indexes machine-local produced artifacts); a project that wants
-  reproducible shared produced-caches MAY opt in to committing it (the
-  `Manifest.toml` convention — libraries ignore, applications commit).
-- A produced dataset is registered in exactly one `cached.toml`; the
-  `metadata.toml` `[origin].cached_toml` back-pointer names it (audit only).
+- **`datasets` — fetched.** Keyed by the dataset's existing storage **key**
+  (`host/path[#version]`, its machine-independent identity — no new id). Each entry
+  records the **resolved** `storage_path` (where the bytes actually are) and the
+  **actual** `sha256` of what is on disk (omitted when the dataset sets
+  `skip_checksum`, so a very large file need never be hashed).
+- **`datacache` — produced.** One table per recipe, keyed by
+  `<cachetype>[@<version>]` — `@` is a **reserved** version separator, so a bare
+  key is the unversioned recipe and two versions of one cachetype never collide (a
+  `cachetype` MUST NOT contain `@`, which `module.qualname` never does). It carries
+  recipe-level `ref` / `format` and an **`instances`** table mapping each produced
+  variation's parameter `hash` to the **full artifact directory** it was written
+  to. The **params are not stored here** — they live in each artifact's
+  `config.toml` sidecar (read at enumeration), so a single artifact's recorded
+  location is its own complete record.
+- **Spec vs. state — the same two fields, two meanings.** A dataset's
+  `storage_path` and `sha256` appear in *both* files **on purpose**: in
+  `datasets.toml` they are the **expectation** (the directive for where bytes go /
+  the contract digest); in the state file they are **ground truth** (the resolved
+  location / the actual digest). The duplication is intentional and harmless — the
+  state file is derived and disposable. (Fully separating directive-from-resolved
+  and expected-from-actual is a future cleanup; see `ROADMAP.md`.)
+- The state file is a **defined structural sibling format** with its own
+  `_META.schema`. A tool that implements neither `inspect` nor produced caching
+  need not read it. Earlier shapes (`_META.schema` 1–4: the produced-only flat and
+  nested `cached.toml` forms) are still **read and migrated forward**, and
+  `cached.toml` is the recognized legacy name. A produced artifact's
+  `metadata.toml` carries a `state_file` back-pointer to the file that inventories
+  it (audit only).
 
-### Index lifecycle (self-healing)
+#### The state file is read-only inventory (the gold standard)
 
-`cached.toml` is **not** authoritative for cache validity — the on-disk
-`config.toml` (the re-hashable key table) is. The index is a transparency view
-that a conforming tool keeps **converging to the set of artifacts present on
-disk**, in both directions, as part of normal produce/load:
+The guiding invariant: **the state file records where things are and is consulted
+to *find* an existing object — it never directs a *write*.** Every
+(re)materialization follows the **current directive** — `datasets_dir` /
+`datacache_dir`, a per-dataset `storage_path`, an explicit
+`@cached(storage_path=…)` — which is the **gold standard**; the recorded location
+only short-circuits the lookup.
 
-- **Register on produce (miss).** A produced artifact is written into
-  `cached.toml` (the entry described above).
-- **Register-if-missing on cache hit.** A hit proves the artifact exists, so the
-  tool ensures its entry is present, **adding it if absent**. The steady state
-  (entry already present) is a cheap **read-only** check — a write happens only
-  in the rare unlisted case — so this does **not** put I/O on the read hot path
-  (unlike the deliberately read-only `last-access`; see *Maintenance*). A
-  consequence: a **deleted or missing `cached.toml` repopulates** as datasets are
-  accessed.
-- **Prune on observed mismatch.** When a tool **observes** that an entry's
-  artifact is no longer on disk (a *stale entry*), it **removes that entry**. A
-  single-dataset operation reconciles only the entry it touched; an `inspect`
-  scan observes every entry and reconciles the whole file. Pruning a stale entry
-  is **bookkeeping, not deletion**: the bytes are already gone, so it does not
-  fall under the "never delete data automatically" rule (*Maintenance*) — that
-  rule protects present cached *bytes*, not dangling *pointers* to absent ones.
+- **Read-resolution checks the state file first.** Resolving where an object lives
+  consults the recorded `storage_path` **ahead of any derivation rule**: if the
+  bytes are actually there (and, for a dataset, checksum-valid when a digest is
+  recorded), that is a hit — no re-derive, no re-download, no recompute. Only on a
+  miss does resolution fall back to the directive-derived path and then fetch or
+  produce. This is how a **moved** object is still found at its new home.
+- **Self-heal is additive, never destructive.** Active resolution refreshes the
+  record to match reality: a *relocated* object (bytes at the derived path, record
+  stale) has its recorded location **refreshed**; an *untracked* object (bytes
+  present, no entry) is **registered**; a *missing* one is **re-materialized at the
+  current directive** and recorded. Because any access that consults the state file
+  and finds nothing proceeds to fetch/produce, resolution can never leave a stale
+  record. The relocate-refresh is the **only** automatic mutation; active
+  resolution **never deletes**.
+- **A deleted or missing state file repopulates** as objects are accessed — it is
+  regenerable by construction.
+- **Concurrency.** Every write **re-reads the file, merges** (additive union,
+  last-writer-wins per object), then writes via a temp file + **atomic rename**, so
+  parallel downloads / produces cannot clobber each other; additive-only updates
+  make the merge conflict-free.
+- **Garbage vs. dirty.** A *malformed* entry that roots nothing (e.g. an
+  instance-less residue from a format change) is corruption, not a
+  tracked-but-missing object — it is **cleaned silently** on read. A well-formed
+  entry whose bytes are merely absent is a *dirty* state (below), surfaced rather
+  than silently dropped.
 
-This completes the orphan picture symmetrically: *present on disk but unlisted* =
-an **orphan** (a hit will register it; otherwise an `inspect`/cleanup candidate);
-*listed but absent from disk* = a **stale entry** (pruned). The net invariant a
-tool maintains is **`cached.toml` ⇒ currently present**.
+#### Dirty states and explicit reconciliation
 
-Index mutations (register / prune) **MUST** use the same atomic-write + lock
-discipline as a produce, and **MUST** be idempotent, so concurrent self-healing
-across processes converges without corruption. The exact timing is
-implementation-defined (a tool MAY check/repair lazily or batch it); only the
-**convergence invariant** is normative.
+The state file is a first-order source of truth for *where objects are*, kept
+**non-destructively** (git-style). A tool MAY classify each object's
+state-vs-disk as **`clean`**, **`missing`** (recorded bytes gone), **`relocated`**
+(recorded at `L`, bytes at the derived path `D`), **`untracked`** (bytes present,
+no entry — an *orphan* for produced artifacts), or **`modified`** (recorded
+`sha256` ≠ actual; the full expected-vs-actual digest treatment is deferred).
+Passive listing only **labels** these states — it never mutates.
+
+Two **explicit, user-invoked** actions reconcile:
+
+- **`--refresh`** — fix the **state file only** (no downloads, no file moves):
+  re-point *relocated* entries to where the bytes actually are, and **drop**
+  *stale / missing* entries. A pure state↔disk reconcile. (Untracked artifacts are
+  picked up by active access, not here.)
+- **`--delete`** — remove the selected objects' **bytes and** their entries; the
+  only byte-removing action.
+
+Removal is therefore **explicit-only**: passive listing and active resolution
+never delete, `--refresh` only edits the record, and `--delete` is the sole byte
+remover.
 
 ### Maintenance (inspect, filter, delete)
 
@@ -892,10 +930,10 @@ see *Why not automatic reachability* below.
 > **Reference CLI (non-normative).** A tool exposes this however fits — like the `@cached`
 > surface, the command shape is per-tool, not part of the spec. The reference design folds
 > it into the existing **`datamanifest list`**: a default summary view with `--field` to pick
-> columns; filter flags over the object fields (`--kind`, `--folder`, `--orphan`,
-> `--older-than`, `--format`, size); and action flags on the selected set — **`--delete`**
-> and optionally **`--move`** (dry-run/confirm by default). There is no separate `gc`
-> command.
+> columns; filter flags over the object fields (`--kind`, `--folder`, `--orphan`, `--dirty`,
+> `--older-than`, `--format`, size); and action flags on the selected set — **`--delete`**,
+> **`--refresh`** (reconcile the state file only), and optionally **`--move`** (dry-run/confirm
+> by default). There is no separate `gc` command.
 
 - **Object fields.** Each stored object — a fetched dataset or a produced artifact — exposes
   a common set of inspectable fields:
@@ -905,7 +943,7 @@ see *Why not automatic reachability* below.
   - `location` — the resolved absolute path on disk;
   - `referenced` — whether a still-present local `.toml` roots it or it is an **orphan**. For
     a produced artifact the match is the full **`(cachetype, version, hash)`** tuple
-    against a `cached.toml` instance, so another project's artifact (in a different folder) is
+    against a state-file `datacache` instance, so another project's artifact (in a different folder) is
     not mistaken for referenced; for a fetched dataset, its key listed in a `datasets.toml`;
   - `format`, `size`, `created`, and a best-effort, filesystem-derived
     **last-access** time (read from `stat`, never written on read; MAY be unknown).
@@ -917,12 +955,19 @@ see *Why not automatic reachability* below.
 - **Filter.** Any field is a filter predicate — `kind = cached`, `folder = <path>`,
   `referenced = false` (orphans), `last-access older than 90d`, `format`, `size` — so the
   user can target, e.g., "orphaned produced artifacts in this folder not accessed in 90 days."
-- **Act on the selection.** Actions operate on **exactly** the filtered set: **`delete`**
-  (remove the objects) and optionally **`move`** (relocate to another folder; the
-  manifest/index still resolves them by key). A tool **MUST NOT** delete everything by
-  default and **MUST NOT** delete as a side effect of any other command; it SHOULD default
-  to a **dry run** and require explicit confirmation. Deletion is always of a user-chosen
-  set, never an automatic sweep.
+- **Act on the selection.** Actions operate on **exactly** the filtered set, uniformly
+  across fetched datasets and produced artifacts: **`delete`** (remove the bytes **and**
+  prune the object's state-file entry) and optionally **`move`** (relocate the bytes and
+  **repoint the recorded `storage_path`** — `datasets.toml` is *not* edited, so a later
+  re-fetch still follows the `datasets_dir` directive; gold standard). A tool **MUST NOT**
+  delete everything by default and **MUST NOT** delete as a side effect of any other
+  command; it SHOULD default to a **dry run** and require explicit confirmation. Deletion is
+  always of a user-chosen set, never an automatic sweep.
+- **Protections (the rule is unchanged, generalized).** Maintenance never touches data the
+  user owns: a fetched dataset whose `storage_path` is a **user-managed exact path** (no
+  `$key`) or that is **`skip_download`** (the URI *is* the file) is reported as *skipped*,
+  never moved or deleted — the same guard already used for deletion, applied to both kinds.
+  Tool-managed (keyed) objects under `datasets_dir` / `datacache_dir` are fair game.
 
 **Both kinds are reclaimable, with different regeneration costs.** Deleting a fetched
 dataset under `datasets/` just means it re-downloads on next use; deleting a produced
@@ -968,7 +1013,7 @@ risks an accidental cross-project wipe because deletion is always an explicit se
 - **The `@cached` macro / decorator API** (Julia macro, Python decorator) is the
   *ergonomic surface* over this model and is **per-language, not normative** — a
   tool exposes it however fits the language. Normative are: the on-disk formats (key hash,
-  `config.toml`, `metadata.toml`, `cached.toml`), the path composition (the `datasets_dir` / `datacache_dir` folders), the identity rules (`cachetype` default + the stable-name requirement; the
+  `config.toml`, `metadata.toml`, the state file `.datamanifest-state.toml`), the path composition (the `datasets_dir` / `datacache_dir` folders), the identity rules (`cachetype` default + the stable-name requirement; the
   `(cachetype, version)` same-process conflict guard; the index lifecycle), and the
   maintenance rules (user-driven; no automatic deletion). *How* a tool derives a default
   `cachetype` or detects the conflict is implementation-defined; *that* it does is not.
@@ -1001,8 +1046,8 @@ the physical root differs. Sync is a transfer between two stores, gated by the o
   is not syncable**, which is exactly why the remote project location never has to be known.
 - **Symmetric.** `push` and `pull` differ only in transfer direction; each side resolves its
   own store identically, so there is no asymmetry between them.
-- **Writes no manifest.** Sync moves bytes only; it never edits `datasets.toml` or
-  `cached.toml` on either end. A transferred object lands in the global store as an
+- **Writes no manifest.** Sync moves bytes only; it never edits `datasets.toml` or the
+  state file on either end. A transferred object lands in the global store as an
   **orphan** (present, unreferenced) — immediately usable via read-resolution, and registered
   by the receiver's normal flow if and when its own project uses it.
 - **Integrity is the transport's** (rsync verifies every file as it copies); the spec adds no
@@ -1059,8 +1104,8 @@ fixture-suite tests tagged for those capabilities.
 | `storage` | Honor the `datasets_dir` / `datacache_dir` folders, `$`-symbol resolution (`$user_data_dir` / `$user_cache_dir` / `$repo` + user-defined, host-aware via `_HOST`), and per-dataset `storage_path` (see Storage). |
 | `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, or Julia `write(...; canonical=true)`). |
 | `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
-| `cache-produce` | **Cache-layer** produce-or-load: function-backed (produced) datasets with parameter-hash keying, optional recipe `version`, the `config.toml` / `metadata.toml` sidecars, materialized under the `datacache_dir` folder (§Produced datasets). Declared by the cache layer, never by the core fetch capability (packaging — separate package or submodule — is unconstrained). |
-| `inspect` | The **user-driven** store-inspection toolkit (§Maintenance): enumerate stored objects (datasets + cached) with their fields (`kind`, `key`/`hash`, `location`, `referenced`/orphan, `format`, `size`, `created`, `last-access`), filter them, and act on a selection (`delete`, optional `move`). There is **no automatic collector**: deletion is always an explicit user selection; `referenced`/`last-access` are advisory. The reference CLI exposes it as `datamanifest list … --delete`. |
+| `cache-produce` | **Cache-layer** produce-or-load: function-backed (produced) datasets with parameter-hash keying, optional recipe `version`, the `config.toml` / `metadata.toml` sidecars, and the state file's `datacache` inventory, materialized under the `datacache_dir` folder (§Produced datasets). Declared by the cache layer, never by the core fetch capability (packaging — separate package or submodule — is unconstrained). |
+| `inspect` | The **user-driven** store-inspection toolkit (§Maintenance): enumerate stored objects (datasets + cached, via the state file `.datamanifest-state.toml`) with their fields (`kind`, `key`/`hash`, `location`, `referenced`/orphan, dirty state, `format`, `size`, `created`, `last-access`), filter them, and act on a selection (`delete`, `refresh`, optional `move`). There is **no automatic collector**: deletion is always an explicit user selection; `referenced`/`last-access` are advisory. The reference CLI exposes it as `datamanifest list … --delete`. |
 | `sync` | Cross-machine transfer (`push` / `pull`) of a stored object between two stores over SSH/rsync, addressed by its machine-independent identifier (`name`/`alias`/`doi`, or `cachetype[/version]/hash`); each end resolves its own store from env + `_HOST` (`$repo` excluded); writes no manifest; integrity via rsync; idempotent (§Cross-machine sync). |
 
 Capabilities are independent — a partial implementation may ship `lang-read` and

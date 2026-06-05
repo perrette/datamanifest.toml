@@ -22,7 +22,8 @@ forward-looking view: what is specified, what is built, and what is deferred.
   `datasets/`/`cached/` prefixes + `_PREFIX`, `scope` + `_SCOPE`, `DATAMANIFEST_DIR`, the
   resolution ladder, hard migration off bare `store` names). Spec: `SCHEMA.md` §Storage.
 - **Build the produce-or-load layer** (one per language) over the core engine —
-  parameter-hash keying + sidecars + recipe `version`, then the `cached.toml` index. Whether
+  parameter-hash keying + sidecars + recipe `version`, then the state file inventory
+  (`.datamanifest-state.toml`, `datacache` namespace). Whether
   it ships as a separate package or an optional submodule is the implementation's call
   (spec-v2.1). Rationale and build order: `design/cached-layer-handoff.md`; packaging:
   `design/package-architecture.md`.
@@ -59,7 +60,7 @@ originate in their host language.
 - **Register-on-arrival for `sync`, and at-rest content verification.** `sync` (spec-v3) is
   deliberately symmetric and manifest-untouching, so a transferred object arrives as an
   orphan and integrity rests on rsync's per-file check. Optional later additions: an opt-in
-  to record a pulled object in the local `cached.toml`/`datasets.toml` (so it shows as
+  to record a pulled object in the local state file (`.datamanifest-state.toml`, so it shows as
   `referenced`), and a content checksum (e.g. a Merkle digest over a directory's files) for
   at-rest verification beyond the transport.
 - **Task-first "cookbook" docs.** The spec is a precise rulebook, but users shouldn't have to
@@ -75,6 +76,14 @@ originate in their host language.
   and expose per-scope **hardlinks or reflink/CoW clones** (Linux `cp --reflink`, APFS clones),
   so scoping stays cheap for large inputs. Pairs with the open question of whether the *datasets*
   default scope should flip from empty/shared to project-id. Deferred.
+- **Finish the spec/state separation.** The state file (`.datamanifest-state.toml`) already
+  splits *expectation* (the committed `datasets.toml`) from *ground truth* (resolved location +
+  actual digest). Today a dataset's `storage_path` and `sha256` still live in **both** files
+  with different meanings (directive/contract vs. resolved/actual) — an intentional, harmless
+  duplication. Deferred cleanups: a defined **expected-vs-actual `sha256`** relationship and
+  re-verification policy (with `skip_checksum`); moving the *resolved* `storage_path` / *actual*
+  `sha256` fully into the state file so `datasets.toml` is pure recipe; **multiple recorded
+  locations** for one object (synced to two places); and the **`modified`** dirty state in full.
 - **Cloud / `fsspec` / CAS backends** — optional per-language extras behind the recipe
   interface, never a core spec contract.
 
@@ -82,7 +91,7 @@ originate in their host language.
 
 - **Machine-readable JSON Schemas** (`schemas/`, spec-v2.1). Declarative
   [JSON Schema](https://json-schema.org/) (draft 2020-12) for all four TOML document types
-  (`manifest`, `cached`, `config`/`metadata` sidecars), one file per spec version
+  (`manifest`, the `state` file, `config`/`metadata` sidecars), one file per spec version
   (`*.v2.1.json`) so older versions stay alongside new ones. They complement — do not
   replace — the prose `SCHEMA.md` and the fixture suite (`tests/`): behavioural rules
   (resolution ladders, hash reproduction, round-trip) stay in the prose and fixtures. See

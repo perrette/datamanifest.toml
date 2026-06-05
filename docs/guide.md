@@ -39,8 +39,9 @@ A complete, mostly-runnable manifest is in [`examples/datasets.toml`](../example
 `datasets.toml` (Python) / `Datasets.toml` (Julia) is a hand-authored TOML file that
 declares a project's data dependencies — the `Project.toml` / `pyproject.toml` analogue for
 data. It is committed, language-agnostic, and never machine-rewritten beyond auto-filled
-checksums. Produced (cached) datasets are **not** listed here; they live in a sibling
-`cached.toml` (see [Produced datasets](#produced-datasets-and-caching)).
+checksums. Produced (cached) datasets are **not** listed here; they are inventoried in the
+git-ignored sibling state file `.datamanifest-state.toml` (see
+[Produced datasets](#produced-datasets-and-caching)).
 
 ```toml
 [_META]
@@ -252,9 +253,12 @@ Beyond *fetching* declared datasets, a tool with the `cache-produce` capability 
 - **Layout:** `<datacache_dir>/<cachetype>/[<version>/]<hash>/<basename>.<ext>`.
   The optional **`version`** is a human-set recipe/code version — a path segment that does
   **not** enter the hash, used to prevent a stale cross-branch hit.
-- **The `cached.toml` index** registers each produced dataset by its portable
-  `cachetype` + `hash` key (never an absolute path) — the `Manifest.toml` analogue. It is
-  gitignored per-machine by default; a project wanting reproducible shared caches may commit it.
+- **The state file (`.datamanifest-state.toml`)** inventories each produced dataset (under
+  `datacache`, keyed `cachetype[@version]` ⇒ `hash` ⇒ artifact directory) alongside fetched
+  datasets (under `datasets`) — a record of *where things actually landed*, never an absolute
+  path you author. It is **git-ignored regenerable state by default** (the data is local and
+  often outside the repo); read-resolution consults it to *find* an object but always writes to
+  the current directive.
 
 ```toml
 # config.toml — written next to the artifact

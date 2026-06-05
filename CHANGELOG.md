@@ -1,5 +1,49 @@
 # Changelog
 
+## spec-v4.1 (schema `_META.schema = 1`) — unreleased
+
+**Unify the produced-only `cached.toml` index into a single git-ignored state file,
+`.datamanifest-state.toml`.** Splits the committed **spec** (`datasets.toml` = *what* to
+track and *how* — the expectation) from **regenerable local state** (where each object
+actually landed — the ground truth). The manifest's `_META.schema` is unchanged (still 1);
+this is a structural change to the sibling index format (its own `_META.schema = 5`).
+
+- **One inventory for both kinds.** The state file records fetched datasets *and* produced
+  artifacts under two top-level namespaces, parallel to the two storage folders:
+  - `datasets`: storage key ⇒ resolved `storage_path` + actual `sha256` (omitted under
+    `skip_checksum`);
+  - `datacache`: `cachetype[@version]` ⇒ a `ref`/`format` recipe + an `instances` table
+    mapping each parameter `hash` to its full artifact directory (`@` is the reserved version
+    separator). **Params leave the index** — they live in each artifact's `config.toml`.
+- **Read-only inventory; the directive is the gold standard.** The state file records *where
+  things are* and is consulted to *find* an existing object — it **never directs a write**.
+  Every (re)materialization follows the current directive (`datasets_dir` / `datacache_dir` /
+  per-dataset `storage_path` / `@cached(storage_path=…)`). Read-resolution checks the recorded
+  location **first**, ahead of any derivation rule, so a moved object is found at its new home.
+- **Git-ignored by default.** Artifacts are local, often outside the repo, and not
+  re-fetchable, so the inventory is regenerable per-machine state — not a committed
+  reproducibility lock. (A shared-drive project MAY track it, but that is a user's setup, not
+  the design intent.) The `Manifest.toml`-analogue / "applications commit it" framing is dropped.
+- **Self-heal additive, removal explicit-only.** Active resolution refreshes a *relocated*
+  record, registers an *untracked* object, and re-materializes a *missing* one — but **never
+  deletes**. A tool MAY label each object `clean` / `missing` / `relocated` / `untracked` /
+  `modified`; passive listing only labels. Two explicit user actions reconcile: `--refresh`
+  (fix the state file only — re-point relocated, drop stale) and `--delete` (remove bytes +
+  entry, the sole byte remover). Maintenance (`--delete` / `--move`) now spans fetched datasets
+  too, with the user-managed-path / `skip_download` skip-guard generalized to both kinds.
+- **Concurrency.** Every write re-reads + merges (additive union, last-writer-wins per object) +
+  atomic-renames, so parallel downloads/produces don't clobber each other.
+- **Schema.** New `state.v4.json` validates the state file (`datasets` + `datacache`,
+  `_META.schema = 5`), superseding `cached.v3.json` (kept for the legacy `cached.toml` shapes,
+  `_META.schema` 1–4, which conforming readers migrate forward; `cached.toml` is the recognized
+  legacy name). `metadata-sidecar.v3.json` renames the `cached_toml` back-pointer to
+  `state_file`.
+- **Spec vs. state — same fields, two meanings.** A dataset's `storage_path` and `sha256` live
+  in *both* files on purpose: in `datasets.toml` they are the expectation (directive / contract),
+  in the state file the ground truth (resolved / actual). Intentional, harmless duplication;
+  fully separating them (expected-vs-actual `sha256`, resolved `storage_path`, multiple recorded
+  locations, the `modified` state) is deferred — see `ROADMAP.md`.
+
 ## spec-v4 (schema `_META.schema = 1`) — unreleased
 
 A **breaking storage-layout revision** that radically simplifies storage to **two paths** and

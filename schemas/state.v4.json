@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/state.v4.json",
+  "title": "Local state file (.datamanifest-state.toml) — spec-v4, schema 5",
+  "description": "JSON Schema for the JSON projection of a .datamanifest-state.toml state file. Parse the TOML to JSON, then validate. The state file is a git-ignored, regenerable per-machine inventory of where each materialized object actually landed: fetched datasets under the `datasets` namespace (storage key -> resolved storage_path + actual sha256) and produced artifacts under `datacache` (cachetype[@version] -> instances mapping a parameter hash to its full artifact directory). It records ground truth (where bytes are), never directives — writes always follow the manifest's current directive. Earlier produced-only `cached.toml` shapes (_META.schema 1-4) are read and migrated forward; this validates the canonical written form, schema 5.",
+  "type": "object",
+  "required": ["_META"],
+  "properties": {
+    "_META": {
+      "type": "object",
+      "properties": {
+        "schema": { "const": 5 }
+      },
+      "required": ["schema"],
+      "additionalProperties": true
+    },
+    "datasets": {
+      "type": "object",
+      "description": "Fetched datasets, keyed by storage key (host/path[#version]) — the dataset's machine-independent identity.",
+      "additionalProperties": { "$ref": "#/$defs/dataset" }
+    },
+    "datacache": {
+      "type": "object",
+      "description": "Produced artifacts, keyed by `<cachetype>[@<version>]`. `@` is the reserved version separator; a bare key is the unversioned recipe, so a cachetype may not contain `@`.",
+      "additionalProperties": { "$ref": "#/$defs/recipe" }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "dataset": {
+      "type": "object",
+      "description": "A fetched dataset's resolved on-disk record. `storage_path` is where the bytes actually are (ground truth, not the directive); `sha256` is the actual digest of what is on disk, omitted when the dataset sets skip_checksum.",
+      "properties": {
+        "storage_path": { "type": "string", "minLength": 1, "description": "Resolved on-disk location (relative to the manifest dir when under the repo, else absolute)." },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Lowercase 64-hex SHA-256 actually computed from the bytes on disk. Omitted under skip_checksum."
+        }
+      },
+      "required": ["storage_path"],
+      "additionalProperties": true
+    },
+    "recipe": {
+      "type": "object",
+      "description": "A produced-dataset recipe, identified by its `<cachetype>[@<version>]` table key (never by absolute path). Recipe-level ref/format are refreshed on register (not hash inputs). Params are NOT stored here — they live in each artifact's config.toml sidecar.",
+      "properties": {
+        "ref": { "type": "string", "description": "The producing module:function reference (refreshed across a refactor)." },
+        "format": { "type": "string" },
+        "instances": {
+          "type": "object",
+          "description": "One entry per produced variation: parameter hash -> the full artifact directory it was written to (hash included).",
+          "propertyNames": { "pattern": "^[0-9a-f]{64}$" },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The artifact directory the variation was written to (ground truth; relative to the manifest dir when under the repo, else absolute)."
+          }
+        }
+      },
+      "required": ["instances"],
+      "additionalProperties": true
+    }
+  }
+}

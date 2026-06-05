@@ -4,7 +4,8 @@
 # dataset comes from, how to verify it, and how each language loads it. It is the
 # Project.toml / pyproject.toml analogue for data — committed, language-agnostic,
 # and never machine-rewritten beyond auto-filled checksums. (Produced, cached
-# datasets are NOT listed here; they live in a sibling cached.toml.)
+# datasets are NOT listed here; they are inventoried in the git-ignored sibling
+# state file .datamanifest-state.toml.)
 #
 # The datasets below the first divider are real, public, and fetch out of the box.
 # The ones below the second divider are illustrative — they show the _LANG

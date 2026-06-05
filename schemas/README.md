@@ -27,7 +27,7 @@ python -c 'import tomllib,json,sys; json.dump(tomllib.load(open(sys.argv[1],"rb"
 | File | Validates | Capability |
 |---|---|---|
 | `manifest.v3.json` | the hand-authored manifest (`datasets.toml`) | core |
-| `cached.v3.json` | the produced-dataset index (`cached.toml`) | `inspect` |
+| `state.v4.json` | the local state file (`.datamanifest-state.toml`) | `inspect` / `cache-produce` |
 | `config-sidecar.v3.json` | a produced artifact's `config.toml` (re-hashable key table) | `cache-produce` |
 | `metadata-sidecar.v3.json` | a produced artifact's `metadata.toml` (provenance) | `cache-produce` |
 
@@ -36,9 +36,13 @@ simplifies storage to two folder fields — `[_STORAGE].datasets_dir` / `datacac
 (relative ⇒ repo-relative, local by default) — plus reusable `$`-symbols
 (`$user_data_dir` / `$user_cache_dir` / `$repo` + user-defined) and `_HOST` host-overrides; a
 dataset's `path` replaces the former `store` / `local_path`. There is no scope, prefix, or
-appname. `cached.v3.json` validates the **nested schema-2** `cached.toml` (`_META.schema = 2`:
-an array of `produced` recipes keyed by `(cachetype, version)`, each with per-variation
-`instances`); the flat schema-1 form is still read by tools but always rewritten as schema 2.
+appname. `state.v4.json` validates the **state file** (`_META.schema = 5`): a git-ignored,
+regenerable per-machine inventory of *where each object actually landed* — fetched datasets
+under `datasets` (key ⇒ resolved `storage_path` + actual `sha256`) and produced artifacts
+under `datacache` (`cachetype[@version]` ⇒ `instances` mapping a parameter hash to its
+artifact directory). It supersedes the produced-only `cached.toml` index; the earlier
+`cached.v3.json` (nested schema-2 `cached.toml`) is kept for tools that still read the legacy
+shapes (`_META.schema` 1–4), which conforming readers migrate forward.
 
 ## Versioning
 
