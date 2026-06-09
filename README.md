@@ -29,7 +29,7 @@ are tracked by spec tags (currently `spec-v4`).
   unpacks the archive, and hands your code the local path — re-fetching only when it's
   missing. Add a `format` and it loads the data into a native object too.
 - **Portable, local-by-default storage.** Fetched datasets and produced artifacts live in
-  repo-relative folders out of the box, and can be centralized per host via
+  repo-relative folders by default, and can be centralized per host via
   `[_STORAGE._HOST]` glob rules without touching the rest of the manifest.
 - **Produce-or-load caching.** An optional companion layer keys produced artifacts by a
   hash of their parameters, so derived data is rebuilt only when its inputs change.
@@ -94,7 +94,7 @@ so both read the same `datamanifest.toml`.
 
 ## From the same author
 
-A small toolkit for a Markdown-first scientific workflow.
+A few related tools I maintain, useful in a Markdown-based scientific workflow.
 
 **Scientific writing & data**
 
