@@ -5,6 +5,10 @@
   </picture>
 </p>
 
+[![docs](https://img.shields.io/badge/docs-perrette.github.io%2Fdatamanifest.toml-blue)](https://perrette.github.io/datamanifest.toml/)
+[![spec](https://img.shields.io/badge/spec-spec--v4-informational)](https://perrette.github.io/datamanifest.toml/schema/)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 A small, normative specification for the **`datamanifest.toml`** manifest format — a
 TOML file that declares the data dependencies of a scientific project (each dataset's
 source URI, checksum, version, format, and how to fetch and load it).
@@ -16,10 +20,44 @@ checksum, extract, load), portable storage, per-language bindings, and an option
 produce-or-load cache layer. The data model is `_META.schema = 1`; behavioural revisions
 are tracked by spec tags (currently `spec-v4`).
 
-➡️ **[Reference guide: `docs/guide.md`](docs/guide.md)** — readable walkthrough of every aspect  
-➡️ **[Normative spec: `SCHEMA.md`](SCHEMA.md)**  
-➡️ **[Conformance fixtures: `tests/fixtures/`](tests/fixtures/README.md)**  
-➡️ **[Changelog: `CHANGELOG.md`](CHANGELOG.md)**
+<!-- intro-start -->
+- **One manifest, many languages.** A single `datasets.toml` declares each dataset's
+  source, checksum, format, and how to fetch and load it — and the same file is read
+  unchanged by tools in [Python](https://github.com/perrette/datamanifest) and
+  [Julia](https://github.com/awi-esc/DataManifest.jl).
+- **Fetch, verify, extract, load.** A tool downloads the dataset, verifies its checksum,
+  unpacks the archive, and hands your code the local path — re-fetching only when it's
+  missing. Add a `format` and it loads the data into a native object too.
+- **Portable, local-by-default storage.** Fetched datasets and produced artifacts live in
+  repo-relative folders out of the box, and can be centralized per host via
+  `[_STORAGE._HOST]` glob rules without touching the rest of the manifest.
+- **Produce-or-load caching.** An optional companion layer keys produced artifacts by a
+  hash of their parameters, so derived data is rebuilt only when its inputs change.
+- **Normative and conformance-tested.** The prose spec is the source of truth, backed by
+  machine-readable JSON Schemas and a shared fixture suite both implementations run.
+<!-- intro-end -->
+
+## 📖 Documentation
+
+Full documentation lives at **<https://perrette.github.io/datamanifest.toml/>**:
+
+- [Quickstart](https://perrette.github.io/datamanifest.toml/quickstart/)
+- Guide: [the manifest in one minute](https://perrette.github.io/datamanifest.toml/guide/manifest/),
+  [declaring datasets](https://perrette.github.io/datamanifest.toml/guide/datasets/),
+  [language bindings](https://perrette.github.io/datamanifest.toml/guide/bindings/),
+  [resolution](https://perrette.github.io/datamanifest.toml/guide/resolution/),
+  [storage](https://perrette.github.io/datamanifest.toml/guide/storage/),
+  [caching](https://perrette.github.io/datamanifest.toml/guide/caching/),
+  [maintenance](https://perrette.github.io/datamanifest.toml/guide/maintenance/),
+  [sync](https://perrette.github.io/datamanifest.toml/guide/sync/),
+  [conformance](https://perrette.github.io/datamanifest.toml/guide/conformance/),
+  [migration](https://perrette.github.io/datamanifest.toml/guide/migration/)
+- [Schema specification](https://perrette.github.io/datamanifest.toml/schema/) (the normative `SCHEMA.md`)
+- [JSON Schemas](https://perrette.github.io/datamanifest.toml/schemas/) ·
+  [Examples](https://perrette.github.io/datamanifest.toml/examples/) ·
+  [Conformance fixtures](https://perrette.github.io/datamanifest.toml/fixtures/)
+- [Roadmap](https://perrette.github.io/datamanifest.toml/roadmap/) ·
+  [Changelog](https://perrette.github.io/datamanifest.toml/changelog/)
 
 ## Quick look
 
@@ -34,132 +72,18 @@ extract = true
 
 A tool downloads it, verifies the checksum, unpacks the archive, and hands your code the
 local path — re-fetching only when it's missing. Add a `format` and it loads the data into a
-native object too; the same file is read unchanged by tools in different languages.
-
-## Example
-
-A manifest declares each dataset's source, checksum, format, and how each language loads
-it. Below is a representative `datasets.toml`; the full, runnable file lives at
-**[`examples/datasets.toml`](examples/datasets.toml)** (both implementations can load it
-directly).
-
-```toml
-[_META]
-schema = 1
-
-# Project-wide default loaders, per language: format -> module:function.
-[_LANG.python.loaders]
-csv = "pandas.io.parsers:read_csv"
-nc  = "xarray:open_dataset"
-
-[_LANG.julia.loaders]
-csv = "CSV:read"
-nc  = "NCDatasets:Dataset"
-
-# A DOI archive: downloaded, checksum-verified, then unpacked.
-[herzschuh2023]
-uri         = "https://doi.pangaea.de/10.1594/PANGAEA.930512?format=zip"
-sha256      = "4e40e43ac0f1ddea125cb5314eee46e332aacbcb18aff7efbf59f1d8b1d84a13"
-doi         = "10.1594/PANGAEA.930512"
-format      = "zip"
-extract     = true
-description = "Pollen-based climate reconstructions (Herzschuh et al., 2023)"
-
-# A per-dataset loader override. A binding is a "module:function" string …
-[ocean_temp]
-uri    = "https://example.com/argo_ocean_temp.nc"
-sha256 = "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
-format = "nc"
-
-[ocean_temp._LANG.python]
-loader = "myclimate.loaders:load_argo"        # string form (no arguments)
-
-# … or a { ref, args, kwargs } table when the call needs arguments.
-[esm_5x5]
-uri    = "https://example.com/esm_5x5.nc"
-sha256 = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
-format = "nc"
-
-[esm_5x5._LANG.julia.loader]
-ref    = "MyClimate:load_esm"
-args   = ["$path"]
-kwargs = { grid = "5x5", skip_models = ["CESM.*"] }
-
-# No public URI: built by a shell command. `shell` is the language-agnostic
-# fetcher — the same command for every tool — and uses $var substitutions.
-[model_output]
-sha256 = "e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
-format = "nc"
-shell  = "make model_output OUTPUT=$download_path"
-
-# A re-fetchable input parked on the OS-reclaimable cache folder.
-[reanalysis]
-uri        = "https://example.com/era5_slice.nc"
-sha256     = "f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1"
-format     = "nc"
-storage_path = "$user_cache_dir/$key"
-```
-
-A binding (a `fetcher`/`loader`, or a `[_LANG.<lang>.loaders]` entry) is either a
-`module:function` **string** or a `{ ref, args, kwargs }` **table** — the string being a
-shorthand for a ref with no arguments.
-
-Single-language projects can drop the `_LANG.<lang>` wrapper entirely: a **bare**
-`fetcher`/`loader` on the dataset (or a top-level `[_LOADERS]` map) is read as the running
-tool's own language. A bare binding is *present* for that language, so a failure to resolve
-is an error (not a silent fallback); use explicit `[_LANG.<lang>]` for multi-language
-manifests, which other languages correctly skip.
-
-```toml
-[sea_ice]
-uri    = "https://example.com/sea_ice.nc"
-format = "nc"
-loader = "myclimate.loaders:load_sea_ice"   # no [._LANG.python] — own language assumed
-```
-
-## Storage layout
-
-Storage is **two paths**: where fetched datasets go (`datasets_dir`) and where the produced
-cache goes (`datacache_dir`). Both **default to local, repo-relative folders** — `./datasets/`
-and `./cached/` — so out of the box everything is local and visible, nothing derived. A
-fetched dataset lands at `<datasets_dir>/<key>`, a produced artifact at
-`<datacache_dir>/<cachetype>/[<version>/]<hash>/`.
-
-To centralize, point the two fields wherever you like — they can use `$user_data_dir` /
-`$user_cache_dir` (the machine's data/cache dirs, from `platformdirs`) and resolve **per host**
-via `[_STORAGE._HOST]`. For example — a shared downloads pool, plus a per-project, versioned
-cache, with different roots on laptop vs cluster:
-
-```toml
-[_STORAGE]
-# defaults (e.g. your laptop)
-datasets_dir  = "$user_data_dir/all-project-data"
-datacache_dir = "$user_cache_dir/myproj/2025.1"
-
-[_STORAGE._HOST."login*.hpc.edu"]   # on the cluster login nodes, different roots
-datasets_dir  = "/data/all-project-data"
-datacache_dir = "/work/$USER/myproj/2025.1"
-```
-
-On the cluster this gives:
-
-- fetched  → `/data/all-project-data/<key>`
-- produced → `/work/<user>/myproj/2025.1/<cachetype>/<hash>/…`
-
-and on the laptop the same under `$user_data_dir/all-project-data/` and
-`$user_cache_dir/myproj/2025.1/`. The `myproj` and `2025.1` are just literal path parts you
-chose — there is no scope, prefix, or derived name; the folder you set *is* the location. Only
-the roots vary per host via `[_STORAGE._HOST.<glob>]`; the two env vars
-`DATAMANIFEST_DATASETS_DIR` / `DATAMANIFEST_DATACACHE_DIR` override them. (`2025.1` here is your
-own label, distinct from datamanifest's per-recipe `version`, which nests at
-`<cachetype>/<version>/<hash>`.) A single dataset can be placed elsewhere with a per-dataset
-`storage_path`. See [SCHEMA.md §Storage](SCHEMA.md#storage).
+native object too; the same file is read unchanged by tools in different languages. The full,
+runnable manifest is at
+[`examples/datasets.toml`](https://github.com/perrette/datamanifest.toml/blob/main/examples/datasets.toml),
+and the [quickstart](https://perrette.github.io/datamanifest.toml/quickstart/) walks through a
+fuller example.
 
 ## Implementations
 
 Two implementations track the spec in parallel and on equal footing. Julia was the
 initial reference, but they now evolve together, sharing the same conformance fixtures
-(`tests/fixtures/`); the **command-line tool ships with the Python package**.
+([`tests/fixtures/`](https://github.com/perrette/datamanifest.toml/tree/main/tests/fixtures));
+the **command-line tool ships with the Python package**.
 
 | Language | Repository | Description |
 |---|---|---|
