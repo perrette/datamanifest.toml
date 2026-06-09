@@ -80,14 +80,16 @@ fuller example.
 
 ## Implementations
 
-Two implementations track the spec in parallel and on equal footing. Julia was the
-initial reference, but they now evolve together, sharing the same conformance fixtures
-([`tests/fixtures/`](https://github.com/perrette/datamanifest.toml/tree/main/tests/fixtures));
-the **command-line tool ships with the Python package**.
+The Python package [`perrette/datamanifest`](https://github.com/perrette/datamanifest) is
+the **reference implementation** and ships the `datamanifest` command-line tool. A Julia
+port, [`DataManifest.jl`](https://github.com/awi-esc/DataManifest.jl), tracks the same spec
+and shares the conformance fixtures
+([`tests/fixtures/`](https://github.com/perrette/datamanifest.toml/tree/main/tests/fixtures)),
+so both read the same `datamanifest.toml`.
 
 | Language | Repository | Description |
 |---|---|---|
-| Python | [perrette/datamanifest](https://github.com/perrette/datamanifest) | Download, verify, extract, and load datasets declared in a manifest; uses entry-point loader references instead of inline code execution. Provides the **`datamanifest` command-line tool**. |
+| Python *(reference)* | [perrette/datamanifest](https://github.com/perrette/datamanifest) | **The reference implementation.** Download, verify, extract, and load datasets declared in a manifest; uses entry-point loader references instead of inline code execution. Provides the **`datamanifest` command-line tool**. |
 | Julia | [awi-esc/DataManifest.jl](https://github.com/awi-esc/DataManifest.jl) | Download, verify, extract, and load datasets declared in a manifest, with a Julia-native API. |
 
 ## From the same author
