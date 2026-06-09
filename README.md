@@ -90,6 +90,21 @@ the **command-line tool ships with the Python package**.
 | Python | [perrette/datamanifest](https://github.com/perrette/datamanifest) | Download, verify, extract, and load datasets declared in a manifest; uses entry-point loader references instead of inline code execution. Provides the **`datamanifest` command-line tool**. |
 | Julia | [awi-esc/DataManifest.jl](https://github.com/awi-esc/DataManifest.jl) | Download, verify, extract, and load datasets declared in a manifest, with a Julia-native API. |
 
+## From the same author
+
+A small toolkit for a Markdown-first scientific workflow.
+
+**Scientific writing & data**
+
+- [**texmark**](https://perrette.github.io/texmark/) — write scientific articles in Markdown and submit them to any journal (Markdown → LaTeX/PDF).
+- [**papers**](https://perrette.github.io/papers/) — command-line BibTeX bibliography and PDF library manager.
+- [**datamanifest**](https://perrette.github.io/datamanifest/) — declarative, reproducible dataset management. *(See also the [datamanifest.toml](https://perrette.github.io/datamanifest.toml/) format spec and the [DataManifest.jl](https://awi-esc.github.io/DataManifest.jl/) Julia port.)*
+
+**Voice helpers** — handy for dictating and proofreading drafts by ear
+
+- [**scribe**](https://perrette.github.io/scribe/) — speech-to-text dictation (Whisper).
+- [**bard**](https://perrette.github.io/bard/) — text-to-speech reader (Kokoro / Piper).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
