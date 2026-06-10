@@ -1,5 +1,22 @@
 # Changelog
 
+## spec-v4.4 (schema `_META.schema = 1`) — unreleased
+
+**Checksums carry their algorithm.** A new `checksum` field replaces the bare `sha256`
+field with a pooch-style **`<algo>:<hex>`** value (`sha256:…`, `md5:…`; a bare hex string
+is read as `sha256`). Additive and backward-compatible — no `_META.schema` change.
+
+- **`checksum` (new field).** Used for **both** fetch-time verification and change
+  detection, in the algorithm it names. Empty ⇒ a tool computes the digest (as `sha256:`)
+  on first download/adoption and writes it back. A tool MUST NOT silently rewrite a
+  declared non-`sha256` digest to `sha256`. New *Checksums* section in `SCHEMA.md`.
+- **Why an algorithm prefix.** Data repositories publish digests in different algorithms
+  (Zenodo/PANGAEA/DVC commonly **md5**). Carrying `md5:…` lets a tool verify the published
+  digest directly instead of declaring no checksum and re-hashing after download.
+- **`sha256` is now a legacy alias.** Readers MUST accept `sha256 = "<hex>"` and treat it
+  as `checksum = "sha256:<hex>"`; writers SHOULD emit `checksum`. A tool upgrades a
+  manifest in place the next time it writes the file (replacing `sha256` with `checksum`).
+
 ## spec-v4.3 (schema `_META.schema = 1`) — unreleased
 
 **Remote sources** — object-store download schemes, a `lazy_access` mode for never-materialized

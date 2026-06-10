@@ -65,9 +65,9 @@ Declare a dataset — its source and checksum — in `datasets.toml`:
 
 ```toml
 ["jesstierney/lgmDA"]
-uri     = "https://github.com/jesstierney/lgmDA/archive/refs/tags/v2.1.zip"
-sha256  = "da5f85235baf7f858f1b52ed73405f5d4ed28a8f6da92e16070f86b724d8bb25"
-extract = true
+uri      = "https://github.com/jesstierney/lgmDA/archive/refs/tags/v2.1.zip"
+checksum = "sha256:da5f85235baf7f858f1b52ed73405f5d4ed28a8f6da92e16070f86b724d8bb25"
+extract  = true
 ```
 
 A tool downloads it, verifies the checksum, unpacks the archive, and hands your code the

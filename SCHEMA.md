@@ -64,13 +64,13 @@ csv = "CSV:read"
 nc  = "NCDatasets:Dataset"
 
 [foo]
-uri    = "https://example.com/foo.csv"
-sha256 = "abc123"
-format = "csv"
+uri      = "https://example.com/foo.csv"
+checksum = "sha256:abc123"
+format   = "csv"
 
 [bar]
-sha256 = "def456"
-format = "nc"
+checksum = "sha256:def456"
+format   = "nc"
 shell  = "make-bar -o $download_path"   # language-agnostic shell fetcher
 
 [bar._LANG.julia]
@@ -101,7 +101,8 @@ Types are TOML types (`string`, `array of string`, `bool`).
 | `description` | string | `""` | Human-readable description (replaces TOML comments). |
 | `key` | string | `""` | Storage key (relative path under the datasets folder). Derived from host + path + version when absent. |
 | `storage_path` | string | `$datasets_dir/$key` | **Path expression** for where this dataset lives on disk, overriding the default. May interpolate `$`-symbols (`$datasets_dir`, `$key`, `$user_data_dir`, `$scratch`, …), `$USER`/env, and `~`; relative ⇒ resolved against the project root. Containing **`$key`** ⇒ a tool-managed keyed location; an **exact path without `$key`** ⇒ a user-managed location used verbatim that maintenance never touches. Generalizes the former `local_path` and subsumes the former `store`. See Storage. Honored under the `storage` capability; other tools preserve it verbatim. |
-| `sha256` | string | `""` | Expected SHA-256 of the downloaded file/folder. Auto-filled on first successful download and verified at fetch time; **not** re-verified on every load (re-verification is opt-in). |
+| `checksum` | string | `""` | Expected content digest of the downloaded file/folder as **`<algo>:<hex>`** (e.g. `sha256:abc…`, `md5:…`); a bare hex value with no `algo:` prefix means `sha256`. Auto-filled (as `sha256:`) on first successful download and verified — in the declared algorithm — at fetch time; **not** re-verified on every load (re-verification is opt-in). See *Checksums*. |
+| `sha256` *(legacy)* | string | `""` | **Deprecated alias** for `checksum`, superseded by it. Readers MUST accept `sha256 = "<hex>"` and treat it as `checksum = "sha256:<hex>"`; writers SHOULD emit `checksum`. |
 | `skip_checksum` | bool | `false` | Disable checksum verification for this dataset. |
 | `skip_download` | bool | `false` | **Management mode** — treat the dataset as a *passive, externally-managed dependency*: it is **not** downloaded, **not** checksum-verified, and **never** moved or deleted by maintenance; the documented `uri`/path is returned as-is. For data the user provides and maintains (e.g. a large shared archive that should not be fetched over the network). Distinct from `lazy_access` — this is about *who manages the bytes*, not *how they are read*. |
 | `lazy_access` | bool | `false` | **Access mode** — access the dataset *in place* instead of materializing a local copy: the `uri` is handed to a **loader** that opens it where it lives (typically a remote object store), with **no local copy, no checksum, and no state-file record**. Requires a loader (a bare `lazy_access` with no loader is an **error**). The access mechanism (streaming, mount, FUSE, …) is **implementation-defined** — the spec fixes only that the bytes are not materialized. Distinct from `skip_download` (a management mode); the two are independent and not meant to combine. |
@@ -120,6 +121,31 @@ candidates — never a silent first-match. This matters because a `doi` may be s
 several datasets (e.g. one archive split into parts), and acting on an arbitrary one of *N*
 is a correctness footgun. (The same rule governs sync addressing, where an ambiguous id
 requires an explicit `--batch`; see *Cross-machine sync*.)
+
+## Checksums
+
+The `checksum` field pins a dataset's content as **`<algo>:<hex>`** — a hash
+algorithm name, a colon, then the lower-case hex digest:
+
+```toml
+checksum = "sha256:da5f85235baf7f858f1b52ed73405f5d4ed28a8f6da92e16070f86b724d8bb25"
+checksum = "md5:5df2d37b8ab9e5a13bfd444caf972dd8"
+```
+
+- **Algorithms.** `sha256` (default and recommended), plus any other algorithm both
+  the writer and reader implement (`md5`, `sha1`, `sha512`, …). A value with **no
+  `algo:` prefix** is read as `sha256`, so a bare 64-char hex string stays valid.
+  Non-`sha256` algorithms exist so a digest published by the data source (e.g. an
+  `md5` from a data repository) can be carried and verified without re-hashing.
+- **One algorithm per dataset.** `checksum` is used for **both** fetch-time
+  verification and change detection, in the algorithm it names. A tool MUST NOT
+  silently replace a declared non-`sha256` digest with a `sha256` one.
+- **Auto-fill.** When `checksum` is empty, a tool computes the digest (as `sha256:`)
+  on first successful download/adoption and writes it back.
+- **Legacy `sha256`.** A `sha256 = "<hex>"` key is the deprecated spelling; readers
+  MUST treat it as `checksum = "sha256:<hex>"`. This is additive and
+  backward-compatible (no `_META.schema` bump): a tool upgrades a manifest in place
+  the next time it writes the file, replacing `sha256` with `checksum`.
 
 ## Language bindings (`_LANG`)
 

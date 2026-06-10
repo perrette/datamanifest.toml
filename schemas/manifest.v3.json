@@ -129,10 +129,15 @@
         "description": { "type": "string" },
         "key": { "type": "string" },
         "storage_path": { "type": "string", "description": "Path expression for where this dataset lives on disk (default $datasets_dir/$key). Contains $key => keyed/tool-managed; exact path without $key => user-managed, untouched by maintenance. Generalizes the former local_path and subsumes the former store. (Not `path`, which is the URI's parsed path component.)" },
+        "checksum": {
+          "type": "string",
+          "pattern": "^$|^([0-9a-fA-F]{32,128})$|^[a-z0-9]+:[0-9a-fA-F]+$",
+          "description": "Expected content digest as <algo>:<hex> (e.g. sha256:..., md5:...); a bare hex value is read as sha256. Used for both fetch-time verification and change detection, in the declared algorithm. Empty => computed as sha256: on first download/adoption. Supersedes the legacy `sha256` field."
+        },
         "sha256": {
           "type": "string",
           "pattern": "^([0-9a-fA-F]{64})?$",
-          "description": "Empty, or a 64-hex SHA-256 digest."
+          "description": "Deprecated legacy alias for `checksum`: a 64-hex SHA-256 digest, read as checksum = \"sha256:<hex>\". Writers should emit `checksum` instead."
         },
         "skip_checksum": { "type": "boolean" },
         "skip_download": { "type": "boolean", "description": "Management mode: a passive, externally-managed dependency — not downloaded, not verified, never touched by maintenance; the uri/path is returned as-is. Distinct from lazy_access." },
