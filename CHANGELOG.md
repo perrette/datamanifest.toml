@@ -1,6 +1,6 @@
 # Changelog
 
-## spec-v4.4 (schema `_META.schema = 1`) — unreleased
+## spec-v4.4 (schema `_META.schema = 1`)
 
 **Checksums carry their algorithm.** A new `checksum` field replaces the bare `sha256`
 field with a pooch-style **`<algo>:<hex>`** value (`sha256:…`, `md5:…`; a bare hex string
