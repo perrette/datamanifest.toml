@@ -11,6 +11,7 @@
   "storage": {
     "datasets_dir": "$user_data_dir/proj",
     "datacache_dir": "cached",
+    "project": "demo",
     "symbols": ["scratch"],
     "host_patterns": ["login*.hpc.edu"],
     "storage_paths": {

@@ -43,9 +43,10 @@ A v1 manifest is a TOML document with:
   *Language-implicit bindings*).
 - **`[_STORAGE]`** — optional storage configuration: the two folder fields
   (`datasets_dir` / `datacache_dir`), optional read-pool lists (`datasets_pools` /
-  `datacache_pools`), reusable `$`-symbols (predefined `$user_data_dir`
-  / `$user_cache_dir` / `$repo` plus user-defined keys), and the `_HOST` host-override
-  sub-table. See Storage.
+  `datacache_pools`), the `project` field, reusable `$`-symbols (predefined `$user_data_dir`
+  / `$user_cache_dir` / `$repo` / `$project` plus user-defined keys), and the `_HOST`
+  host-override sub-table. The same shape is read from two optional per-machine config
+  files. See Storage.
 - **`[_LOADERS]`** — a language-implicit `format → binding` loaders map (tolerated; the
   bare counterpart of `[_LANG.<self>.loaders]`). See *Language-implicit bindings*.
 
@@ -392,18 +393,35 @@ capability; the `delegate` field / `--delegate` toggles it.
 ## Storage
 
 Storage reduces to **two paths**: where fetched datasets go, and where the produced cache
-goes. Both are set in `[_STORAGE]` and **default to local, repo-relative folders**, so a
-casual user gets visible `./datasets/` and `./cached/` with zero configuration and nothing
-derived:
+goes. Both are configurable — in the manifest's `[_STORAGE]`, in a per-machine config file,
+or by environment (see *Scoped configuration*) — and **default to machine-global,
+platform-derived folders**, so with zero configuration the repository holds only the
+manifest and the git-ignored `.datamanifest/` directory:
 
 ```toml
-[_STORAGE]
-datasets_dir  = "datasets"     # fetched datasets (default; relative => <repo>/datasets/)
-datacache_dir = "cached"       # produced cache   (default; relative => <repo>/cached/)
+datasets_dir  = "$user_data_dir/datamanifest/shared/datasets"            # fetched datasets (default)
+datacache_dir = "$user_cache_dir/datamanifest/projects/$project/cached"  # produced cache (default)
 ```
 
+- **Fetched datasets are shared and keyed.** A dataset key (`host/path[#version]`) is a
+  globally unique content identity, so one shared store deduplicates across projects by
+  construction, and no project name appears in the path. The shared store coincides with a
+  built-in read pool (see *Read pools*), so it self-populates.
+- **The produced cache is per-project.** `<cachetype>[/<version>]/<hash>` is *not* globally
+  unique (two projects can both have a `utils.load@v1`) and a produced artifact carries no
+  content checksum, so artifacts are namespaced under the predefined **`$project`** symbol
+  (see *Symbols*).
+- **The trailing kind segments (`shared/datasets` / `projects/$project/cached`) are
+  load-bearing**, not cosmetic: `$user_data_dir` and `$user_cache_dir` are
+  platform-dependent and often pointed at one folder (e.g. both set to `$scratch`), and the
+  two defaults stay disjoint all the way down. The `shared/` vs `projects/` split also means
+  no project name can ever collide with the shared store.
+- A globally-stored object is **syncable** (see *Cross-machine sync*), so the defaults make
+  both kinds transferable between machines.
 - **Relative ⇒ relative to the project root** (the manifest's directory, `$repo`). Absolute,
-  `~`-, or `$symbol`-rooted paths are used as written.
+  `~`-, or `$symbol`-rooted paths are used as written. Setting `datasets_dir = "datasets"` /
+  `datacache_dir = "cached"` restores the pre-spec-v5 repo-local layout — manifests migrated
+  from spec-v3 pin exactly that explicitly, so their behavior is unchanged.
 - Resulting paths are flat: a fetched dataset lands at `<datasets_dir>/<key>`; a produced
   artifact at `<datacache_dir>/<cachetype>/[<version>/]<hash>/` (see *Produced datasets and
   caching*). No partition, no prefix, no derived name in between — the folder you set **is**
@@ -416,6 +434,47 @@ produced datasets are the cache layer's concern (see *Produced datasets and cach
 core fetch engine's. `[_STORAGE]` and its `_HOST` sub-table are **defined structural keys**: a
 conforming tool parses them identically and preserves them verbatim (a tool without the
 `storage` capability treats the whole table as a preserved unknown).
+
+### Scoped configuration (two config files and the resolution ladder)
+
+Folder directives are inherently per-machine, but the manifest is committed and shared —
+writing a personal absolute path into `[_STORAGE]` leaks one user's layout to every
+collaborator. Two optional config files therefore carry per-machine configuration,
+git-config style:
+
+- **`.datamanifest/config.toml`** — per-checkout, git-ignored. It lives in the
+  **`.datamanifest/`** directory beside the manifest, which also holds the state file (see
+  *The state file*). The rule: **the manifest is the only committed file; `.datamanifest/`
+  is entirely git-ignored.** A tool creates `.datamanifest/.gitignore` containing `*` on
+  first write, so the checkout needs no `.gitignore` edit.
+- **`$XDG_CONFIG_HOME/datamanifest/config.toml`** (default
+  `~/.config/datamanifest/config.toml`) — user-global.
+
+Both files are **`[_STORAGE]`-shaped TOML at the root level**: the folder fields, the pool
+lists, the `project` field, user-defined symbols, and `_HOST.<glob>` sub-tables — host
+scoping included because home directories and checkouts commonly live on filesystems shared
+across cluster nodes, so even "personal" config needs per-host values. Readers MUST ignore
+unknown keys (implementations may keep tooling fields there, e.g. a `default_remote` for
+transfer commands). Directives never live in the *state* file: it is regenerable and
+rewritten wholesale on every download/produce, so a hand-set directive there would be
+clobbered.
+
+**The resolution ladder** (per symbol or field; first match wins — the more specific scope
+wins, git-style):
+
+1. `DATAMANIFEST_<NAME>` environment variable;
+2. `.datamanifest/config.toml` — checkout config (`_HOST` glob match first, then base);
+3. manifest `[_STORAGE._HOST.<glob>]` (committed, shared infrastructure);
+4. manifest `[_STORAGE]` base (committed project intent);
+5. `~/.config/datamanifest/config.toml` — user config (`_HOST` glob match first, then base);
+6. built-in defaults.
+
+The committed manifest sits **between** the two config files: the checkout config overrides
+it (a personal, per-clone decision), while the user-global config only fills in what the
+project does not set. A consequence for tools: writing a *default* value into `[_STORAGE]`
+(e.g. on migration) would permanently shadow the user's machine-wide preference, so a tool
+SHOULD write machine-specific directives to the checkout config and SHOULD NOT write
+built-in defaults into the manifest.
 
 ### Read pools (reuse what is already on the machine)
 
@@ -435,9 +494,21 @@ datacache_pools = ["$team/cache"]        # opt-in; no default
   mismatch is skipped, never trusted), the location is **recorded in the state
   file**, and the bytes are used **in place — no copy**. A genuine download still
   goes to `datasets_dir` (the directive — gold standard). **Default when the field
-  is absent:** the built-in well-known pools (`~/.cache/Datasets`,
-  `$user_data_dir/datamanifest/datasets`); an **explicit list** is used verbatim;
-  an **empty list disables** pools.
+  is absent** — the built-in pools, in order:
+
+  ```
+  $repo/datasets
+  $user_data_dir/datamanifest/shared/datasets
+  $user_data_dir/datamanifest/datasets
+  ~/.cache/Datasets
+  ```
+
+  `$repo/datasets` is the pre-spec-v5 repo-local default, so existing repo-local
+  data in unconfigured projects is still found and adopted, never re-downloaded
+  (skipped when no project root is known); the shared store comes next (it is the
+  `datasets_dir` default, so the store doubles as the default read pool and
+  self-populates); the last two are legacy locations. An **explicit list** is used
+  verbatim; an **empty list disables** pools.
 - **`datacache_pools` — produced artifacts.** Symmetric: the produced-dataset
   hit-search also probes each pool at `<pool>/<cachetype>[/<version>]/<hash>`, gated
   by the usual `config.toml` validation, and self-heals the record on a hit. It is
@@ -448,8 +519,9 @@ datacache_pools = ["$team/cache"]        # opt-in; no default
 - **Read-only and host-local.** Pools are never written to and never edit
   `datasets.toml`; they only add candidate *locations* to read-resolution. They are
   resolved like any other path expression (`$`-symbols, `~`, env) and are
-  **host-composable** via `[_STORAGE._HOST]` (a pool list set per hostname glob);
-  environment overrides are `DATAMANIFEST_DATASETS_POOLS` / `DATAMANIFEST_DATACACHE_POOLS`.
+  **host-composable** via `_HOST` (a pool list set per hostname glob, in the
+  manifest or either config file — the ordinary ladder); environment overrides are
+  `DATAMANIFEST_DATASETS_POOLS` / `DATAMANIFEST_DATACACHE_POOLS`.
   Honored under the `storage` capability; other tools preserve the fields verbatim.
 
 ### Symbols
@@ -458,18 +530,24 @@ A folder path may interpolate `$`-symbols: `$NAME` / `${NAME}` expands to a defi
 else to the environment variable `NAME`; `~` expands to home. A symbol is *defined* by a bare
 key and *referenced* with `$`.
 
-**Predefined** (platform-resolved; the names map directly to `platformdirs`):
+**Predefined** (platform- or project-resolved; the two `user_*` names map directly to
+`platformdirs`):
 
 | Symbol | Resolves to |
 |---|---|
 | `$user_data_dir`  | `platformdirs.user_data_dir()` — the machine's user **data** dir (persistent) |
 | `$user_cache_dir` | `platformdirs.user_cache_dir()` — the machine's user **cache** dir (reclaimable) |
 | `$repo`           | the project root (the manifest's directory); the base for relative paths |
+| `$project`        | the project **name** — by default the basename of the project root (falling back to the working directory when no root is known), overridable as a bare `project` field on the resolution ladder (a committed `project = "…"` names the project for every collaborator — shared intent, not a leak) |
 
 They are **bare** — no `datamanifest`/app name is appended; you namespace explicitly
 (`datasets_dir = "$user_data_dir/myproj"`). Every implementation MUST resolve them to the
 identical path and MUST NOT substitute a language-native location (e.g. a package depot), so
 Python and Julia agree. `$USER` and any other environment variable are available too.
+
+Renaming a project (and so changing the derived `$project`) is safe: the state file keeps
+finding existing artifacts at their recorded locations, new writes go under the new name,
+and leftovers under the old name are ordinary maintenance material.
 
 **User-defined** — any other bare key under `[_STORAGE]` is a reusable symbol, and may be made
 **host-specific** in `[_STORAGE._HOST."<glob>"]` (matched against the hostname). The two
@@ -485,25 +563,31 @@ scratch          = "/work/$USER"           # host-specific value
 datasets_dir  = "$user_data_dir/shared" # a field, host-specific
 ```
 
-**Resolution ladder** (symbol or field; first match wins): `DATAMANIFEST_<NAME>` environment
-variable → matching `[_STORAGE._HOST.<glob>].<name>` → base `[_STORAGE].<name>` → (predefined
-symbols only) the platformdirs / project-root default. Host-specificity always lives in the
-**symbol's resolution**, never a per-dataset host map.
+**Resolution ladder** (symbol or field; first match wins): the full six-rung ladder of
+*Scoped configuration* — `DATAMANIFEST_<NAME>` environment variable → checkout config
+(`_HOST` glob, then base) → manifest `[_STORAGE._HOST.<glob>]` → manifest `[_STORAGE]`
+base → user config (`_HOST` glob, then base) → the built-in default (for the two folder
+fields the global expressions above; for predefined symbols the platformdirs /
+project-root / project-name value). Host-specificity always lives in the **symbol's
+resolution**, never a per-dataset host map.
 
-**To centralize and share** across clones, branches, or projects, point the two fields at a
-machine dir under a name you choose — one self-documenting edit, nothing derived:
+**To keep data repo-local** (the pre-spec-v5 layout — visible `./datasets/` and
+`./cached/`), set the two fields to relative paths; **to centralize under a name you
+choose**, point them at a machine dir — either way one self-documenting edit, nothing
+derived:
 
 ```toml
 [_STORAGE]
-datasets_dir  = "$user_data_dir/myproj"
-datacache_dir = "$user_cache_dir/myproj"
+datasets_dir  = "datasets"                 # repo-local…
+datacache_dir = "$user_cache_dir/myproj"   # …or centralized under a chosen name
 ```
 
 ### Environment
 
 Exactly **two** environment variables override the fields — for HPC / CI / containers where
-editing the manifest is inconvenient: **`DATAMANIFEST_DATASETS_DIR`** and
+editing a file is inconvenient: **`DATAMANIFEST_DATASETS_DIR`** and
 **`DATAMANIFEST_DATACACHE_DIR`**. (User-defined symbols override as `DATAMANIFEST_<NAME>`.)
+The environment is the top rung of the resolution ladder, above every file.
 
 ### Per-dataset path (`storage_path`)
 
@@ -534,10 +618,10 @@ such a manifest is persisted is the author's choice.
 This is how a **library** owns its own data without touching the end user's `datasets.toml`:
 it builds its own manifest, declares its datasets via the language API, and sets its
 `datasets_dir` / `datacache_dir` explicitly (e.g. under `$user_data_dir/<library>`) — a
-relative default would otherwise resolve against the *end user's* project, never the installed
+relative path would otherwise resolve against the *end user's* project, never the installed
 library's. **Recommended:** a library shipping data dependencies should own them this way (its
 own manifest + explicit folders); without explicit folders, its data correctly falls back to
-the end user's project, who owns the location.
+the end user's configuration ladder and the machine-global defaults, which the end user owns.
 
 
 ### Concurrent access and completeness
@@ -614,7 +698,8 @@ A produced dataset is identified **by its keyword parameters**, not by content: 
 storage **key** is `<cachetype>/<param-hash>`, its parameters *are* the hash inputs,
 and the `config.toml` sidecar is the re-checkable record of those inputs (it is not
 content-pinned by a manifest `sha256`). It is materialized under **`datacache_dir`**
-(default `cached`, relative ⇒ local `./cached/`), the producing layer's folder.
+(default `$user_cache_dir/datamanifest/projects/$project/cached` — per-project, see
+Storage), the producing layer's folder.
 
 > **Keyword-only.** Because the parameters double as identity, the producing function
 > is **keyword-only** for hashing: an ordered positional argument list has no stable
@@ -764,14 +849,15 @@ A produced artifact composes its path under the **`datacache_dir`** (see Storage
 <datacache_dir>/<cachetype>/[<version>/]<hash>/
 ```
 
-The produce surface resolves `datacache_dir` from the **same `[_STORAGE]`** as fetched data
-— it MUST read the nearest discovered manifest's `[_STORAGE]` (the same upward walk used to
-find the project root; a plain TOML read, no fetch layer), so produced and fetched data share
-one storage configuration. By default `datacache_dir = "cached"` (relative ⇒ local
-`./cached/`), so produced artifacts are **local and visible** like everything else;
-centralizing/sharing is the explicit `datacache_dir = "$user_cache_dir/<name>"` edit
-(Storage). There is no scope, prefix, or partition in the path — the folder you set **is** the
-location.
+The produce surface resolves `datacache_dir` from the **same configuration ladder** as
+fetched data — it MUST read the nearest discovered manifest's `[_STORAGE]` (the same upward
+walk used to find the project root; a plain TOML read, no fetch layer) plus the config
+files of *Scoped configuration*, so produced and fetched data share one storage
+configuration. By default `datacache_dir =
+"$user_cache_dir/datamanifest/projects/$project/cached"` — per-project under the machine's
+cache dir; keeping artifacts repo-local and visible is the explicit `datacache_dir =
+"cached"` edit (Storage). There is no scope, prefix, or partition in the path beyond the
+folder expression itself — the folder you set **is** the location.
 
 - **version** — an optional recipe/code version segment (below).
 - An **explicit per-call location** — given per `@cached` call (`cache_dir = …`) — is used
@@ -860,7 +946,7 @@ branch = "main"
 dirty  = false
 
 [origin]
-state_file = "/home/mahe/proj/.datamanifest-state.toml"   # the state file that inventories this artifact
+state_file = "/home/mahe/proj/.datamanifest/state.toml"   # the state file that inventories this artifact
 ```
 
 ### Default serialization format (per language)
@@ -883,7 +969,7 @@ cross-language-loadable by construction (`pickle` is Python-only, `jld2` Julia-o
 is consistent with the spec pinning only cross-tool addressing and maintenance, never the
 blob format.
 
-### The state file (`.datamanifest-state.toml`)
+### The state file (`.datamanifest/state.toml`)
 
 The hand-authored `datasets.toml` stays clean — it is the **spec**: *what* to
 track and *how* to obtain it (a dataset's `uri`/`fetcher`/`shell`, a `@cached`
@@ -891,9 +977,11 @@ function's code), hand-authored and **git-committed**, the source of intent. Wha
 it records is the **expectation** — a per-dataset directive `storage_path` (where
 bytes *should* go) and a contract `sha256` (what they *should* hash to).
 
-*Where each object actually landed on this machine* is recorded separately, in a
-sibling **`.datamanifest-state.toml`** — the **state file**: a tool-maintained,
-per-object inventory of resolved on-disk locations. It is the machine analogue of
+*Where each object actually landed on this machine* is recorded separately, in
+**`.datamanifest/state.toml`** — the **state file**: a tool-maintained, per-object
+inventory of resolved on-disk locations, kept in the per-checkout, git-ignored
+`.datamanifest/` directory beside the manifest (which also holds the checkout config —
+see *Scoped configuration*). It is the machine analogue of
 a lockfile, except it is **not a committed reproducibility lock** — it says
 nothing about *how* to re-obtain a resource (that lives in the spec), so it is no
 help to a fresh clone; it is **regenerable local state**, and therefore
@@ -901,8 +989,8 @@ help to a fresh clone; it is **regenerable local state**, and therefore
 one machine, often outside the repo, and cannot be pulled from the internet — so
 committing the inventory would only record paths no other clone can use. A project
 whose data sits on a shared drive every clone can reach MAY choose to track it,
-but that is a user's setup, not the design intent.) The leading dot marks it as a
-CLI-read dotfile, not a hand-edited document.
+but that is a user's setup, not the design intent.) The dotted `.datamanifest/`
+directory marks it as tool-maintained state, not a hand-edited document.
 
 The state file inventories **both kinds** of materialized object — fetched
 datasets and produced artifacts — under two top-level namespaces (`datasets` and
@@ -951,8 +1039,11 @@ format = "nc"
 - The state file is a **defined structural sibling format** with its own
   `_META.schema`. A tool that implements neither `inspect` nor produced caching
   need not read it. Earlier shapes (`_META.schema` 1–4: the produced-only flat and
-  nested `cached.toml` forms) are still **read and migrated forward**, and
-  `cached.toml` is the recognized legacy name. A produced artifact's
+  nested `cached.toml` forms) are still **read and migrated forward**, and the
+  **legacy paths are still recognized**: a reader accepts `.datamanifest-state.toml`
+  (the pre-spec-v5 sibling location) and `cached.toml`, and the first write
+  relocates the file to the canonical `.datamanifest/state.toml` (the legacy file
+  is removed only after the canonical one is written). A produced artifact's
   `metadata.toml` carries a `state_file` back-pointer to the file that inventories
   it (audit only).
 
@@ -1112,7 +1203,7 @@ risks an accidental cross-project wipe because deletion is always an explicit se
 - **The `@cached` macro / decorator API** (Julia macro, Python decorator) is the
   *ergonomic surface* over this model and is **per-language, not normative** — a
   tool exposes it however fits the language. Normative are: the on-disk formats (key hash,
-  `config.toml`, `metadata.toml`, the state file `.datamanifest-state.toml`), the path composition (the `datasets_dir` / `datacache_dir` folders), the identity rules (`cachetype` default + the stable-name requirement; the
+  `config.toml`, `metadata.toml`, the state file `.datamanifest/state.toml`), the path composition (the `datasets_dir` / `datacache_dir` folders), the identity rules (`cachetype` default + the stable-name requirement; the
   `(cachetype, version)` same-process conflict guard; the index lifecycle), and the
   maintenance rules (user-driven; no automatic deletion). *How* a tool derives a default
   `cachetype` or detects the conflict is implementation-defined; *that* it does is not.
@@ -1141,11 +1232,12 @@ the physical root differs. Sync is a transfer between two stores, gated by the o
 
 - **Target = an SSH address** (`user@host`): SSH is both the transport (rsync over ssh) and
   the host identity; no separate remote registry is required.
-- **Each end resolves its own store** from its own environment (`DATAMANIFEST_*`) plus the
-  manifest's `[_STORAGE._HOST]` rules — *not* from any knowledge of the remote's project
-  folder. This works because syncable objects live in **machine-global** folders
-  (`$user_data_dir` / `$user_cache_dir` / user-defined); a **`$repo`-relative (local) object
-  is not syncable**, which is exactly why the remote project location never has to be known.
+- **Each end resolves its own store** from its own configuration ladder (environment,
+  config files, the manifest's `_HOST` rules) — *not* from any knowledge of the remote's
+  project folder. This works because syncable objects live in **machine-global** folders
+  (`$user_data_dir` / `$user_cache_dir` / user-defined — where the spec-v5 defaults put
+  them); a **`$repo`-relative (local) object is not syncable**, which is exactly why the
+  remote project location never has to be known.
 - **Symmetric.** `push` and `pull` differ only in transfer direction; each side resolves its
   own store identically, so there is no asymmetry between them.
 - **Writes no manifest.** Sync moves bytes only; it never edits `datasets.toml` or the
@@ -1204,12 +1296,12 @@ fixture-suite tests tagged for those capabilities.
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write (full lossless round-trip). |
 | `shell-fetch` | Execute the dataset's `shell` command template in the fetch ladder. |
 | `delegation` | Cross-language fetch (rung 3, the rare case): run a fetcher defined in another language — mechanism implementation-defined (call the language's runtime, or a peer `datamanifest` CLI), with fall-through to `uri` — controlled by `delegate` / `--delegate` (see Cross-language fetch, Peer-CLI contract). |
-| `storage` | Honor the `datasets_dir` / `datacache_dir` folders, the optional `datasets_pools` / `datacache_pools` read pools, `$`-symbol resolution (`$user_data_dir` / `$user_cache_dir` / `$repo` + user-defined, host-aware via `_HOST`), and per-dataset `storage_path` (see Storage). |
+| `storage` | Honor the `datasets_dir` / `datacache_dir` folders (machine-global defaults), the optional `datasets_pools` / `datacache_pools` read pools, `$`-symbol resolution (`$user_data_dir` / `$user_cache_dir` / `$repo` / `$project` + user-defined, host-aware via `_HOST`), the scoped config files and their resolution ladder (`.datamanifest/config.toml`, `~/.config/datamanifest/config.toml`), and per-dataset `storage_path` (see Storage). |
 | `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, or Julia `write(...; canonical=true)`). |
 | `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
 | `cache-produce` | **Cache-layer** produce-or-load: function-backed (produced) datasets with parameter-hash keying, optional recipe `version`, the `config.toml` / `metadata.toml` sidecars, and the state file's `datacache` inventory, materialized under the `datacache_dir` folder (§Produced datasets). Declared by the cache layer, never by the core fetch capability (packaging — separate package or submodule — is unconstrained). |
-| `inspect` | The **user-driven** store-inspection toolkit (§Maintenance): enumerate stored objects (datasets + cached, via the state file `.datamanifest-state.toml`) with their fields (`kind`, `key`/`hash`, `location`, `referenced`/orphan, dirty state, `format`, `size`, `created`, `last-access`), filter them, and act on a selection (`delete`, `refresh`, optional `move`). There is **no automatic collector**: deletion is always an explicit user selection; `referenced`/`last-access` are advisory. The reference CLI exposes it as `datamanifest list … --delete`. |
-| `sync` | Cross-machine transfer (`push` / `pull`) of a stored object between two stores over SSH/rsync, addressed by its machine-independent identifier (`name`/`alias`/`doi`, or `cachetype[/version]/hash`); each end resolves its own store from env + `_HOST` (`$repo` excluded); writes no manifest; integrity via rsync; idempotent (§Cross-machine sync). |
+| `inspect` | The **user-driven** store-inspection toolkit (§Maintenance): enumerate stored objects (datasets + cached, via the state file `.datamanifest/state.toml`) with their fields (`kind`, `key`/`hash`, `location`, `referenced`/orphan, dirty state, `format`, `size`, `created`, `last-access`), filter them, and act on a selection (`delete`, `refresh`, optional `move`). There is **no automatic collector**: deletion is always an explicit user selection; `referenced`/`last-access` are advisory. The reference CLI exposes it as `datamanifest list … --delete`. |
+| `sync` | Cross-machine transfer (`push` / `pull`) of a stored object between two stores over SSH/rsync, addressed by its machine-independent identifier (`name`/`alias`/`doi`, or `cachetype[/version]/hash`); each end resolves its own store from its own configuration ladder (`$repo` excluded); writes no manifest; integrity via rsync; idempotent (§Cross-machine sync). |
 
 Capabilities are independent — a partial implementation may ship `lang-read` and
 `lang-write` without `shell-fetch` or `delegation`. The spec and its fixture suite are

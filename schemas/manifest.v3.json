@@ -103,11 +103,12 @@
     },
     "storage": {
       "type": "object",
-      "description": "[_STORAGE]: two folder fields (datasets_dir / datacache_dir; relative => repo-relative, $-symbols allowed), optional read-pool lists (datasets_pools / datacache_pools), reusable $-symbols (any other bare key -> path expression; predefined $user_data_dir / $user_cache_dir / $repo), and _HOST host-overrides.",
+      "description": "[_STORAGE]: two folder fields (datasets_dir / datacache_dir; relative => repo-relative, $-symbols allowed), optional read-pool lists (datasets_pools / datacache_pools), a project name (the $project symbol), reusable $-symbols (any other bare key -> path expression; predefined $user_data_dir / $user_cache_dir / $repo / $project), and _HOST host-overrides. The same shape (spec-v5) is read from the per-checkout .datamanifest/config.toml and the user-global ~/.config/datamanifest/config.toml on the resolution ladder.",
       "properties": {
-        "datasets_dir": { "type": "string", "description": "Where fetched datasets go (default 'datasets'; relative => <repo>/datasets/)." },
-        "datacache_dir": { "type": "string", "description": "Where the produced cache goes (default 'cached'; relative => <repo>/cached/)." },
-        "datasets_pools": { "type": "array", "items": { "type": "string" }, "description": "Read-only locations probed for an already-present fetched dataset before downloading (a hit is checksum-verified, recorded, and reused in place; new downloads still go to datasets_dir). Each entry is a path expression. Omitted => built-in well-known defaults; an empty list => disabled." },
+        "datasets_dir": { "type": "string", "description": "Where fetched datasets go (default '$user_data_dir/datamanifest/shared/datasets' — one keyed store shared across projects; relative => repo-relative)." },
+        "datacache_dir": { "type": "string", "description": "Where the produced cache goes (default '$user_cache_dir/datamanifest/projects/$project/cached' — per-project; relative => repo-relative)." },
+        "project": { "type": "string", "description": "The project name (the $project symbol); default: the basename of the project root. A committed value names the project for every collaborator." },
+        "datasets_pools": { "type": "array", "items": { "type": "string" }, "description": "Read-only locations probed for an already-present fetched dataset before downloading (a hit is checksum-verified, recorded, and reused in place; new downloads still go to datasets_dir). Each entry is a path expression. Omitted => built-in defaults ($repo/datasets, $user_data_dir/datamanifest/shared/datasets, $user_data_dir/datamanifest/datasets, ~/.cache/Datasets); an empty list => disabled." },
         "datacache_pools": { "type": "array", "items": { "type": "string" }, "description": "Read-only locations probed for an already-produced @cached artifact (at <pool>/<cachetype>[/<version>]/<hash>, config-validated) before recomputing. Opt-in: omitted => no pools. Each entry is a path expression." },
         "_HOST": { "$ref": "#/$defs/storageOverrides" }
       },

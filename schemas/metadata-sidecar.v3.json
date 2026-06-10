@@ -27,7 +27,7 @@
     "origin": {
       "type": "object",
       "properties": {
-        "state_file": { "type": "string", "description": "Path of the state file (.datamanifest-state.toml) that inventories this artifact (audit only)." }
+        "state_file": { "type": "string", "description": "Path of the state file (.datamanifest/state.toml) that inventories this artifact (audit only)." }
       },
       "additionalProperties": true
     }

@@ -6,7 +6,7 @@
 </p>
 
 [![docs](https://img.shields.io/badge/docs-perrette.github.io%2Fdatamanifest.toml-blue)](https://perrette.github.io/datamanifest.toml/)
-[![spec](https://img.shields.io/badge/spec-spec--v4-informational)](https://perrette.github.io/datamanifest.toml/schema/)
+[![spec](https://img.shields.io/badge/spec-spec--v5-informational)](https://perrette.github.io/datamanifest.toml/schema/)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A small, normative specification for the **`datamanifest.toml`** manifest format — a
@@ -18,7 +18,7 @@ One `datasets.toml` is read by tools in different languages — today
 [Julia](https://github.com/awi-esc/DataManifest.jl) — and covers fetching (download,
 checksum, extract, load), portable storage, per-language bindings, and an optional
 produce-or-load cache layer. The data model is `_META.schema = 1`; behavioural revisions
-are tracked by spec tags (currently `spec-v4`).
+are tracked by spec tags (currently `spec-v5`).
 
 <!-- intro-start -->
 - **One manifest, many languages.** A single `datasets.toml` declares each dataset's
@@ -28,9 +28,10 @@ are tracked by spec tags (currently `spec-v4`).
 - **Fetch, verify, extract, load.** A tool downloads the dataset, verifies its checksum,
   unpacks the archive, and hands your code the local path — re-fetching only when it's
   missing. Add a `format` and it loads the data into a native object too.
-- **Portable, local-by-default storage.** Fetched datasets and produced artifacts live in
-  repo-relative folders by default, and can be centralized per host via
-  `[_STORAGE._HOST]` glob rules without touching the rest of the manifest.
+- **Portable, shared-by-default storage.** Fetched datasets live in one machine-global
+  keyed store (deduplicated across projects), the produced cache is per-project, and
+  per-machine layouts go in git-ignored config files or `[_STORAGE._HOST]` glob rules —
+  the repo itself stays data-free (repo-local folders are one edit away).
 - **Produce-or-load caching.** An optional companion layer keys produced artifacts by a
   hash of their parameters, so derived data is rebuilt only when its inputs change.
 - **Normative and conformance-tested.** The prose spec is the source of truth, backed by

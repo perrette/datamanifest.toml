@@ -59,11 +59,11 @@ An array of capability tags from SCHEMA.md's Conformance-levels table:
 | `lang-write` | Regenerate own `_LANG.<self>` and preserve foreign `_LANG.*` verbatim on write |
 | `shell-fetch` | Execute the dataset's bare `shell` command template in the fetch ladder |
 | `delegation` | Opt-in peer-CLI delegation (fetch-ladder rung 3) |
-| `storage` | Honor `datasets_dir` / `datacache_dir`, `$`-symbol resolution, `_HOST` host-overrides, and per-dataset `storage_path` |
+| `storage` | Honor `datasets_dir` / `datacache_dir` (machine-global defaults), `$`-symbol resolution (incl. `$project`), the scoped config files + ladder, `_HOST` host-overrides, and per-dataset `storage_path` |
 | `byte-identity` | Emit canonical lexicographic key ordering (cross-tool byte-identical output) |
 | `binding-args` | Execute the `{ ref, args }` table form of a binding |
 | `cache-produce` | Companion-layer produced (function-backed) datasets keyed by parameter hash + `config.toml`/`metadata.toml` sidecars |
-| `inspect` | User-driven store inspection: enumerate datasets + the `cached.toml` index, filter by fields, and act on a selection (`list … --delete`). No automatic collector |
+| `inspect` | User-driven store inspection: enumerate datasets + the state file (`.datamanifest/state.toml`; legacy `cached.toml` still read), filter by fields, and act on a selection (`list … --delete`). No automatic collector |
 
 A runner filters fixtures to those whose `capabilities` array is a subset of the
 implementation's declared capability set. Fixtures with unsupported capabilities are
@@ -132,14 +132,18 @@ bare-string form have no entry here.
 
 Present for `storage`-capability fixtures. Asserts the `[_STORAGE]` configuration (but not
 absolute on-disk paths, which are machine-dependent — `platformdirs` / env / host). In the
-spec-v4 model storage is **two folder fields** (`datasets_dir` / `datacache_dir`; relative ⇒
-repo-relative, local by default) plus reusable `$`-symbols and `_HOST` host-overrides; a
-dataset's `storage_path` overrides its location. No scope, prefix, or appname.
+spec-v4/v5 model storage is **two folder fields** (`datasets_dir` / `datacache_dir`;
+relative ⇒ repo-relative; machine-global defaults since spec-v5) plus the `project` field,
+reusable `$`-symbols and `_HOST` host-overrides; a dataset's `storage_path` overrides its
+location. No scope, prefix, or appname.
 
 - `datasets_dir` / `datacache_dir` — the two project-wide folder fields.
+- `project` — the committed project name (the `$project` symbol; default: project-root
+  basename).
 - `symbols` — user-defined `$`-symbols that MUST be defined in `[_STORAGE]` (bare keys, not the
-  reserved `datasets_dir` / `datacache_dir` / `_HOST`, nor the predefined `user_data_dir` /
-  `user_cache_dir` / `repo`).
+  reserved `datasets_dir` / `datacache_dir` / `datasets_pools` / `datacache_pools` /
+  `project` / `_HOST`, nor the predefined `user_data_dir` / `user_cache_dir` / `repo` /
+  `project`).
 - `host_patterns` — `[_STORAGE._HOST.<glob>]` host-override keys present.
 - `storage_paths.<ds>` — the per-dataset `storage_path` override (default `$datasets_dir/$key`),
   compared exactly (so `$key`-keyed vs an exact user-managed path is distinguished).
@@ -151,7 +155,7 @@ Present for `cache-produce`-capability fixtures. Here the fixture `.toml` is its
 to a produced artifact (SCHEMA.md §Produced datasets and caching) — **not** a
 `datasets.toml`. Produced (function-backed) datasets are never declared in
 `datasets.toml`; they originate from a `@cached`-decorated function and their only TOML
-footprint is this sidecar plus the `cached.toml` index. The sidecar's `[_META]` block
+footprint is this sidecar plus the state file. The sidecar's `[_META]` block
 carries `cachetype` + `hash`; every other top-level key is part of the key table.
 
 `config_sidecar` asserts:

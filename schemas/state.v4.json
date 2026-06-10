@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/perrette/datamanifest.toml/main/schemas/state.v4.json",
-  "title": "Local state file (.datamanifest-state.toml) — spec-v4, schema 5",
-  "description": "JSON Schema for the JSON projection of a .datamanifest-state.toml state file. Parse the TOML to JSON, then validate. The state file is a git-ignored, regenerable per-machine inventory of where each materialized object actually landed: fetched datasets under the `datasets` namespace (storage key -> resolved storage_path + actual sha256) and produced artifacts under `datacache` (cachetype[@version] -> instances mapping a parameter hash to its full artifact directory). It records ground truth (where bytes are), never directives — writes always follow the manifest's current directive. Earlier produced-only `cached.toml` shapes (_META.schema 1-4) are read and migrated forward; this validates the canonical written form, schema 5.",
+  "title": "Local state file (.datamanifest/state.toml) — spec-v4/v5, schema 5",
+  "description": "JSON Schema for the JSON projection of a .datamanifest/state.toml state file (spec-v5 canonical path; the spec-v4 sibling .datamanifest-state.toml and the older cached.toml are legacy locations still read, relocated on first write). Parse the TOML to JSON, then validate. The state file is a git-ignored, regenerable per-machine inventory of where each materialized object actually landed: fetched datasets under the `datasets` namespace (storage key -> resolved storage_path + actual sha256) and produced artifacts under `datacache` (cachetype[@version] -> instances mapping a parameter hash to its full artifact directory). It records ground truth (where bytes are), never directives — writes always follow the manifest's current directive. Earlier produced-only `cached.toml` shapes (_META.schema 1-4) are read and migrated forward; this validates the canonical written form, schema 5.",
   "type": "object",
   "required": ["_META"],
   "properties": {

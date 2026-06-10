@@ -17,7 +17,7 @@ Beyond *fetching* declared datasets, a tool with the `cache-produce` capability 
 - **Layout:** `<datacache_dir>/<cachetype>/[<version>/]<hash>/<basename>.<ext>`.
   The optional **`version`** is a human-set recipe/code version — a path segment that does
   **not** enter the hash, used to prevent a stale cross-branch hit.
-- **The state file (`.datamanifest-state.toml`)** inventories each produced dataset (under
+- **The state file (`.datamanifest/state.toml`)** inventories each produced dataset (under
   `datacache`, keyed `cachetype[@version]` ⇒ `hash` ⇒ artifact directory) alongside fetched
   datasets (under `datasets`) — a record of *where things actually landed*, never an absolute
   path you author. It is **git-ignored regenerable state by default** (the data is local and

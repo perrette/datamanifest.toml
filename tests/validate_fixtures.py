@@ -26,11 +26,12 @@ KNOWN_CAPABILITIES = {
     "cache-produce", "inspect", "sync",
 }
 
-# Reserved keys under [_STORAGE] that are not folder-variable definitions.
-# Reserved bare keys under [_STORAGE] (the two folder fields + the host sub-table); every
-# other bare key is a user-defined symbol. Predefined $-symbols are not defined in [_STORAGE].
-STORAGE_RESERVED = {"datasets_dir", "datacache_dir", "_HOST"}
-PREDEFINED_SYMBOLS = {"user_data_dir", "user_cache_dir", "repo"}
+# Reserved bare keys under [_STORAGE] (the two folder fields, the pool lists, the project
+# name + the host sub-table); every other bare key is a user-defined symbol. Predefined
+# $-symbols are not defined in [_STORAGE].
+STORAGE_RESERVED = {"datasets_dir", "datacache_dir", "datasets_pools", "datacache_pools",
+                    "project", "_HOST"}
+PREDEFINED_SYMBOLS = {"user_data_dir", "user_cache_dir", "repo", "project"}
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -200,14 +201,13 @@ def validate(toml_path, json_path):
                     _err(errors, f"preserve_verbatim.lang_namespaces.per_dataset.{ds_name}: '{entry}' not in manifest")
 
     # --- storage (optional; present for `storage`-capability fixtures) ---
-    # spec-v2 folder model: `store`/`default` are $-folder *selectors*; [_STORAGE]
-    # is a namespace of folder variables (built-in data/cache/repo + user-defined)
-    # plus the reserved `default` selector and _HOST/_PROFILE override sub-tables.
+    # spec-v4/v5 model: [_STORAGE] holds the two folder fields, the pool lists, the
+    # `project` name and user-defined symbols, plus the _HOST override sub-table.
     storage = expected.get("storage")
     if storage is not None:
         st = manifest.get("_STORAGE", {})
-        # the two folder fields
-        for field in ("datasets_dir", "datacache_dir"):
+        # the two folder fields + the project name (the $project symbol)
+        for field in ("datasets_dir", "datacache_dir", "project"):
             if field in storage and st.get(field) != storage[field]:
                 _err(errors, f"storage.{field}: expected {storage[field]!r}, [_STORAGE] has {st.get(field)!r}")
         # user-defined symbols MUST be defined in [_STORAGE], and not reserved/predefined

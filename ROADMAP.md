@@ -7,30 +7,22 @@ forward-looking view: what is specified, what is built, and what is deferred.
 
 ## Status
 
-- **Spec.** `SCHEMA.md` is at **spec-v3**: storage uses **top-level folder roots** with
-  layer-applied `datasets/` / `cached/` prefixes and an optional `scope` partition
-  (`DATAMANIFEST_DIR` app base; `_PROFILE` shelved); produce-or-load is a companion layer;
-  store maintenance is the user-driven `inspect` capability; and cross-machine `sync` is
-  specified. `_META.schema` stays **1**.
-- **Implementations.** Python core is at spec-v1.1; Julia core's v1.1 is not yet merged.
-  Neither core implements the spec-v3 storage revision yet, and the produce-or-load layer,
-  `inspect`, and `sync` are not yet built.
+- **Spec.** `SCHEMA.md` is at **spec-v5**: flat two-folder storage with machine-global
+  defaults (a shared keyed dataset store + a per-project produced cache under `$project`),
+  scoped per-machine configuration (`.datamanifest/config.toml`, user config) on a
+  git-style resolution ladder, the state file at `.datamanifest/state.toml`,
+  produce-or-load as a companion layer, user-driven `inspect`, and cross-machine `sync`.
+  `_META.schema` stays **1**.
+- **Implementations.** The Python reference implements spec-v5 plus the surrounding
+  tooling (the `config` command, generalized `push`/`pull` operands, git-remote targets,
+  `normalize`, `export`); the Julia port tracks the spec-normative surface.
 
 ## Planned
 
-- **Implement the spec-v3 storage revision** in both cores (top-level folder roots,
-  `datasets/`/`cached/` prefixes + `_PREFIX`, `scope` + `_SCOPE`, `DATAMANIFEST_DIR`, the
-  resolution ladder, hard migration off bare `store` names). Spec: `SCHEMA.md` §Storage.
-- **Build the produce-or-load layer** (one per language) over the core engine —
-  parameter-hash keying + sidecars + recipe `version`, then the state file inventory
-  (`.datamanifest-state.toml`, `datacache` namespace). Whether
-  it ships as a separate package or an optional submodule is the implementation's call
-  (spec-v2.1). Rationale and build order: `design/cached-layer-handoff.md`; packaging:
-  `design/package-architecture.md`.
-- **Implement `inspect`** (the field-oriented `list … --delete` store maintenance) and
-  **`sync`** (`push`/`pull` over SSH/rsync). Spec: `SCHEMA.md` §Maintenance, §Cross-machine
-  sync.
-- **Merge Julia core v1.1** before any Julia spec-v3 work.
+- **Tooling around storage v5** (per-implementation conventions, not spec-normative): the
+  generalized push/pull operand grammar and git-remote targets, `normalize` / `list
+  --out-of-place`, and the `export` bundle verb in the Julia port. Rationale: the Python
+  repo's `design/design-storage-v5.md`.
 
 ## Cross-language fetch (a rare case)
 
@@ -62,7 +54,7 @@ originate in their host language.
 - **Register-on-arrival for `sync`, and at-rest content verification.** `sync` (spec-v3) is
   deliberately symmetric and manifest-untouching, so a transferred object arrives as an
   orphan and integrity rests on rsync's per-file check. Optional later additions: an opt-in
-  to record a pulled object in the local state file (`.datamanifest-state.toml`, so it shows as
+  to record a pulled object in the local state file (`.datamanifest/state.toml`, so it shows as
   `referenced`), and a content checksum (e.g. a Merkle digest over a directory's files) for
   at-rest verification beyond the transport.
 - **Task-first "cookbook" docs.** The spec is a precise rulebook, but users shouldn't have to
@@ -78,7 +70,7 @@ originate in their host language.
   and expose per-scope **hardlinks or reflink/CoW clones** (Linux `cp --reflink`, APFS clones),
   so scoping stays cheap for large inputs. Pairs with the open question of whether the *datasets*
   default scope should flip from empty/shared to project-id. Deferred.
-- **Finish the spec/state separation.** The state file (`.datamanifest-state.toml`) already
+- **Finish the spec/state separation.** The state file (`.datamanifest/state.toml`) already
   splits *expectation* (the committed `datasets.toml`) from *ground truth* (resolved location +
   actual digest). Today a dataset's `storage_path` and `sha256` still live in **both** files
   with different meanings (directive/contract vs. resolved/actual) — an intentional, harmless

@@ -4,7 +4,7 @@
 declares a project's data dependencies — the `Project.toml` / `pyproject.toml` analogue for
 data. It is committed, language-agnostic, and never machine-rewritten beyond auto-filled
 checksums. Produced (cached) datasets are **not** listed here; they are inventoried in the
-git-ignored sibling state file `.datamanifest-state.toml` (see
+git-ignored state file `.datamanifest/state.toml` (see
 [Produced datasets and caching](caching.md)).
 
 ```toml

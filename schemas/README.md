@@ -27,17 +27,22 @@ python -c 'import tomllib,json,sys; json.dump(tomllib.load(open(sys.argv[1],"rb"
 | File | Validates | Capability |
 |---|---|---|
 | `manifest.v3.json` | the hand-authored manifest (`datasets.toml`) | core |
-| `state.v4.json` | the local state file (`.datamanifest-state.toml`) | `inspect` / `cache-produce` |
+| `state.v4.json` | the local state file (`.datamanifest/state.toml`) | `inspect` / `cache-produce` |
 | `config-sidecar.v3.json` | a produced artifact's `config.toml` (re-hashable key table) | `cache-produce` |
 | `metadata-sidecar.v3.json` | a produced artifact's `metadata.toml` (provenance) | `cache-produce` |
 
 The `*.v2.1.json` files are kept alongside for tools pinned to the earlier spec. **spec-v4**
 simplifies storage to two folder fields — `[_STORAGE].datasets_dir` / `datacache_dir`
-(relative ⇒ repo-relative, local by default) — plus optional read-pool lists
+(relative ⇒ repo-relative) — plus optional read-pool lists
 (`datasets_pools` / `datacache_pools`), reusable `$`-symbols
 (`$user_data_dir` / `$user_cache_dir` / `$repo` + user-defined) and `_HOST` host-overrides; a
 dataset's `storage_path` replaces the former `store` / `local_path`. There is no scope, prefix, or
-appname. `state.v4.json` validates the **state file** (`_META.schema = 5`): a git-ignored,
+appname. **spec-v5** keeps that structure, flips the folder defaults to machine-global
+locations, adds the `project` field (the `$project` symbol), and reads the same
+`[_STORAGE]` shape from two config files (`.datamanifest/config.toml`,
+`~/.config/datamanifest/config.toml`) on a resolution ladder — `manifest.v3.json` still
+validates the manifest (the structural additions are backward-compatible).
+`state.v4.json` validates the **state file** (`_META.schema = 5`): a git-ignored,
 regenerable per-machine inventory of *where each object actually landed* — fetched datasets
 under `datasets` (key ⇒ resolved `storage_path` + actual `sha256`) and produced artifacts
 under `datacache` (`cachetype[@version]` ⇒ `instances` mapping a parameter hash to its

@@ -1,11 +1,11 @@
-# datasets.toml — an example datamanifest (spec-v3, _META.schema = 1)
+# datasets.toml — an example datamanifest (spec-v5, _META.schema = 1)
 #
 # A hand-authored manifest declaring a project's data dependencies: where each
 # dataset comes from, how to verify it, and how each language loads it. It is the
 # Project.toml / pyproject.toml analogue for data — committed, language-agnostic,
 # and never machine-rewritten beyond auto-filled checksums. (Produced, cached
-# datasets are NOT listed here; they are inventoried in the git-ignored sibling
-# state file .datamanifest-state.toml.)
+# datasets are NOT listed here; they are inventoried in the git-ignored state
+# file .datamanifest/state.toml.)
 #
 # The datasets below the first divider are real, public, and fetch out of the box.
 # The ones below the second divider are illustrative — they show the _LANG
@@ -14,7 +14,8 @@
 
 [_META]
 schema = 1
-# project = "myclimate"   # optional explicit project id (else derived from the package)
+# A committed project name (the $project symbol; else the project-root basename)
+# would go under [_STORAGE]: project = "myclimate"
 
 # Project-wide default loaders, per language: format -> module:function. Used
 # when a dataset does not declare its own loader for that language.

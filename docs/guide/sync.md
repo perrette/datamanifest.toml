@@ -7,8 +7,9 @@ the physical root differs per host.
 
 - Transport is **rsync over SSH**; the SSH target is both transport and host identity (no
   remote registry).
-- The remote root is resolved best-effort from the remote's own environment, then its
-  `[_STORAGE._HOST]` rules, then the shared default. `$repo` (project-relative) is not syncable.
+- The remote root is resolved best-effort from the remote's own configuration ladder
+  (environment, config files, `_HOST` rules), then the shared default. `$repo`
+  (project-relative) is not syncable — the machine-global default locations are.
 - Sync **writes no manifest** — a transferred object lands as an orphan (present,
   unreferenced) and is immediately usable; it is **idempotent**.
 

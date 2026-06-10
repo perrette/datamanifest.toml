@@ -3,7 +3,8 @@ schema = 1
 
 [_STORAGE]
 datasets_dir  = "$user_data_dir/proj"   # centralized fetched data under a chosen name
-datacache_dir = "cached"                # produced cache, local (relative => <repo>/cached/)
+datacache_dir = "cached"                # produced cache, kept repo-local (relative => <repo>/cached/)
+project       = "demo"                  # committed project name (the $project symbol; default: root basename)
 scratch       = "$TMPDIR"               # user-defined reusable $-symbol
 
 [_STORAGE._HOST."login*.hpc.edu"]       # host-specific resolution (hostname glob)

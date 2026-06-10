@@ -1,5 +1,46 @@
 # Changelog
 
+## spec-v5 (schema `_META.schema = 1`)
+
+**Storage v5 — machine-global defaults and scoped configuration.** The two folder fields
+default to machine-global locations instead of repo-local folders, a new `$project`
+predefined symbol namespaces the produced cache, two git-ignored config files carry
+per-machine directives on a git-style resolution ladder, and the state file moves into a
+per-checkout `.datamanifest/` directory. Behavioural only — no `_META.schema` change, and
+the manifest format itself gains just the optional `[_STORAGE].project` field.
+
+- **New built-in defaults.** `datasets_dir = "$user_data_dir/datamanifest/shared/datasets"`
+  and `datacache_dir = "$user_cache_dir/datamanifest/projects/$project/cached"`. Datasets
+  are shared and keyed (a key is a globally unique content identity, so one shared store
+  deduplicates across projects); the produced cache is per-project (`cachetype/hash` is not
+  globally unique and carries no content checksum). The trailing `shared/datasets` /
+  `projects/$project/cached` segments keep the two trees disjoint even when both platform
+  dirs point at one folder. The repo holds only the manifest and `.datamanifest/`. Setting
+  `datasets_dir = "datasets"` / `datacache_dir = "cached"` restores the spec-v4 repo-local
+  layout — manifests migrated from spec-v3 pin exactly that and behave unchanged.
+- **`$project` (new predefined symbol).** The project name; defaults to the basename of
+  the project root, overridable as a bare `project` field on the resolution ladder (a
+  committed `project = "…"` is shared intent). Renames are safe: the state file keeps
+  finding existing artifacts at their recorded locations.
+- **Scoped config files + resolution ladder.** `.datamanifest/config.toml` (per-checkout,
+  git-ignored) and `$XDG_CONFIG_HOME/datamanifest/config.toml` (user-global), both
+  `[_STORAGE]`-shaped at the root level including `_HOST` sections. Ladder, first match
+  wins: `DATAMANIFEST_<NAME>` env → checkout config (`_HOST`, then base) → manifest
+  `[_STORAGE._HOST]` → manifest `[_STORAGE]` → user config (`_HOST`, then base) → built-in
+  defaults. The committed manifest sits between the two config files; machine-specific
+  directives belong in config files, and a tool SHOULD NOT write built-in defaults into
+  the manifest (a written-out default would shadow the user's machine-wide preference).
+- **New default `datasets_pools`.** Absent the field: `$repo/datasets` (pre-v5 repo-local
+  data keeps being found and adopted, never re-downloaded), then
+  `$user_data_dir/datamanifest/shared/datasets` (the shared store doubles as the default
+  read pool, so it self-populates), then the legacy `$user_data_dir/datamanifest/datasets`
+  and `~/.cache/Datasets`. `datacache_pools` stays opt-in.
+- **State file relocation.** Canonical path: **`.datamanifest/state.toml`**; the
+  `.datamanifest/` directory is entirely git-ignored (tools drop a
+  `.datamanifest/.gitignore` containing `*` on first write), so the manifest is the only
+  committed file. The legacy `.datamanifest-state.toml` and `cached.toml` paths are still
+  read; the first write relocates the file to the canonical path.
+
 ## spec-v4.4 (schema `_META.schema = 1`)
 
 **Checksums carry their algorithm.** A new `checksum` field replaces the bare `sha256`
