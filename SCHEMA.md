@@ -1046,6 +1046,21 @@ format = "nc"
   is removed only after the canonical one is written). A produced artifact's
   `metadata.toml` carries a `state_file` back-pointer to the file that inventories
   it (audit only).
+- **Linked `git worktree`s share the main checkout's state file** (spec-v5.1). A
+  linked worktree (`git worktree add`) starts without the git-ignored
+  `.datamanifest/` directory, so a per-checkout lookup would come up empty even
+  though the project's inventory exists. When the project directory holds **no**
+  state file under any recognized path and sits inside a linked worktree, a tool
+  SHOULD fall through to the **corresponding directory in the main checkout** —
+  for reads *and* as the write target, so every worktree of a repository maintains
+  **one** shared inventory (consistent with the inventory being per-project state,
+  not per-checkout intent, and keeping one liveness root for maintenance). A state
+  file present in the worktree itself always takes precedence — creating one there
+  opts that worktree out. The main checkout SHOULD be resolved by asking the `git`
+  executable (e.g. `git rev-parse --git-common-dir`; the on-disk worktree layout
+  is git internal); when `git` is unavailable, the main repository is bare, or the
+  directory is not inside a linked worktree, lookups stay local and behavior is
+  unchanged.
 
 #### The state file is read-only inventory (the gold standard)
 

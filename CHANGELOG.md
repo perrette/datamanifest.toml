@@ -1,5 +1,20 @@
 # Changelog
 
+## spec-v5.1 (schema `_META.schema = 1`)
+
+**Git worktrees share the main checkout's state file.** Behavioural only — no schema
+change, no manifest change, no new fixtures.
+
+- **State-file resolution in linked `git worktree`s.** A linked worktree starts without
+  the git-ignored `.datamanifest/` directory. When the project directory holds no state
+  file under any recognized path and sits inside a linked worktree, a tool SHOULD fall
+  through to the corresponding directory in the main checkout — for reads and as the
+  write target, so every worktree of a repository maintains one shared inventory. A state
+  file present in the worktree itself always takes precedence. The main checkout SHOULD
+  be resolved via the `git` executable (the on-disk worktree layout is git internal);
+  when `git` is unavailable, the main repository is bare, or the directory is not inside
+  a linked worktree, lookups stay local.
+
 ## spec-v5 (schema `_META.schema = 1`)
 
 **Storage v5 — machine-global defaults and scoped configuration.** The two folder fields
