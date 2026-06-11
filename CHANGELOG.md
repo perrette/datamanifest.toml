@@ -1,5 +1,17 @@
 # Changelog
 
+## spec-v5.3 (schema `_META.schema = 1`)
+
+**The lock staleness age is a config field.** Behavioural only — no schema change, no
+manifest change, no new fixtures.
+
+- **`lock_stale_age` (seconds, default `30`).** The spec-v5.2 staleness age is now a named
+  configuration field on the ordinary scoped ladder: `DATAMANIFEST_LOCK_STALE_AGE`
+  environment variable → config files / `[_STORAGE]` (`_HOST`-composable). TOML number or
+  numeric string; tools MUST fall back to the default on an unparsable or non-positive
+  value. Rationale: every environment knob should have a config-file equivalent, and the
+  ladder provides both (plus per-host composition for clusters) from one definition.
+
 ## spec-v5.2 (schema `_META.schema = 1`)
 
 **Lock contention: wait, heartbeat, bounded staleness.** Behavioural only — no schema

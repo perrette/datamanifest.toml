@@ -658,6 +658,12 @@ on these conventions:
   atomic-publish and completion-marker rules above bound the damage to duplicate work
   (last writer wins), never to a partial or corrupt entry — so staleness needs a
   pragmatic threshold, not a perfect liveness oracle.
+- **Configuring the staleness age (spec-v5.3).** The staleness age is the configuration
+  field **`lock_stale_age`** (seconds, default `30`), resolved on the ordinary scoped
+  configuration ladder: the `DATAMANIFEST_LOCK_STALE_AGE` environment variable, then the
+  config files / `[_STORAGE]` (`_HOST`-composable, like any field). The value is a TOML
+  number or a numeric string; a tool MUST fall back to the default on an unparsable or
+  non-positive value.
 
 ## Produced datasets and caching (companion layer)
 
