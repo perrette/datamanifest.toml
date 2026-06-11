@@ -1,5 +1,24 @@
 # Changelog
 
+## spec-v5.2 (schema `_META.schema = 1`)
+
+**Lock contention: wait, heartbeat, bounded staleness.** Behavioural only — no schema
+change, no manifest change, no new fixtures.
+
+- **Heartbeat.** The materializing writer SHOULD refresh the `.lock` pidfile's mtime on a
+  regular interval (recommended `stale_age / 2`), so a long computation keeps a near-zero
+  lock age throughout. The lock records `<pid> <hostname>`.
+- **Contenders wait and re-check.** Previously the spec left contender behaviour
+  undefined and tools diverged (fail vs. proceed unlocked). A contender now SHOULD wait
+  for the lock and, on acquiring it, MUST re-check the entry before writing — concurrent
+  workers (e.g. HPC jobs hitting the same `@cached` variation) compute once and load
+  everywhere else.
+- **Staleness rule.** A lock MAY be reclaimed when its age exceeds `stale_age` AND
+  (its PID is dead on the local host, OR the age exceeds a several-fold grace multiple of
+  `stale_age` — a holder that missed many consecutive heartbeats). A wrong reclaim is safe
+  by construction (atomic publish + completion marker): worst case is duplicate work,
+  never a partial entry.
+
 ## spec-v5.1 (schema `_META.schema = 1`)
 
 **Git worktrees share the main checkout's state file.** Behavioural only — no schema

@@ -640,9 +640,24 @@ on these conventions:
   `<key>/.complete` for a directory, `<key>.complete` for a file. Readers MUST treat an
   entry without its marker as absent (re-fetch); a writer MUST create the marker only
   after a successful, verified materialization.
-- **Lock.** A writer SHOULD hold an exclusive lock `<key>.lock` (a pidfile; a lock whose
-  PID is dead and older than a grace period MAY be reclaimed) while materializing, so
-  concurrent workers neither recompute nor clobber the same entry.
+- **Lock.** A writer SHOULD hold an exclusive lock `<key>.lock` while materializing, so
+  concurrent workers neither recompute nor clobber the same entry. The lock is a pidfile
+  recording `<pid> <hostname>`; while held, the writer SHOULD refresh the file's
+  modification time on a regular interval (a **heartbeat**, recommended every
+  `stale_age / 2` seconds for the tool's chosen staleness age `stale_age`), so the lock's
+  age stays near zero for the whole write no matter how long it takes.
+- **Contention.** A process finding the lock held SHOULD **wait** for it rather than fail
+  or proceed unlocked, and on acquiring it MUST **re-check** the entry before writing —
+  the previous holder may have just published exactly what the waiter was about to
+  materialize, in which case the now-complete entry is used as-is (for a produced
+  artifact: loaded, not recomputed). A lock MAY be reclaimed as **stale** when its age
+  exceeds `stale_age` AND either (a) its recorded PID is dead — verifiable only when the
+  recorded hostname is the local host — or (b) its age exceeds a several-fold grace
+  multiple of `stale_age`, i.e. the holder has missed many consecutive heartbeats
+  (crashed on another node, or frozen). A wrong reclaim is **safe by construction**: the
+  atomic-publish and completion-marker rules above bound the damage to duplicate work
+  (last writer wins), never to a partial or corrupt entry — so staleness needs a
+  pragmatic threshold, not a perfect liveness oracle.
 
 ## Produced datasets and caching (companion layer)
 
