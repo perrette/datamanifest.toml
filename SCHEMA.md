@@ -450,6 +450,13 @@ git-config style:
 - **`$XDG_CONFIG_HOME/datamanifest/config.toml`** (default
   `~/.config/datamanifest/config.toml`) — user-global.
 
+**Linked `git worktree`s read the main checkout's checkout config** when they have none of
+their own (spec-v5.4) — the same fallback, for the same reason, as the state file
+(spec-v5.1, see *The state file*): a linked worktree starts without the git-ignored
+`.datamanifest/` directory. A `.datamanifest/config.toml` present in the worktree itself
+always wins. The fallback applies to **reads**; a tool that writes checkout config writes
+under the project root it operates in, and that file thereafter takes precedence.
+
 Both files are **`[_STORAGE]`-shaped TOML at the root level**: the folder fields, the pool
 lists, the `project` field, user-defined symbols, and `_HOST.<glob>` sub-tables — host
 scoping included because home directories and checkouts commonly live on filesystems shared
@@ -471,7 +478,19 @@ wins, git-style):
 
 The committed manifest sits **between** the two config files: the checkout config overrides
 it (a personal, per-clone decision), while the user-global config only fills in what the
-project does not set. A consequence for tools: writing a *default* value into `[_STORAGE]`
+project does not set.
+
+**The `canonical` directive (spec-v5.4).** The configuration field **`canonical`**
+(boolean, default `false`), resolved on the ordinary ladder (`DATAMANIFEST_CANONICAL`
+environment variable → config files / `[_STORAGE]`, `_HOST`-composable like any field),
+opts manifest writes into the canonical reference byte form: a tool whose native
+serialization differs from the normative reference SHOULD, when the field is truthy, route
+its manifest output through the reference serializer (`datamanifest format`) so every tool
+emits byte-identical files (see the `byte-identity` capability). The value is a TOML
+boolean or a string; `1`/`true`/`yes`/`on` (case-insensitive) are truthy. When the
+reference CLI is unavailable the tool MUST fall back to its native — semantically
+identical — output rather than fail the write. Like the folder fields, `canonical` is a
+directive, never a user-defined `$symbol`. A consequence for tools: writing a *default* value into `[_STORAGE]`
 (e.g. on migration) would permanently shadow the user's machine-wide preference, so a tool
 SHOULD write machine-specific directives to the checkout config and SHOULD NOT write
 built-in defaults into the manifest.
@@ -1333,7 +1352,7 @@ fixture-suite tests tagged for those capabilities.
 | `shell-fetch` | Execute the dataset's `shell` command template in the fetch ladder. |
 | `delegation` | Cross-language fetch (rung 3, the rare case): run a fetcher defined in another language — mechanism implementation-defined (call the language's runtime, or a peer `datamanifest` CLI), with fall-through to `uri` — controlled by `delegate` / `--delegate` (see Cross-language fetch, Peer-CLI contract). |
 | `storage` | Honor the `datasets_dir` / `datacache_dir` folders (machine-global defaults), the optional `datasets_pools` / `datacache_pools` read pools, `$`-symbol resolution (`$user_data_dir` / `$user_cache_dir` / `$repo` / `$project` + user-defined, host-aware via `_HOST`), the scoped config files and their resolution ladder (`.datamanifest/config.toml`, `~/.config/datamanifest/config.toml`), and per-dataset `storage_path` (see Storage). |
-| `byte-identity` | Emit the canonical lexicographic key ordering so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, or Julia `write(...; canonical=true)`). |
+| `byte-identity` | Emit the canonical key ordering (structural `_*` tables first at the top level, code-point order everywhere else — see *Validation rules*) so the same logical manifest is **semantically identical** across tools — same keys, same values, same order at every level (verified by the cross-tool fixture). This is the *guaranteed* constraint. Literal **byte-for-byte** identity is **not** assured by default: current TOML writers differ in cosmetic formatting (indentation, blank lines, inline-vs-multiline arrays), so a one-to-one byte match is not always achievable. The **Python tool is the normative reference** for the canonical byte form; tools MAY offer an opt-in path to it (e.g. `datamanifest format`, Julia `write(...; canonical=true)`, or the `canonical` config field). |
 | `binding-args` | Execute the table form of a binding (`{ ref, args, kwargs }`): call `ref(*args; kwargs...)` with `$var` substitution in string values. |
 | `cache-produce` | **Cache-layer** produce-or-load: function-backed (produced) datasets with parameter-hash keying, optional recipe `version`, the `config.toml` / `metadata.toml` sidecars, and the state file's `datacache` inventory, materialized under the `datacache_dir` folder (§Produced datasets). Declared by the cache layer, never by the core fetch capability (packaging — separate package or submodule — is unconstrained). |
 | `inspect` | The **user-driven** store-inspection toolkit (§Maintenance): enumerate stored objects (datasets + cached, via the state file `.datamanifest/state.toml`) with their fields (`kind`, `key`/`hash`, `location`, `referenced`/orphan, dirty state, `format`, `size`, `created`, `last-access`), filter them, and act on a selection (`delete`, `refresh`, optional `move`). There is **no automatic collector**: deletion is always an explicit user selection; `referenced`/`last-access` are advisory. The reference CLI exposes it as `datamanifest list … --delete`. |
@@ -1415,21 +1434,23 @@ flat file to v1 `_LANG` form for the tool's own language.
   datasets, not drop them on write.
 - Writers SHOULD omit derived fields (`host`, `path`, `scheme`) and any field left at
   its default value.
-- Writers MUST emit all keys, at every nesting level — top-level tables (structural `_*`
-  and datasets alike) and the fields within each table, including keys nested in inline
-  `{ }` tables — sorted by **Unicode code-point lexicographic order** (the shared default of Python `sorted()` and Julia
-  `TOML.print(sorted=true)`). No table is special-cased (no `_LOADERS`/`_META`-first). This
-  guarantees **semantic identity** across tools — the same logical manifest round-trips to
-  the same keys, values, and ordering through either tool (the weaker constraint that is
-  always met). It does **not**, by itself, guarantee **byte-for-byte** identity: the Python
+- Writers MUST emit all keys sorted, at every nesting level. At the **top level**, the
+  structural `_*` tables (`_META`, `_LANG`, `_LOADERS`, `_STORAGE`, …) come **first**, then
+  the datasets, each group in **Unicode code-point lexicographic order** (spec-v5.4;
+  because `_` (U+005F) sorts after uppercase but before lowercase ASCII letters, a uniform
+  code-point sort would drop the structural tables *between* the upper-cased / digit-named
+  datasets and the lower-cased ones — the head of the file is where a reader looks for
+  them). Below the top level no table is special-cased: the fields within each table,
+  including keys nested in inline `{ }` tables, sort by plain code-point order (the shared
+  default of Python `sorted()` and Julia `TOML.print(sorted=true)`). This guarantees
+  **semantic identity** across tools — the same logical manifest round-trips to the same
+  keys, values, and ordering through either tool (the weaker constraint that is always
+  met). It does **not**, by itself, guarantee **byte-for-byte** identity: the Python
   (`tomli_w`) and Julia (`TOML.print`) serializers differ in cosmetic formatting
   (indentation, blank lines, inline-vs-multiline arrays), and current tooling does not
   always permit a one-to-one byte match. For literal byte-identity the **Python tool is the
   normative reference** for the canonical form, and a tool MAY route its output through it
-  opt-in (`datamanifest format`, or Julia `write(...; canonical=true)`). Note:
-  because `_` (U+005F) sorts after uppercase but before lowercase ASCII letters, an
-  uppercase dataset name sorts *before* the `_*` structural tables and a lowercase one
-  *after* — intended; the canonical *ordering* is the requirement, not structural-table
-  placement.
+  opt-in (`datamanifest format`, Julia `write(...; canonical=true)`, or the `canonical`
+  config field — see *Scoped configuration*).
 - `uri` and `uris` are mutually exclusive on a single dataset.
 - A file with no `[_META]` section is read as schema v0 (legacy flat), leniently.

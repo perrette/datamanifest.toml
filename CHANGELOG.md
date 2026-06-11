@@ -1,5 +1,27 @@
 # Changelog
 
+## spec-v5.4 (schema `_META.schema = 1`)
+
+**Structural tables first, the `canonical` directive, worktree config fallback.**
+Behavioural only — no schema change, no manifest change, no new fixtures.
+
+- **Canonical ordering: `_*` tables first at the top level.** Writers emit the structural
+  `_*` tables (`_META`, `_LANG`, `_LOADERS`, `_STORAGE`, …) at the head of the file, then
+  the datasets, each group in code-point order; below the top level the plain recursive
+  code-point sort is unchanged. Previously the spec mandated a uniform code-point sort at
+  every level, which dropped the structural tables between the upper-cased and lower-cased
+  dataset names; both tools already write `_*`-first (Python since 2026-06-05). The
+  spec-v5.3 note calling that placement intended is superseded.
+- **`canonical` (boolean, default `false`).** A config field on the ordinary scoped
+  ladder (`DATAMANIFEST_CANONICAL` env var → config files / `[_STORAGE]`,
+  `_HOST`-composable): when truthy, a tool whose native serialization differs from the
+  normative reference SHOULD route manifest writes through the reference serializer
+  (`datamanifest format`) for cross-tool byte-identical files, falling back to its native
+  (semantically identical) output when the reference CLI is unavailable.
+- **Linked `git worktree`s read the main checkout's checkout config** when they have none
+  of their own — extending the spec-v5.1 state-file fallback to
+  `.datamanifest/config.toml`, read-side only; a worktree-local config file always wins.
+
 ## spec-v5.3 (schema `_META.schema = 1`)
 
 **The lock staleness age is a config field.** Behavioural only — no schema change, no
