@@ -3,7 +3,9 @@
 A tool with the `sync` capability moves a stored object between two machines instead of
 re-downloading or recomputing it. Each object has a machine-independent address — a fetched
 dataset by `name`/`alias`/`doi`, a produced artifact by `cachetype[/version]/hash` — so only
-the physical root differs per host.
+the physical root differs per host. An identifier must resolve to exactly one object: one
+matching several (a shared `doi`, a bare `cachetype`) is an error, and bulk transfer is an
+explicit batch or filtered selection.
 
 - Transport is **rsync over SSH**; the SSH target is both transport and host identity (no
   remote registry).

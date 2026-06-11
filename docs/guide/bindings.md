@@ -1,8 +1,11 @@
 # Language bindings
 
 By default a dataset is fetched by downloading its `uri` and loaded by its `format`'s
-built-in loader. To customize either, attach **bindings**. All executable references are
-`module:function` references — **never inline code**, in any language.
+built-in loader. To customize either, attach **bindings**: a **fetcher** is the function
+that obtains the dataset's bytes, a **loader** the function that opens them into memory,
+and a binding names which function to call (plus, optionally, its arguments). All
+executable references are `module:function` references — **never inline code**, in any
+language.
 
 ## Binding forms: string or table
 

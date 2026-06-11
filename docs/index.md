@@ -12,8 +12,9 @@
 
 # datamanifest.toml
 
-A small, normative specification for a TOML file that declares the data
-dependencies of a scientific project — read by tools in different languages.
+A normative specification for a **manifest** — a TOML file, committed alongside a
+project's code, that declares the project's data dependencies. The same file is
+read by tools in different languages.
 
 {%
   include-markdown "../README.md"
@@ -26,9 +27,9 @@ dependencies of a scientific project — read by tools in different languages.
 ```toml
 # datasets.toml
 ["jesstierney/lgmDA"]
-uri     = "https://github.com/jesstierney/lgmDA/archive/refs/tags/v2.1.zip"
-sha256  = "da5f85235baf7f858f1b52ed73405f5d4ed28a8f6da92e16070f86b724d8bb25"
-extract = true
+uri      = "https://github.com/jesstierney/lgmDA/archive/refs/tags/v2.1.zip"
+checksum = "sha256:da5f85235baf7f858f1b52ed73405f5d4ed28a8f6da92e16070f86b724d8bb25"
+extract  = true
 ```
 
 - **[Quickstart](quickstart.md)** — the manifest in one minute, declaring datasets.
@@ -52,9 +53,12 @@ extract = true
 ## Reference
 
 - [Schema specification](schema.md) — the normative `SCHEMA.md`.
-- [JSON Schemas](schemas.md) — machine-readable validation.
+- [JSON Schemas](schemas.md) — machine-readable validation, one schema file per spec tag.
 - [Examples](examples.md) — a full, runnable manifest.
-- [Conformance fixtures](fixtures.md) — the shared test suite.
+- [Conformance fixtures](fixtures.md) — the shared test suite: manifest files paired
+  with machine-checked expected outcomes, which every implementation runs against a
+  pinned spec version.
+- [Roadmap](roadmap.md) · [Changelog](changelog.md) — planned work and version history.
 
 ## From the same author
 

@@ -32,7 +32,7 @@ nc  = "NCDatasets:Dataset"
 # A single CSV behind a DOI. Loaded by the csv format default above.
 [jonkers2024]
 uri         = "https://download.pangaea.de/dataset/962852/files/LGM_foraminifera_assemblages_20240110.csv"
-sha256      = "35ee6e8b94dc355973276da609fb18846ee1156d0fa848c1a9b221edd3715513"
+checksum    = "sha256:35ee6e8b94dc355973276da609fb18846ee1156d0fa848c1a9b221edd3715513"
 doi         = "10.1594/PANGAEA.962852"
 format      = "csv"
 description = "LGM planktic-foraminifera assemblages (Jonkers et al., 2024)"
@@ -41,7 +41,7 @@ description = "LGM planktic-foraminifera assemblages (Jonkers et al., 2024)"
 # the dataset path becomes the extracted directory.
 [herzschuh2023]
 uri         = "https://doi.pangaea.de/10.1594/PANGAEA.930512?format=zip"
-sha256      = "4e40e43ac0f1ddea125cb5314eee46e332aacbcb18aff7efbf59f1d8b1d84a13"
+checksum    = "sha256:4e40e43ac0f1ddea125cb5314eee46e332aacbcb18aff7efbf59f1d8b1d84a13"
 doi         = "10.1594/PANGAEA.930512"
 format      = "zip"
 extract     = true
@@ -50,7 +50,7 @@ description = "Pollen-based climate reconstructions (Herzschuh et al., 2023)"
 # A GitHub release tarball, addressed by a slash-quoted key.
 ["jesstierney/lgmDA"]
 uri         = "https://github.com/jesstierney/lgmDA/archive/refs/tags/v2.1.zip"
-sha256      = "da5f85235baf7f858f1b52ed73405f5d4ed28a8f6da92e16070f86b724d8bb25"
+checksum    = "sha256:da5f85235baf7f858f1b52ed73405f5d4ed28a8f6da92e16070f86b724d8bb25"
 extract     = true
 description = "Tierney et al. LGM data-assimilation product (v2.1)"
 
@@ -61,7 +61,7 @@ description = "Tierney et al. LGM data-assimilation product (v2.1)"
 # else is injected. It overrides the nc format default for this dataset only.
 [ocean_temp]
 uri         = "https://example.com/argo_ocean_temp.nc"
-sha256      = "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
+checksum    = "sha256:c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
 format      = "nc"
 description = "Argo float ocean-temperature profiles"
 
@@ -76,7 +76,7 @@ loader = "MyClimate:load_argo"
 # Requires the `binding-args` capability.
 [esm_5x5]
 uri         = "https://example.com/esm_5x5.nc"
-sha256      = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+checksum    = "sha256:a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
 format      = "nc"
 description = "Regridded ESM field at 5x5 resolution"
 
@@ -89,7 +89,7 @@ kwargs = { grid = "5x5", skip_models = ["CESM.*"] }
 # runs in-process; the bare `shell` fetcher is a language-agnostic fallback (the
 # same command for every tool) that writes to $download_path.
 [model_output]
-sha256      = "e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
+checksum    = "sha256:e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
 format      = "nc"
 description = "Local climate-model run, built on demand"
 shell       = "make model_output OUTPUT=$download_path"   # language-agnostic
@@ -104,7 +104,7 @@ loader  = "myclimate.loaders:load_output"
 # in the running language is an error (use [_LANG.<lang>] for multi-language manifests).
 [sea_ice]
 uri         = "https://example.com/sea_ice.nc"
-sha256      = "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3"
+checksum    = "sha256:b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3"
 format      = "nc"
 loader      = "myclimate.loaders:load_sea_ice"   # language-implicit (own language)
 description = "Sea-ice concentration"
@@ -113,7 +113,7 @@ description = "Sea-ice concentration"
 # cache folder instead of the default datasets folder ($key keeps it tool-managed).
 [reanalysis]
 uri         = "https://example.com/era5_slice.nc"
-sha256      = "f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1"
+checksum    = "sha256:f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1"
 format      = "nc"
 storage_path  = "$user_cache_dir/$key"
 description = "ERA5 reanalysis slice"

@@ -9,17 +9,18 @@ git-ignored state file `.datamanifest/state.toml` (see
 
 ```toml
 [_META]
-schema = 1                       # data-model version (always 1 today)
+schema = 1                       # data-model version (currently 1)
 
 [sea_surface_temp]               # one table per dataset, keyed by name
-uri    = "https://example.com/sst.nc"
-sha256 = "…"                     # auto-filled on first download, verified thereafter
-format = "nc"
+uri      = "https://example.com/sst.nc"
+checksum = "sha256:…"            # auto-filled on first download, verified at fetch
+format   = "nc"
 ```
 
 Top-level keys beginning with `_` are **structural** (`_META`, `_LANG`, `_STORAGE`,
 `_LOADERS`); every other top-level table is a dataset. Readers preserve unknown `_*` keys
-verbatim.
+verbatim. On write, keys are sorted: the structural `_*` tables come first, then the
+dataset tables, each group in code-point order.
 
 *Normative: [SCHEMA.md §Structural keys / §Top-level layout](../schema.md#structural-keys).*
 

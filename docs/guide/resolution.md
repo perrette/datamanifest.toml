@@ -1,7 +1,8 @@
 # Resolution: the fetch and load ladders
 
-At runtime each tool collapses the bindings to one effective **fetcher** and **loader** per
-dataset, trying rungs in order.
+At runtime each tool collapses the bindings to one effective **fetcher** (the function
+that obtains the dataset's bytes) and **loader** (the function that opens them into
+memory) per dataset, trying rungs in order.
 
 **Fetch ladder:** own-language fetcher (explicit `_LANG.<self>` > bare `fetcher`) → `shell`
 command → cross-language fetch (rung 3) → `uri` download → error.
@@ -9,7 +10,7 @@ command → cross-language fetch (rung 3) → `uri` download → error.
 **Load ladder:** own-language loader (explicit > bare) → manifest format default
 (`_LANG.<self>.loaders` > `_LOADERS`) → built-in format default → error.
 
-**Fail-loud (spec-v3.6).** A binding that is **present** for the running language (bare or
+**Fail-loud.** A binding that is **present** for the running language (bare or
 explicit `_LANG.<self>`) and fails to **resolve** is an **error**; one that resolves and
 then **raises** propagates. There is no silent fall-through to a different loader/fetcher.
 The ladder falls through **only** to skip rungs that are *absent* for the running language

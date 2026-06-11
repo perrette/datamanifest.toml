@@ -6,7 +6,7 @@ ones:
 | Field | Meaning |
 |---|---|
 | `uri` | Source to download (`https`, `git`/GitHub, `ssh`, an object store `s3://`/`gs://`/`az://`/…, …). `uris` for mirrors. |
-| `sha256` | Expected digest; auto-filled on first download, verified at fetch. |
+| `checksum` | Expected digest as `<algo>:<hex>` (e.g. `sha256:abc…`; a bare hex value means `sha256`). Auto-filled on first download, verified at fetch. |
 | `format` | Format hint (`csv`, `nc`, `parquet`, `zip`, …) that picks a default loader; inferred from the URI when absent. |
 | `extract` | After download, unpack the archive and use the extracted directory as the path. |
 | `doi` | DOI of the dataset (also a lookup key). |
@@ -24,7 +24,7 @@ ones:
 # A DOI archive: downloaded, checksum-verified, then unpacked.
 [herzschuh2023]
 uri         = "https://doi.pangaea.de/10.1594/PANGAEA.930512?format=zip"
-sha256      = "4e40e43ac0f1ddea125cb5314eee46e332aacbcb18aff7efbf59f1d8b1d84a13"
+checksum    = "sha256:4e40e43ac0f1ddea125cb5314eee46e332aacbcb18aff7efbf59f1d8b1d84a13"
 doi         = "10.1594/PANGAEA.930512"
 format      = "zip"
 extract     = true

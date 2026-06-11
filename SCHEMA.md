@@ -614,10 +614,13 @@ datacache_dir = "$user_cache_dir/myproj"   # …or centralized under a chosen na
 
 ### Environment
 
-Exactly **two** environment variables override the fields — for HPC / CI / containers where
-editing a file is inconvenient: **`DATAMANIFEST_DATASETS_DIR`** and
-**`DATAMANIFEST_DATACACHE_DIR`**. (User-defined symbols override as `DATAMANIFEST_<NAME>`.)
-The environment is the top rung of the resolution ladder, above every file.
+Every field and symbol can be overridden by the environment variable
+**`DATAMANIFEST_<NAME>`** (the upper-cased name) — for HPC / CI / containers where editing
+a file is inconvenient. The common cases are the two folder fields,
+**`DATAMANIFEST_DATASETS_DIR`** and **`DATAMANIFEST_DATACACHE_DIR`**; the same rule covers
+user-defined symbols and the scalar directives (`DATAMANIFEST_CANONICAL`,
+`DATAMANIFEST_LOCK_STALE_AGE`). The environment is the top rung of the resolution ladder,
+above every file.
 
 ### Per-dataset path (`storage_path`)
 
