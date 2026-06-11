@@ -18,7 +18,7 @@ One `datasets.toml` is read by tools in different languages — today
 [Julia](https://github.com/awi-esc/DataManifest.jl) — and covers fetching (download,
 checksum, extract, load), portable storage, per-language bindings, and an optional
 produce-or-load cache layer. The data model is `_META.schema = 1`; behavioural revisions
-are tracked by spec tags (currently `spec-v5.4`).
+are tracked by spec tags (currently `spec-v5.5`).
 
 <!-- intro-start -->
 - **One manifest, many languages.** A single `datasets.toml` declares each dataset's

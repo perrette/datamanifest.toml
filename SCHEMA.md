@@ -480,6 +480,17 @@ The committed manifest sits **between** the two config files: the checkout confi
 it (a personal, per-clone decision), while the user-global config only fills in what the
 project does not set.
 
+**Evaluation timing (spec-v5.5).** The ladder is evaluated **once, when a manifest is
+materialized** (a Database/session object is built from it): a conforming tool captures the
+file-backed layers together with the environment and host as one frozen snapshot, and every
+subsequent resolution for that manifest uses the snapshot — a config-file or environment
+change does not silently retarget an existing session. Re-resolution is an explicit user
+action (re-materialize, or a dedicated refresh call). One-shot CLI invocations are
+unaffected: each invocation materializes afresh, so edits take effect on the next run. A
+tool resolving on **another machine's** behalf (cross-machine sync) builds that machine's
+own snapshot — its config files, probed environment, and hostname — rather than overriding
+parts of the local one.
+
 **The `canonical` directive (spec-v5.4).** The configuration field **`canonical`**
 (boolean, default `false`), resolved on the ordinary ladder (`DATAMANIFEST_CANONICAL`
 environment variable → config files / `[_STORAGE]`, `_HOST`-composable like any field),

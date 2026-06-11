@@ -1,5 +1,19 @@
 # Changelog
 
+## spec-v5.5 (schema `_META.schema = 1`)
+
+**Configuration evaluation timing.** Behavioural only — no schema change, no manifest
+change, no new fixtures.
+
+- **The ladder is frozen at materialization.** A tool evaluates the scoped configuration
+  once, when a manifest is materialized: the file-backed layers, the environment, and the
+  host are captured as one snapshot, and every resolution for that manifest uses it.
+  Re-resolution is explicit (re-materialize / refresh). One-shot CLI invocations are
+  unaffected. Cross-machine resolution builds the remote machine's own snapshot (its
+  config files, probed environment, hostname) instead of overriding parts of the local
+  one. Rationale: each config variable has one well-defined value per session, identical
+  across tools, instead of drifting with ambient state.
+
 ## spec-v5.4 (schema `_META.schema = 1`)
 
 **Structural tables first, the `canonical` directive, worktree config fallback.**
