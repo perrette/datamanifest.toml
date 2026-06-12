@@ -5,8 +5,8 @@
   </picture>
 </p>
 
-[![docs](https://img.shields.io/badge/docs-perrette.github.io%2Fdatamanifest.toml-blue)](https://perrette.github.io/datamanifest.toml/)
-[![spec](https://img.shields.io/badge/spec-spec--v5-informational)](https://perrette.github.io/datamanifest.toml/schema/)
+[![docs](https://img.shields.io/badge/docs-perrette.github.io%2Fdatamanifest-blue)](https://perrette.github.io/datamanifest/)
+[![spec](https://img.shields.io/badge/spec-spec--v5-informational)](SCHEMA.md)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A small, normative specification for the **`datamanifest.toml`** manifest format — a
@@ -40,26 +40,20 @@ are tracked by spec tags (currently `spec-v5.6`).
 
 ## 📖 Documentation
 
-Full documentation lives at **<https://perrette.github.io/datamanifest.toml/>**:
+The ecosystem's documentation site is **<https://perrette.github.io/datamanifest/>**
+(it mirrors this repository's [SCHEMA.md](SCHEMA.md) as its
+[Manifest specification](https://perrette.github.io/datamanifest/manifest-spec/)
+reference page). In this repository:
 
-- [Quickstart](https://perrette.github.io/datamanifest.toml/quickstart/)
-- Guide: [the manifest in one minute](https://perrette.github.io/datamanifest.toml/guide/manifest/),
-  [declaring datasets](https://perrette.github.io/datamanifest.toml/guide/datasets/),
-  [language bindings](https://perrette.github.io/datamanifest.toml/guide/bindings/),
-  [resolution](https://perrette.github.io/datamanifest.toml/guide/resolution/),
-  [storage](https://perrette.github.io/datamanifest.toml/guide/storage/),
-  [caching](https://perrette.github.io/datamanifest.toml/guide/caching/),
-  [maintenance](https://perrette.github.io/datamanifest.toml/guide/maintenance/),
-  [sync](https://perrette.github.io/datamanifest.toml/guide/sync/),
-  [conformance](https://perrette.github.io/datamanifest.toml/guide/conformance/),
-  [migration](https://perrette.github.io/datamanifest.toml/guide/migration/)
-- [Schema specification](https://perrette.github.io/datamanifest.toml/schema/) (the normative `SCHEMA.md`)
-- [JSON Schemas](https://perrette.github.io/datamanifest.toml/schemas/) ·
-  [Examples](https://perrette.github.io/datamanifest.toml/examples/) ·
-  [Conformance fixtures](https://perrette.github.io/datamanifest.toml/fixtures/)
-- [Roadmap](https://perrette.github.io/datamanifest.toml/roadmap/) ·
-  [Changelog](https://perrette.github.io/datamanifest.toml/changelog/)
-
+- [SCHEMA.md](SCHEMA.md) — the normative specification.
+- [Quickstart](docs/quickstart.md) and the guides: [the manifest in one minute](docs/guide/manifest.md),
+  [declaring datasets](docs/guide/datasets.md), [language bindings](docs/guide/bindings.md),
+  [resolution](docs/guide/resolution.md), [storage](docs/guide/storage.md),
+  [caching](docs/guide/caching.md), [maintenance](docs/guide/maintenance.md),
+  [sync](docs/guide/sync.md), [conformance](docs/guide/conformance.md),
+  [migration](docs/guide/migration.md).
+- [Examples](examples/README.md), [fixtures](tests/fixtures/README.md),
+  [JSON schemas](schemas/README.md), [ROADMAP.md](ROADMAP.md), [CHANGELOG.md](CHANGELOG.md).
 ## Quick look
 
 Declare a dataset — its source and checksum — in `datamanifest.toml`:
@@ -76,7 +70,7 @@ local path — re-fetching only when it's missing. Add a `format` and it loads t
 native object too; the same file is read unchanged by tools in different languages. The full,
 runnable manifest is at
 [`examples/datasets.toml`](https://github.com/perrette/datamanifest.toml/blob/main/examples/datasets.toml),
-and the [quickstart](https://perrette.github.io/datamanifest.toml/quickstart/) walks through a
+and the [quickstart](https://perrette.github.io/datamanifest/) walks through a
 fuller example.
 
 ## Implementations
