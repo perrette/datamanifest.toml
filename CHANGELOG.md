@@ -1,5 +1,18 @@
 # Changelog
 
+## spec-v5.6 (schema `_META.schema = 1`)
+
+**Manifest file naming and discovery.** Behavioural only — no schema change, no manifest
+change, no new fixtures.
+
+- **`datamanifest.toml` is the canonical filename.** A tool creating a new manifest MUST
+  name it `datamanifest.toml`; discovery accepts the alternate spellings in a fixed order
+  (first existing wins): `datamanifest.toml` > `DataManifest.toml` > `datasets.toml` >
+  `Datasets.toml`. Previously the two implementations discovered different, partially
+  disjoint name sets (the Julia tool did not find `datamanifest.toml`, the Python tool did
+  not find `DataManifest.toml`); existing projects under any of the four names keep
+  working. The spec prose now uses `datamanifest.toml` for the manifest file throughout.
+
 ## spec-v5.5 (schema `_META.schema = 1`)
 
 **Configuration evaluation timing.** Behavioural only — no schema change, no manifest

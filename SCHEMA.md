@@ -8,6 +8,20 @@ version, format, and how to fetch and load it. Either implementation can read an
 conforming file; each reads the language-agnostic contract fields plus its own
 `_LANG`-namespaced bindings, and preserves the rest verbatim.
 
+## File naming and discovery
+
+The canonical manifest filename is **`datamanifest.toml`**; a tool that creates a new
+manifest MUST use it. For compatibility, tools MUST also discover the alternate spellings,
+in this order (the first existing file wins):
+
+1. `datamanifest.toml`
+2. `DataManifest.toml`
+3. `datamanifest.toml`
+4. `Datasets.toml`
+
+An explicitly given path always bypasses discovery. Throughout this document
+`datamanifest.toml` stands for the manifest file under any of these names.
+
 ## Versioning
 
 Two independent version axes govern this format:
@@ -547,7 +561,7 @@ datacache_pools = ["$team/cache"]        # opt-in; no default
   (only its `cachetype`/`version`/`hash` identity), so cross-project adoption must
   be deliberate.
 - **Read-only and host-local.** Pools are never written to and never edit
-  `datasets.toml`; they only add candidate *locations* to read-resolution. They are
+  `datamanifest.toml`; they only add candidate *locations* to read-resolution. They are
   resolved like any other path expression (`$`-symbols, `~`, env) and are
   **host-composable** via `_HOST` (a pool list set per hostname glob, in the
   manifest or either config file — the ordinary ladder); environment overrides are
@@ -641,14 +655,14 @@ only distinction was whether the key is appended:
 
 ### In-memory and multiple manifests (library use)
 
-A manifest is a **logical structure**; a `datasets.toml` file is its canonical serialized
+A manifest is a **logical structure**; a `datamanifest.toml` file is its canonical serialized
 form, but a tool MAY construct and hold one **in memory**, and **several MAY be live at once**
 in one process — each resolving its own datasets, bindings, and storage **independently** (an
 in-memory manifest resolves identically to a file-backed one). The construction surface is
 per-language and non-normative (Python's `Database`, Julia's `Database`); whether and where
 such a manifest is persisted is the author's choice.
 
-This is how a **library** owns its own data without touching the end user's `datasets.toml`:
+This is how a **library** owns its own data without touching the end user's `datamanifest.toml`:
 it builds its own manifest, declares its datasets via the language API, and sets its
 `datasets_dir` / `datacache_dir` explicitly (e.g. under `$user_data_dir/<library>`) — a
 relative path would otherwise resolve against the *end user's* project, never the installed
@@ -714,11 +728,11 @@ on these conventions:
 > capability**, and **the core fetch engine keeps no garbage collection and no disposability
 > policy**.
 >
-> The format is **additive over a `datasets.toml`**: it adds **no field to the
-> hand-authored `datasets.toml`** and does not change its `_META.schema` (still **1**). A
+> The format is **additive over a `datamanifest.toml`**: it adds **no field to the
+> hand-authored `datamanifest.toml`** and does not change its `_META.schema` (still **1**). A
 > produced dataset reuses the existing **engine** — the storage model, the
 > safe-materialization primitive, and the load ladder — but is **not declared in
-> `datasets.toml`**; its only on-disk record is the machine-generated `config.toml` /
+> `datamanifest.toml`**; its only on-disk record is the machine-generated `config.toml` /
 > `metadata.toml` sidecars (each `_META.schema = 1`) and the project's state file
 > (`_META.schema = 5`). The format is gated by two independent capabilities, `cache-produce`
 > and `inspect`, so a companion may ship neither, one, or both.
@@ -729,21 +743,21 @@ fetched dataset; the distinction is purely two slots:
 
 - the **recipe** — a `uri`/`shell`/`git` recipe with a source-identity key, versus a
   *function* recipe with a *parameter-hash* key;
-- the **authorship** — a fetched dataset is **hand-authored** in `datasets.toml`; a
+- the **authorship** — a fetched dataset is **hand-authored** in `datamanifest.toml`; a
   produced dataset is **machine-generated**.
 
 Everything else — the storage folders, the safe-materialization primitive, loaders, the
 preservation contract — is recipe-agnostic and applies unchanged. The only new
 normative axis is **parameter-hash keying** and its on-disk bookkeeping.
 
-**A produced dataset has no entry in `datasets.toml`.** It originates from a function
+**A produced dataset has no entry in `datamanifest.toml`.** It originates from a function
 that a tool exposes through its produce-or-load surface (the `@cached` decorator /
 macro — per-language and non-normative; see below), and is recorded only after it
-runs. `cachetype` is therefore **not** a `datasets.toml` field; it is a namespace that
+runs. `cachetype` is therefore **not** a `datamanifest.toml` field; it is a namespace that
 appears solely in the machine-generated records — the state file's `datacache` entry,
 the `config.toml` `[_META]` block, and the on-disk path. A conforming fetch path
 (`download_dataset` and the fetch ladder) **never encounters a produced dataset**: the
-two concerns share the *engine*, not the *manifest*. This keeps `datasets.toml` clean
+two concerns share the *engine*, not the *manifest*. This keeps `datamanifest.toml` clean
 (the hand-authored, git-committed **spec**) and confines produced,
 parameter-hash-keyed churn to the git-ignored **state file** (regenerable ground
 truth).
@@ -759,7 +773,7 @@ Storage), the producing layer's folder.
 > is **keyword-only** for hashing: an ordered positional argument list has no stable
 > name→value identity to hash, so a `cache-produce` tool MUST derive the key table from
 > keyword parameters only. This is a property of the produce-or-load *surface*, not a
-> `datasets.toml` rule — fetched datasets keep their positional `args` per spec-v1.1.
+> `datamanifest.toml` rule — fetched datasets keep their positional `args` per spec-v1.1.
 
 ### Parameter-hash keying
 
@@ -1025,7 +1039,7 @@ blob format.
 
 ### The state file (`.datamanifest/state.toml`)
 
-The hand-authored `datasets.toml` stays clean — it is the **spec**: *what* to
+The hand-authored `datamanifest.toml` stays clean — it is the **spec**: *what* to
 track and *how* to obtain it (a dataset's `uri`/`fetcher`/`shell`, a `@cached`
 function's code), hand-authored and **git-committed**, the source of intent. What
 it records is the **expectation** — a per-dataset directive `storage_path` (where
@@ -1085,7 +1099,7 @@ format = "nc"
   location is its own complete record.
 - **Spec vs. state — the same two fields, two meanings.** A dataset's
   `storage_path` and `sha256` appear in *both* files **on purpose**: in
-  `datasets.toml` they are the **expectation** (the directive for where bytes go /
+  `datamanifest.toml` they are the **expectation** (the directive for where bytes go /
   the contract digest); in the state file they are **ground truth** (the resolved
   location / the actual digest). The duplication is intentional and harmless — the
   state file is derived and disposable. (Fully separating directive-from-resolved
@@ -1201,7 +1215,7 @@ see *Why not automatic reachability* below.
   - `referenced` — whether a still-present local `.toml` roots it or it is an **orphan**. For
     a produced artifact the match is the full **`(cachetype, version, hash)`** tuple
     against a state-file `datacache` instance, so another project's artifact (in a different folder) is
-    not mistaken for referenced; for a fetched dataset, its key listed in a `datasets.toml`;
+    not mistaken for referenced; for a fetched dataset, its key listed in a `datamanifest.toml`;
   - `format`, `size`, `created`, and a best-effort, filesystem-derived
     **last-access** time (read from `stat`, never written on read; MAY be unknown).
 
@@ -1215,7 +1229,7 @@ see *Why not automatic reachability* below.
 - **Act on the selection.** Actions operate on **exactly** the filtered set, uniformly
   across fetched datasets and produced artifacts: **`delete`** (remove the bytes **and**
   prune the object's state-file entry) and optionally **`move`** (relocate the bytes and
-  **repoint the recorded `storage_path`** — `datasets.toml` is *not* edited, so a later
+  **repoint the recorded `storage_path`** — `datamanifest.toml` is *not* edited, so a later
   re-fetch still follows the `datasets_dir` directive; gold standard). A tool **MUST NOT**
   delete everything by default and **MUST NOT** delete as a side effect of any other
   command. The **explicit filter + action is itself the selection** (typing the action over a
@@ -1309,7 +1323,7 @@ the physical root differs. Sync is a transfer between two stores, gated by the o
   remote project location never has to be known.
 - **Symmetric.** `push` and `pull` differ only in transfer direction; each side resolves its
   own store identically, so there is no asymmetry between them.
-- **Writes no manifest.** Sync moves bytes only; it never edits `datasets.toml` or the
+- **Writes no manifest.** Sync moves bytes only; it never edits `datamanifest.toml` or the
   state file on either end. A transferred object lands in the global store as an
   **orphan** (present, unreferenced) — immediately usable via read-resolution, and registered
   by the receiver's normal flow if and when its own project uses it.

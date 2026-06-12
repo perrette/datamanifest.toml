@@ -1,0 +1,2296 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A TOML manifest format for declaring a project's data dependencies — read by tools in different languages">
+      
+      
+      
+        <link rel="canonical" href="https://perrette.github.io/datamanifest.toml/changelog/">
+      
+      
+        <link rel="prev" href="../roadmap/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Changelog - datamanifest.toml</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#changelog" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="datamanifest.toml" class="md-header__button md-logo" aria-label="datamanifest.toml" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            datamanifest.toml
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Changelog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/perrette/datamanifest.toml" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    perrette/datamanifest.toml
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="datamanifest.toml" class="md-nav__button md-logo" aria-label="datamanifest.toml" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    datamanifest.toml
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/perrette/datamanifest.toml" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    perrette/datamanifest.toml
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/manifest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The manifest in one minute
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/datasets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Declaring datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/bindings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language bindings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/resolution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Resolution (fetch & load ladders)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/caching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Produced datasets and caching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance (inspect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-machine sync
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conformance and versioning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration and deprecations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schema specification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fixtures/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conformance fixtures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v43-schema-_metaschema-1-unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v4.3 (schema _META.schema = 1) — unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v42-schema-_metaschema-1-unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v4.2 (schema _META.schema = 1) — unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v41-schema-_metaschema-1-unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v4.1 (schema _META.schema = 1) — unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v4-schema-_metaschema-1-unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v4 (schema _META.schema = 1) — unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v37-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.7 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v36-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.6 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v35-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.5 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v34-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.4 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v33-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.3 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v32-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.2 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v31-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.1 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v3-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v21-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v2.1 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v2-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v2 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="spec-v2 (schema _META.schema = 1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#storage-model-revision-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage model revision (storage)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#produce-or-load-companion-layer-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Produce-or-load (companion-layer) features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cross-language-fetch-rung-3-clarified" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-language fetch (rung 3) clarified
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#explicitly-deferred" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Explicitly deferred
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v11-schema-_metaschema-1-additive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v1.1 (schema _META.schema = 1, additive)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="spec-v1.1 (schema _META.schema = 1, additive)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New features
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v1-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v1 (schema _META.schema = 1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-structural-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking structural changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-features_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deprecations-still-read-should-not-be-written-by-v1-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deprecations (still read; should not be written by v1 tools)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0-no-_meta-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0 (no [_META] header)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v43-schema-_metaschema-1-unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v4.3 (schema _META.schema = 1) — unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v42-schema-_metaschema-1-unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v4.2 (schema _META.schema = 1) — unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v41-schema-_metaschema-1-unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v4.1 (schema _META.schema = 1) — unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v4-schema-_metaschema-1-unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v4 (schema _META.schema = 1) — unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v37-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.7 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v36-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.6 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v35-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.5 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v34-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.4 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v33-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.3 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v32-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.2 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v31-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3.1 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v3-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v3 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v21-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v2.1 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v2-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v2 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="spec-v2 (schema _META.schema = 1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#storage-model-revision-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage model revision (storage)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#produce-or-load-companion-layer-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Produce-or-load (companion-layer) features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cross-language-fetch-rung-3-clarified" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-language fetch (rung 3) clarified
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#explicitly-deferred" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Explicitly deferred
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spec-v11-schema-_metaschema-1-additive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        spec-v1.1 (schema _META.schema = 1, additive)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="spec-v1.1 (schema _META.schema = 1, additive)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New features
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v1-schema-_metaschema-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1 (schema _META.schema = 1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v1 (schema _META.schema = 1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-structural-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking structural changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-features_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deprecations-still-read-should-not-be-written-by-v1-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deprecations (still read; should not be written by v1 tools)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0-no-_meta-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0 (no [_META] header)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/perrette/datamanifest.toml/edit/main/changelog.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<!-- Single source: CHANGELOG.md at the repo root. -->
+<h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="spec-v43-schema-_metaschema-1-unreleased">spec-v4.3 (schema <code>_META.schema = 1</code>) — unreleased<a class="headerlink" href="#spec-v43-schema-_metaschema-1-unreleased" title="Permanent link">&para;</a></h2>
+<p><strong>Remote sources</strong> — object-store download schemes, a <code>lazy_access</code> mode for never-materialized
+in-place access, and fail-loud identifier resolution. Additive (no <code>_META.schema</code> change); two
+new optional dataset fields.</p>
+<ul>
+<li><strong>Object-store <code>uri</code> schemes are normative.</strong> <code>s3://</code>, <code>gs://</code>, <code>gcs://</code>, <code>az://</code>, <code>abfs://</code>,
+  <code>abfss://</code>, <code>adl://</code>, <code>gdrive://</code> mean "fetch the named object, then verify <code>sha256</code> as usual."
+  The spec fixes the <strong>scheme set and semantics, not the mechanism</strong> — a tool fetches with any
+  backend (the Python tool via <code>fsspec</code>; a peer tool via its own packages), and a tool that
+  cannot serve a scheme <strong><code>delegate</code>s</strong> it or errors <em>unsupported scheme</em> — never silently skips
+  it. HTTP/HTTPS keep their dedicated GET path and are deliberately <strong>not</strong> in this set. New
+  <em>Download schemes</em> section; <code>manifest.v3.json</code> documents the <code>uri</code> schemes.</li>
+<li><strong><code>lazy_access</code> (new bool) — an <em>access</em> mode.</strong> Open the <code>uri</code> in place via a loader instead
+  of materializing a local copy: <strong>no copy, no checksum, no state-file record</strong>; a loader is
+  required (a bare <code>lazy_access</code> is an error). The mechanism — streaming, an sshfs/FUSE <strong>mount</strong>,
+  an object-store filesystem — is implementation-defined; this <strong>subsumes the former deferred
+  standalone <code>mount</code> store</strong> (one materialization axis: download vs. in-place), so no <code>mount</code>
+  capability is added. The "no materialization axis" / deferred-<code>mount</code> spec text is rewritten
+  accordingly.</li>
+<li><strong><code>skip_download</code> clarified — a <em>management</em> mode (unchanged behavior, sharpened wording).</strong> It
+  marks a <em>passive, externally-managed dependency</em>: not downloaded, <strong>not verified</strong>, never
+  touched by maintenance (e.g. a large user-maintained archive). It is <strong>orthogonal</strong> to
+  <code>lazy_access</code> (who manages the bytes vs. how they are read) and the two are not meant to
+  combine. This <strong>un-overloads</strong> <code>skip_download</code>: in-place/on-the-fly access is now <code>lazy_access</code>,
+  not <code>skip_download</code> + a loader.</li>
+<li><strong>Identifier resolution is exact-or-error.</strong> Resolving a single dataset by <code>name</code> / <code>alias</code> /
+  <code>doi</code> to <strong>more than one</strong> match is a fail-loud error naming the candidates, never a silent
+  first-match — a <code>doi</code> may be shared across split datasets. New <em>Identifier resolution</em> rule; the
+  sync addressing contract now references it.</li>
+</ul>
+<h2 id="spec-v42-schema-_metaschema-1-unreleased">spec-v4.2 (schema <code>_META.schema = 1</code>) — unreleased<a class="headerlink" href="#spec-v42-schema-_metaschema-1-unreleased" title="Permanent link">&para;</a></h2>
+<p><strong>Read pools</strong> — reuse a dataset or <code>@cached</code> result that already exists elsewhere on the
+machine instead of fetching or recomputing it — plus two resolution/maintenance
+clarifications. Additive: no <code>_META.schema</code> change.</p>
+<ul>
+<li><strong><code>[_STORAGE].datasets_pools</code> / <code>datacache_pools</code>.</strong> Optional lists of <strong>read-only
+  locations</strong> added to read-resolution: probed after the recorded and directive-derived
+  location and <strong>before</strong> downloading/producing. A <code>datasets_pools</code> hit is <strong>checksum-verified</strong>
+  against the declared <code>sha256</code> (mismatch skipped), <strong>recorded in the state file</strong>, and used
+  <strong>in place — no copy</strong> (a genuine download still goes to <code>datasets_dir</code>; gold standard).
+  <code>datacache_pools</code> is symmetric (<code>&lt;pool&gt;/&lt;cachetype&gt;[/&lt;version&gt;]/&lt;hash&gt;</code>, <code>config.toml</code>-gated).
+  Defaults differ by <strong>trust</strong>: <code>datasets_pools</code> absent ⇒ built-in well-known pools
+  (<code>~/.cache/Datasets</code>, <code>$user_data_dir/datamanifest/datasets</code>), since a fetched dataset is
+  checksum-verifiable; <code>datacache_pools</code> absent ⇒ <strong>no pools</strong> (opt-in), since produced
+  artifacts have no de-facto shared location and no content checksum. An explicit list is used
+  verbatim, an empty list disables. Host-composable via <code>[_STORAGE._HOST]</code>; env
+  <code>DATAMANIFEST_DATASETS_POOLS</code> / <code>DATAMANIFEST_DATACACHE_POOLS</code>. <code>manifest.v3.json</code> types both.</li>
+<li><strong>Single recorded location (multiple locations decided <em>out</em>).</strong> The state file keeps <strong>one</strong>
+  <code>storage_path</code> per object — the last location it was found at or written to, refreshed by
+  self-heal, never grown into a set. Resolution only needs to find one copy; a stray second copy
+  reads as <code>untracked</code> and is cleaned up explicitly, and a shared copy elsewhere is found via a
+  read pool. (Reclassifies the spec-v4.1 ROADMAP deferral as out-of-scope.)</li>
+<li><strong>Maintenance applies on the explicit selection.</strong> A filtered <code>list … --delete</code> / <code>--move</code> is
+  itself the explicit user selection, so a tool MAY apply directly and SHOULD offer a
+  <code>--dry-run</code> preview (the spec-v4.1 "default to a dry run" wording is relaxed; the hard rules —
+  never delete everything by default, never as a side effect — stand).</li>
+</ul>
+<h2 id="spec-v41-schema-_metaschema-1-unreleased">spec-v4.1 (schema <code>_META.schema = 1</code>) — unreleased<a class="headerlink" href="#spec-v41-schema-_metaschema-1-unreleased" title="Permanent link">&para;</a></h2>
+<p><strong>Unify the produced-only <code>cached.toml</code> index into a single git-ignored state file,
+<code>.datamanifest-state.toml</code>.</strong> Splits the committed <strong>spec</strong> (<code>datasets.toml</code> = <em>what</em> to
+track and <em>how</em> — the expectation) from <strong>regenerable local state</strong> (where each object
+actually landed — the ground truth). The manifest's <code>_META.schema</code> is unchanged (still 1);
+this is a structural change to the sibling index format (its own <code>_META.schema = 5</code>).</p>
+<ul>
+<li><strong>One inventory for both kinds.</strong> The state file records fetched datasets <em>and</em> produced
+  artifacts under two top-level namespaces, parallel to the two storage folders:</li>
+<li><code>datasets</code>: storage key ⇒ resolved <code>storage_path</code> + actual <code>sha256</code> (omitted under
+    <code>skip_checksum</code>);</li>
+<li><code>datacache</code>: <code>cachetype[@version]</code> ⇒ a <code>ref</code>/<code>format</code> recipe + an <code>instances</code> table
+    mapping each parameter <code>hash</code> to its full artifact directory (<code>@</code> is the reserved version
+    separator). <strong>Params leave the index</strong> — they live in each artifact's <code>config.toml</code>.</li>
+<li><strong>Read-only inventory; the directive is the gold standard.</strong> The state file records <em>where
+  things are</em> and is consulted to <em>find</em> an existing object — it <strong>never directs a write</strong>.
+  Every (re)materialization follows the current directive (<code>datasets_dir</code> / <code>datacache_dir</code> /
+  per-dataset <code>storage_path</code> / <code>@cached(storage_path=…)</code>). Read-resolution checks the recorded
+  location <strong>first</strong>, ahead of any derivation rule, so a moved object is found at its new home.</li>
+<li><strong>Git-ignored by default.</strong> Artifacts are local, often outside the repo, and not
+  re-fetchable, so the inventory is regenerable per-machine state — not a committed
+  reproducibility lock. (A shared-drive project MAY track it, but that is a user's setup, not
+  the design intent.) The <code>Manifest.toml</code>-analogue / "applications commit it" framing is dropped.</li>
+<li><strong>Self-heal additive, removal explicit-only.</strong> Active resolution refreshes a <em>relocated</em>
+  record, registers an <em>untracked</em> object, and re-materializes a <em>missing</em> one — but <strong>never
+  deletes</strong>. A tool MAY label each object <code>clean</code> / <code>missing</code> / <code>relocated</code> / <code>untracked</code> /
+  <code>modified</code>; passive listing only labels. Two explicit user actions reconcile: <code>--refresh</code>
+  (fix the state file only — re-point relocated, drop stale) and <code>--delete</code> (remove bytes +
+  entry, the sole byte remover). Maintenance (<code>--delete</code> / <code>--move</code>) now spans fetched datasets
+  too, with the user-managed-path / <code>skip_download</code> skip-guard generalized to both kinds.</li>
+<li><strong>Concurrency.</strong> Every write re-reads + merges (additive union, last-writer-wins per object) +
+  atomic-renames, so parallel downloads/produces don't clobber each other.</li>
+<li><strong>Schema.</strong> New <code>state.v4.json</code> validates the state file (<code>datasets</code> + <code>datacache</code>,
+  <code>_META.schema = 5</code>), superseding <code>cached.v3.json</code> (kept for the legacy <code>cached.toml</code> shapes,
+  <code>_META.schema</code> 1–4, which conforming readers migrate forward; <code>cached.toml</code> is the recognized
+  legacy name). <code>metadata-sidecar.v3.json</code> renames the <code>cached_toml</code> back-pointer to
+  <code>state_file</code>.</li>
+<li><strong>Spec vs. state — same fields, two meanings.</strong> A dataset's <code>storage_path</code> and <code>sha256</code> live
+  in <em>both</em> files on purpose: in <code>datasets.toml</code> they are the expectation (directive / contract),
+  in the state file the ground truth (resolved / actual). Intentional, harmless duplication;
+  fully separating them (expected-vs-actual <code>sha256</code>, resolved <code>storage_path</code>, multiple recorded
+  locations, the <code>modified</code> state) is deferred — see <code>ROADMAP.md</code>.</li>
+</ul>
+<h2 id="spec-v4-schema-_metaschema-1-unreleased">spec-v4 (schema <code>_META.schema = 1</code>) — unreleased<a class="headerlink" href="#spec-v4-schema-_metaschema-1-unreleased" title="Permanent link">&para;</a></h2>
+<p>A <strong>breaking storage-layout revision</strong> that radically simplifies storage to <strong>two paths</strong> and
+makes everything <strong>local by default</strong>. The TOML <em>shape</em> stays additive (<code>_META.schema</code> = 1);
+the break is in <em>where bytes land on disk</em> (versioned on the spec-tag axis, as spec-v3 was).
+Existing stores need migration or a clean re-fetch. The machinery of the earlier spec-v4
+drafts — scope, content prefixes, the <code>datamanifest</code> appname, project-name derivation,
+<code>DATAMANIFEST_DIR</code>, and the scope/prefix ladders — is <strong>removed</strong> in favor of letting the user
+write the two paths directly.</p>
+<ul>
+<li><strong>Two folder fields, local by default.</strong> <code>[_STORAGE].datasets_dir</code> (fetched) and
+  <code>datacache_dir</code> (produced) are the whole model. They default to the relative paths
+  <code>"datasets"</code> / <code>"cached"</code> ⇒ repo-relative ⇒ visible <code>./datasets/</code>, <code>./cached/</code>. A fetched
+  dataset lands at <code>&lt;datasets_dir&gt;/&lt;key&gt;</code>, a produced artifact at
+  <code>&lt;datacache_dir&gt;/&lt;cachetype&gt;/[&lt;version&gt;/]&lt;hash&gt;/</code> — no scope, no prefix, no derived name in
+  between. Adding a <code>pyproject.toml</code> no longer moves anything.</li>
+<li><strong><code>$</code>-symbols.</strong> Predefined <strong><code>$user_data_dir</code></strong> / <strong><code>$user_cache_dir</code></strong> (straight from
+  <code>platformdirs</code>, <strong>bare</strong> — no app name) and <strong><code>$repo</code></strong>; any other bare <code>[_STORAGE]</code> key is a
+  user-defined symbol, made host-specific in <code>[_STORAGE._HOST."&lt;glob&gt;"]</code>. <code>$USER</code>/env and <code>~</code>
+  expand. Centralize/share with one edit, e.g. <code>datasets_dir = "$user_data_dir/myproj"</code>.</li>
+<li><strong>Per-dataset <code>storage_path</code></strong> replaces both the former <code>store</code> and <code>local_path</code>. Default
+  <code>$datasets_dir/$key</code>; contains <code>$key</code> ⇒ tool-managed/keyed, an exact path without <code>$key</code> ⇒
+  user-managed and never touched by maintenance. (Named <code>storage_path</code>, not <code>path</code> — <code>path</code> is
+  the URI's parsed component.)</li>
+<li><strong>Two environment variables</strong>, <code>DATAMANIFEST_DATASETS_DIR</code> / <code>DATAMANIFEST_DATACACHE_DIR</code>
+  (user symbols override as <code>DATAMANIFEST_&lt;NAME&gt;</code>); <code>$user_data_dir</code> / <code>$user_cache_dir</code> keep
+  per-OS resolution. <code>DATAMANIFEST_DIR</code>, <code>DATAMANIFEST_SCOPE</code>, <code>DATAMANIFEST_PREFIX_*</code> are gone.</li>
+<li><strong>Partition-local staging.</strong> Materialization stages within the target folder's partition (a
+  <code>$scratch</code> dataset stages on <code>$scratch</code>) — required for an atomic rename and so voluminous
+  data never transits a small <code>~/.cache</code>. A tool's app-internal files live alongside, never in
+  a separate global folder.</li>
+<li><strong><code>cached.toml</code> drops <code>scope</code> (and the recipe <code>store</code>).</strong> Recipes are keyed by
+  <code>(cachetype, version)</code>; the on-disk location is the manifest's <code>datacache_dir</code>, and
+  reachability is <code>(cachetype, version, hash)</code>. (Schema-2 nested structure, hit self-healing,
+  and the index lifecycle are unchanged from spec-v3.7.)</li>
+<li><strong>In-memory &amp; multiple manifests (library use).</strong> A manifest is a logical structure that MAY
+  be built in memory and <strong>several MAY be live at once</strong>, each resolving independently (the API
+  is per-language — Python / Julia <code>Database</code>; whether/where it persists is the author's
+  choice). <strong>Recommended:</strong> a library shipping data dependencies owns them this way — its own
+  manifest with explicit <code>datasets_dir</code> / <code>datacache_dir</code> (e.g. under <code>$user_data_dir/&lt;library&gt;</code>)
+  — rather than touching the end user's <code>datasets.toml</code>; without explicit folders its data falls
+  back to the end user's project, who owns the location.</li>
+<li><code>manifest.v3.json</code> types <code>[_STORAGE].datasets_dir</code> / <code>datacache_dir</code> and the dataset
+  <code>storage_path</code>; <code>cached.v3.json</code> drops the recipe <code>scope</code> / <code>store</code>. README and the reference
+  guide carry the storage recipe (shared downloads pool + per-project versioned cache, per-host
+  roots).</li>
+</ul>
+<h2 id="spec-v37-schema-_metaschema-1">spec-v3.7 (schema <code>_META.schema = 1</code>)<a class="headerlink" href="#spec-v37-schema-_metaschema-1" title="Permanent link">&para;</a></h2>
+<p>Reconcile the produced-dataset / cache model with the implementation: the <code>cached.toml</code> index
+becomes a self-healing, <strong>nested schema-2</strong> registry, and the produced-dataset identity model
+(cachetype / scope / conflicts / default format) is formalized cross-language. The manifest
+<code>_META.schema</code> stays <strong>1</strong>; <code>cached.toml</code>'s own <code>_META.schema</code> goes <strong>1 → 2</strong> (schema 1 is
+still read, always rewritten as 2).</p>
+<ol>
+<li>
+<p><strong><code>cached.toml</code> field <code>project</code> → <code>scope</code>.</strong> The declarable knob is named for what it sets
+   — the scope partition — not for the project id that merely <em>defaults</em> it. There is no
+   per-dataset <code>project</code>; <code>scope</code> is recorded per recipe (parallel to a dataset's <code>store</code>).</p>
+</li>
+<li>
+<p><strong><code>cached.toml</code> index lifecycle: self-healing transparency view.</strong> The index is reframed
+   from a write-once log to a per-machine transparency view that <strong>converges to the artifacts
+   present on disk</strong>. A tool registers on produce (miss), <strong>registers-if-missing on cache
+   hit</strong> (so a deleted <code>cached.toml</code> repopulates as datasets are accessed; the steady-state
+   check is read-only, off the hot path), and <strong>prunes a stale entry</strong> when it observes the
+   artifact is gone (single ops reconcile their own entry, <code>inspect</code> the whole file). Pruning
+   a dangling pointer is bookkeeping, <strong>not</strong> the "never auto-delete data" rule (which
+   protects present bytes). On-disk <code>config.toml</code> stays the cache-validity authority; index
+   mutations use the produce atomic-write+lock and are idempotent. <code>metadata.toml</code> provenance
+   remains <strong>write-if-absent</strong> (hits don't re-stamp it) — only the index re-registers.</p>
+</li>
+<li>
+<p><strong>Produced-dataset identity model (cross-language).</strong> (i) <strong><code>cachetype</code> default +
+   stable-name rule:</strong> absent an explicit <code>cachetype</code>, it derives from the producing
+   function's canonical <em>importable</em> name (so it coincides with the entry <code>ref</code>);
+   unique-per-function is the right default (mixing unrelated caches is the worst failure),
+   with the accepted rename-orphans consequence and <code>version</code> as the deliberate-bust tool; and
+   when the function has <strong>no stable importable identity</strong> (script / REPL / eval / notebook) a
+   tool MUST require an explicit <code>cachetype</code>, never synthesize one (the generalized pickle
+   constraint). (ii) <strong><code>scope</code> is ownership, not disambiguation:</strong> resolved from the <em>caller's</em>
+   project, isolation-by-default / share-by-opt-in; never affects hit validity. (iii)
+   <strong><code>(cachetype, version)</code> conflict guard:</strong> a tool SHOULD raise when two distinct functions
+   claim the same pair <em>live in one process at once</em> (same-process/same-time only; <code>scope</code>
+   irrelevant). Transient/local/anonymous functions are exempt; <em>when and how</em> to detect is
+   left to each implementer (the earliest practical point for the language — import time in
+   Python; trickier under Julia's precompilation, and possibly infeasible there), hence a
+   SHOULD with no fixed mechanism. (iv) <strong>Format coexists under one hash:</strong> <code>format</code> is not a
+   hash input, so several formats share a <code>&lt;cachetype&gt;/[&lt;version&gt;/]&lt;hash&gt;</code> dir; a hit requires
+   the <code>data.&lt;ext&gt;</code> for the <em>requested</em> format, else recompute. (v) <strong>Per-language default
+   format</strong> (RECOMMENDED, not normative): <code>pickle</code> (Python) / <code>jld2</code> (Julia), each with a
+   built-in <strong>saver</strong> + loader, so a format-less produced dataset round-trips.</p>
+</li>
+<li>
+<p><strong><code>cached.toml</code> schema 2 (nested) + scope ladder + centralized <code>[_STORAGE]</code>.</strong> (a) <strong>Schema
+   2 is nested:</strong> <code>cached.toml</code> becomes a <code>produced</code> array of recipe tables keyed by
+   <code>(scope, cachetype, version)</code>, each with one <code>instances</code> entry per produced variation
+   (parameter <code>hash</code> + the <code>params</code> key table). Registering <strong>accumulates</strong> instances (so a
+   recipe's many parameterizations all stay reachable instead of orphaning); recipe-level
+   <code>ref</code>/<code>format</code>/<code>store</code> are refreshed on register and on hit-if-drifted (not hash inputs).
+   Schema 1 (flat, one <code>hash</code>, no params) is still <strong>read</strong> (→ one-instance recipe) but
+   rewritten as schema 2. (b) <strong>Scope resolution ladder:</strong> a producing-call <code>scope=</code> override
+   (highest) → <code>DATAMANIFEST_SCOPE_CACHED</code> → <code>[_STORAGE._SCOPE].cached</code> → project id;
+   <code>scope=""</code> is one global unscoped store; the scope is resolved <strong>once</strong> and drives both the
+   path and the recorded entry (no divergence), and reachability is the full
+   <code>(scope, cachetype, version, hash)</code> tuple. (c) <strong>Centralized storage:</strong> a produced artifact
+   reads the nearest manifest's <code>[_STORAGE]</code> (a plain TOML read, no fetch layer), so produced
+   and fetched data share one storage configuration; env overrides win, an explicit config
+   wins over the manifest. The <code>cached.v3.json</code> schema now validates the nested schema-2 form.</p>
+</li>
+</ol>
+<h2 id="spec-v36-schema-_metaschema-1">spec-v3.6 (schema <code>_META.schema = 1</code>)<a class="headerlink" href="#spec-v36-schema-_metaschema-1" title="Permanent link">&para;</a></h2>
+<p>Replace the spec-v3.4 "warn and fall through" rule for language-implicit bindings with
+<strong>fail-loud</strong> semantics.</p>
+<ul>
+<li>A binding that is <em>present</em> for the running language — a bare <code>fetcher</code>/<code>loader</code>, or an
+  explicit <code>[&lt;ds&gt;._LANG.&lt;self&gt;]</code> — that <strong>fails to resolve is an error</strong>; one that resolves
+  and then raises <strong>propagates</strong>. No silent fall-through to a different loader/fetcher
+  (which could hand a program wrong-shaped data behind only a warning, especially for a
+  loader falling through to the format default).</li>
+<li>The fetch/load ladders still fall through only for bindings that are <strong>absent</strong> for the
+  running language (e.g. another language's <code>_LANG.&lt;other&gt;</code> fetcher), unchanged.</li>
+<li>Multi-language manifests use explicit <code>[&lt;ds&gt;._LANG.&lt;lang&gt;]</code> bindings (absent — and so
+  correctly skipped — in other languages); bare bindings are the single-language form.</li>
+<li><strong>No <code>--lenient</code> flag.</strong> A tool-wide best-effort mode (e.g. "fetch all, skip failures")
+  is a separate, broader concern, intentionally not introduced by this rule.</li>
+<li>Docs/semantics only; no schema change. <code>_META.schema</code> stays <strong>1</strong>.</li>
+</ul>
+<h2 id="spec-v35-schema-_metaschema-1">spec-v3.5 (schema <code>_META.schema = 1</code>)<a class="headerlink" href="#spec-v35-schema-_metaschema-1" title="Permanent link">&para;</a></h2>
+<p>Move the shell fetcher out of the <code>_LANG</code> namespace. <code>shell</code> is <strong>language-agnostic</strong> (the
+same command for every tool), so it is now a bare dataset field — a command template run as
+a subprocess — rather than a pseudo-language under <code>[&lt;ds&gt;._LANG.shell]</code>.</p>
+<ul>
+<li><code>shell = "&lt;command template&gt;"</code> on the dataset is the canonical form; same <code>$var</code>
+  substitutions as before; fetcher only.</li>
+<li>The legacy <code>[&lt;ds&gt;._LANG.shell].fetcher</code> is still read and preserved verbatim.</li>
+<li><code>schemas/manifest.v3.json</code>: datasets gain a <code>shell</code> string field.</li>
+<li>The bare <code>julia=</code>/<code>python=</code>/<code>callable=</code> flat fields stay <strong>legacy</strong> (they historically
+  held inline code, which v1 forbids) — tolerated on read and rewritten by <code>migrate</code>; not a
+  forward form. The single-language convenience is already covered by bare <code>fetcher</code>.</li>
+<li>Reconciled the Deprecations section with spec-v3.4: bare <code>fetcher</code>/<code>loader</code>
+  (language-implicit), bare <code>shell</code> (language-agnostic), and <code>[_LOADERS]</code> are supported
+  forms, not deprecated.</li>
+<li><code>_META.schema</code> stays <strong>1</strong>: additive field + a relocation with legacy tolerance;
+  spec-tag axis.</li>
+</ul>
+<h2 id="spec-v34-schema-_metaschema-1">spec-v3.4 (schema <code>_META.schema = 1</code>)<a class="headerlink" href="#spec-v34-schema-_metaschema-1" title="Permanent link">&para;</a></h2>
+<p>Language-implicit ("bare") bindings, so a single-language project can skip the
+<code>[&lt;dataset&gt;._LANG.&lt;lang&gt;]</code> ceremony. A dataset MAY carry a bare <code>fetcher</code>/<code>loader</code>
+directly, and a top-level <code>[_LOADERS]</code> MAY carry a bare <code>format → binding</code> map; a reading
+tool interprets these as bindings in <strong>its own language</strong>.</p>
+<ul>
+<li><strong>Precedence:</strong> an explicit <code>[&lt;dataset&gt;._LANG.&lt;self&gt;]</code> binding (and
+  <code>[_LANG.&lt;self&gt;.loaders]</code>) overrides the bare one.</li>
+<li><strong>Tolerant:</strong> a bare binding that does not resolve in the running language <strong>warns and
+  falls through</strong> the ladder — never a hard error (a shared single-author manifest will
+  legitimately fail in the other language).</li>
+<li><strong>Round-trip:</strong> a writer preserves a bare binding verbatim — it never promotes it into
+  <code>_LANG.&lt;self&gt;</code>; tools write <code>_LANG.&lt;self&gt;</code> only for bindings they generate.</li>
+<li><code>[_LOADERS]</code> is reclassified from deprecated back-compat to the <strong>tolerated</strong>
+  language-implicit counterpart of <code>[_LANG.&lt;self&gt;.loaders]</code>.</li>
+<li><code>schemas/manifest.v3.json</code>: datasets gain <code>fetcher</code>/<code>loader</code> (binding-typed); <code>_LOADERS</code>
+  is a <code>format → binding</code> map.</li>
+<li><code>_META.schema</code> stays <strong>1</strong>: additive (new optional fields + a tolerant read rule);
+  versioned on the spec-tag axis.</li>
+</ul>
+<h2 id="spec-v33-schema-_metaschema-1">spec-v3.3 (schema <code>_META.schema = 1</code>)<a class="headerlink" href="#spec-v33-schema-_metaschema-1" title="Permanent link">&para;</a></h2>
+<p>Harmonize executable bindings into <strong>one</strong> form, used identically at every site. A
+<strong>binding</strong> — a per-dataset <code>fetcher</code>/<code>loader</code> and now every entry in a
+<code>[_LANG.&lt;lang&gt;.loaders]</code> format map — is either a <code>module:function</code> string or a
+<code>{ ref, args, kwargs }</code> table.</p>
+<ul>
+<li>The <strong>string is an alias</strong> for the ref-only table (<code>"M:f"</code> ≡ <code>{ ref = "M:f" }</code>); a
+  reader accepts either form anywhere a binding is allowed.</li>
+<li><strong>Writer rule:</strong> a binding with no <code>args</code> and no <code>kwargs</code> MUST be written as the string;
+  the table form is used only when it carries arguments.</li>
+<li><strong>Call semantics follow the arguments:</strong> none → the tool's conventional call (path
+  injected for a loader, fetch context for a fetcher); <code>args</code>/<code>kwargs</code> → an explicit
+  <code>ref(*args; kwargs...)</code> with <code>$var</code> substitution and no auto-injection.</li>
+<li><code>schemas/manifest.v3.json</code>: <code>[_LANG.&lt;lang&gt;.loaders]</code> values now accept the table form
+  (were string-only), via the shared <code>binding</code> definition. <code>shell.fetcher</code> stays a
+  command-template string (not a <code>module:function</code> binding).</li>
+<li><code>_META.schema</code> stays <strong>1</strong>: the TOML shape is back-compatible (a widening plus a writer
+  rule); versioned on the spec-tag axis.</li>
+</ul>
+<h2 id="spec-v32-schema-_metaschema-1">spec-v3.2 (schema <code>_META.schema = 1</code>)<a class="headerlink" href="#spec-v32-schema-_metaschema-1" title="Permanent link">&para;</a></h2>
+<p>Fix the <code>inspect</code> <strong><code>last-access</code></strong> rule. The previous wording ("a tool SHOULD touch an
+entry's access time on read") invited a write-on-read implementation — rewriting a
+sidecar/index <code>.toml</code> on every read — which contends with the produce <code>.lock</code>,
+serializes concurrent readers, and puts I/O on the lock-free hot path, all for an
+advisory value.</p>
+<ul>
+<li><code>last-access</code> is now <strong>filesystem-derived</strong> and <strong>never written on read</strong>: a tool
+  reads it from <code>stat</code> (access time, with modification-time / <code>created</code> fallback) at
+  inspect time, and <strong>MUST NOT</strong> rewrite any sidecar/index/<code>.toml</code> to record access.</li>
+<li>The signal is explicitly coarse and <strong>may be unknown</strong> (<code>relatime</code>, <code>noatime</code>,
+  network/read-only filesystems); <code>created</code> (stamped once at produce time) is the
+  always-available age signal.</li>
+<li><code>_META.schema</code> stays <strong>1</strong>: no data-model change; this is a behavioural correction on
+  the spec-tag axis.</li>
+</ul>
+<h2 id="spec-v31-schema-_metaschema-1">spec-v3.1 (schema <code>_META.schema = 1</code>)<a class="headerlink" href="#spec-v31-schema-_metaschema-1" title="Permanent link">&para;</a></h2>
+<p>Refinement of the parameter-hash rules: <strong>finite floats are now permitted as hash
+inputs.</strong> A float serializes through the same canonical-JSON projection as every other
+value — the Python reference <code>json.dumps</code> form is normative (<code>1.0</code> → <code>1.0</code>, <code>0.1</code> →
+<code>0.1</code>) and a non-Python tool MUST reproduce it byte-for-byte. <code>NaN</code> / <code>±Inf</code> remain
+disallowed (no JSON representation) and nulls remain disallowed (an absent parameter is
+omitted, not encoded as <code>null</code>). Passing a float-valued knob as a string is still
+allowed and remains the most cross-tool-stable option.</p>
+<ul>
+<li><code>SCHEMA.md</code> §Parameter-hash keying: the value-restriction now lists finite floats and
+  pins their canonical form.</li>
+<li><code>schemas/config-sidecar.v3.json</code>: <code>hashValue</code> now admits <code>number</code>.</li>
+<li>New conformance fixture <code>config_sidecar_float</code> pins a float reference vector
+  (<code>{"grid":"5x5","sigma":0.5,"threshold":1.0}</code> → SHA-256 <code>acc37c63…</code>).</li>
+<li><code>_META.schema</code> stays <strong>1</strong>: the data-model shape is unchanged; this is a hash-input
+  validation widening on the spec-tag axis (the v2 → v2.1 convention).</li>
+</ul>
+<h2 id="spec-v3-schema-_metaschema-1">spec-v3 (schema <code>_META.schema = 1</code>)<a class="headerlink" href="#spec-v3-schema-_metaschema-1" title="Permanent link">&para;</a></h2>
+<p>A breaking <strong>behavioral</strong> revision of the storage and cache model. <code>_META.schema</code> stays
+<strong>1</strong> — the TOML <em>shape</em> is back-compatible (changes are resolution semantics + additive
+structural tables); the break is in <em>resolution</em> and <em>layout</em>, which is what the spec-tag
+axis versions. Nothing implemented spec-v2 storage yet, so practical migration is nil.</p>
+<ol>
+<li>
+<p><strong>Storage: top-level folder roots + layer-applied prefixes + scope.</strong> Folder variables
+   (<code>$data</code>/<code>$cache</code>/<code>$repo</code>/user-defined) are now <strong>bare top-level roots</strong> (<code>$data</code> =
+   <code>user_data_dir</code>, not <code>…/Datasets</code>). The lowercase content prefixes <strong><code>datasets/</code></strong> (fetch)
+   and <strong><code>cached/</code></strong> (produce) are applied by the consuming layer, configurable via
+   <code>[_STORAGE._PREFIX]</code> / <code>DATAMANIFEST_PREFIX_*</code>. A new <strong><code>scope</code></strong> partition segment
+   (<code>[_STORAGE._SCOPE]</code> / <code>DATAMANIFEST_SCOPE_*</code>) controls sharing — empty for <code>datasets</code>
+   (shared), the <strong>project id</strong> for <code>cached</code> (project-isolated). New <strong><code>DATAMANIFEST_DIR</code></strong>
+   application base. <strong>Breaking:</strong> <code>[_STORAGE]</code> folder values drop their <code>/datasets</code> suffixes;
+   fetched paths become <code>&lt;root&gt;/datasets/[scope/]&lt;key&gt;</code>. <code>_PROFILE</code> is <strong>shelved</strong> (reserved,
+   preserved verbatim); <code>_HOST</code> kept.</p>
+</li>
+<li>
+<p><strong>Produced datasets: composition + recipe <code>version</code>.</strong> A produced artifact composes its
+   path via folder / <code>cached</code> prefix / scope: <code>&lt;folder&gt;/cached/&lt;project-id&gt;/&lt;cachetype&gt;/
+   [&lt;version&gt;/]&lt;hash&gt;</code>. The cached scope defaults to the <strong>project id</strong> (declared
+   <code>[_META].project</code> → <code>pyproject.toml</code>/<code>Project.toml</code> name/uuid → path hash). New optional
+   <strong><code>version</code></strong> path segment — a human-set recipe/code version (not in the parameter hash)
+   that prevents a stale cross-branch/clone hit.</p>
+</li>
+<li>
+<p><strong><code>inspect</code> (renamed from <code>cache-gc</code>): user-driven maintenance, no automatic collector.</strong>
+   Replaces root-reachability GC (which had a read-only-consumer hole) with a field-oriented
+   store listing: enumerate objects (datasets + cached) by <code>kind</code>, <code>key</code>/<code>hash</code>, <code>location</code>,
+   <code>referenced</code>/orphan, <code>scope</code>, <code>format</code>, <code>size</code>, <code>created</code>, <code>last-access</code>; filter; and act
+   on an explicit selection (<code>delete</code>, optional <code>move</code>). Never deletes by default;
+   liveness/<code>last-access</code> are advisory. Reference CLI: <code>datamanifest list … --delete</code>.</p>
+</li>
+<li>
+<p><strong><code>sync</code>: cross-machine transfer.</strong> New optional capability — <code>push</code>/<code>pull</code> a stored
+   object between two stores over SSH/rsync, addressed by <code>name</code>/<code>alias</code>/<code>doi</code> (fetched) or
+   <code>cachetype[/version]/hash</code> (produced). Each end resolves its own store from env + <code>_HOST</code>
+   (<code>$repo</code> excluded); symmetric; writes no manifest (objects arrive as orphans); integrity
+   via rsync; idempotent.</p>
+</li>
+</ol>
+<h2 id="spec-v21-schema-_metaschema-1">spec-v2.1 (schema <code>_META.schema = 1</code>)<a class="headerlink" href="#spec-v21-schema-_metaschema-1" title="Permanent link">&para;</a></h2>
+<p>Prose-only correction on the spec-document axis — no <code>_META.schema</code> bump, no on-disk
+format change, fixtures unaffected.</p>
+<ul>
+<li><strong>Produce-or-load is a <em>layer</em>, not necessarily a separate <em>package</em>.</strong> spec-v2 baked a
+  distribution decision into the format spec ("lives in a companion package that depends
+  on datamanifest"). spec-v2.1 separates the two concerns it conflated: it keeps the
+  normative <strong>capability boundary</strong> (<code>cache-produce</code> / <code>cache-gc</code> are never declared by the
+  core fetch capability; the core keeps no GC and no disposability) and <strong>relaxes the
+  packaging mandate</strong> — shipping the layer as a separate package or as an optional module
+  of the same package is now explicitly the implementation's choice. Rationale and the
+  per-language packaging asymmetry: <code>design/package-architecture.md</code>.</li>
+</ul>
+<h2 id="spec-v2-schema-_metaschema-1">spec-v2 (schema <code>_META.schema = 1</code>)<a class="headerlink" href="#spec-v2-schema-_metaschema-1" title="Permanent link">&para;</a></h2>
+<p>Two changes, both on the spec-document axis (no <code>_META.schema</code> bump — see
+<code>design/storage-model-revision.md</code>):</p>
+<ol>
+<li><strong>Storage model revision.</strong> Stores-with-policy become a <code>$</code>-folder-variable
+   namespace — <em>locations only, no lifetime policy in the core</em>. This <strong>revises</strong> the
+   spec-v1.1 <code>store</code>/<code>[_STORAGE]</code> semantics (the <code>store</code> value-grammar changes; bare
+   names are hard-migrated to <code>$</code>-form), gated by the <code>storage</code> capability.</li>
+<li><strong>Produce-or-load as a companion layer.</strong> Promotes the <code>@cached</code> design
+   (<code>design/caching-and-dataset-storage.md</code> §6.D) as a cross-tool <strong>format</strong> spec, but
+   the layer itself lives in a <strong>companion package</strong> (one per language), not the core.
+   Additive over a <code>datasets.toml</code>: <strong>no new hand-authored field</strong>, no schema change; a
+   produced dataset is recorded only in machine-generated sidecars + the <code>cached.toml</code>
+   index (each carrying its own <code>_META.schema = 1</code>). <code>cache-produce</code> / <code>cache-gc</code> are
+   declared by the companion, not the core; the core keeps no GC and no disposability.</li>
+</ol>
+<h3 id="storage-model-revision-storage">Storage model revision (<code>storage</code>)<a class="headerlink" href="#storage-model-revision-storage" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Folders are a <code>$</code>-variable namespace.</strong> <code>[_STORAGE]</code> holds <strong>folder variables</strong> —
+  built-in <code>$data</code> / <code>$cache</code> / <code>$repo</code> plus any user-defined key (<code>scratch = "…"</code> →
+  <code>$scratch</code>) — and the new project-wide <code>default</code> selector. Built-ins resolve to
+  dataset-root locations: <code>$data</code> = <code>user_data_dir("datamanifest")/Datasets</code>, <code>$cache</code> =
+  <code>user_cache_dir("datamanifest")/Datasets</code>, <code>$repo</code> = <code>&lt;project_root&gt;/datasets</code> (the exact
+  v1.1 on-disk paths — no re-download).</li>
+<li><strong>Two field kinds.</strong> <em>Selectors</em> (<code>default</code>, a dataset's <code>store</code>) are <code>$</code>-folder
+  references, optionally with a sub-path (<code>$cache/sub</code>), keying the dataset at
+  <code>&lt;resolved-folder&gt;[/sub]/&lt;key&gt;</code>; <code>store</code> defaults to <code>default</code>, <code>default</code> to <code>$data</code>.
+  <em>Path expressions</em> (<code>[_STORAGE]</code> values, <code>local_path</code>) are full paths interpolating
+  <code>$</code>-folders, <code>$USER</code>/env, and <code>~</code>.</li>
+<li><strong><code>$</code>-references only (hard migration).</strong> Bare <code>store = "data"</code> (the v1.1 form) is no
+  longer valid; a spec-v2 <code>storage</code> tool MUST reject it. Bare keys appear only as folder
+  <em>definitions</em> in <code>[_STORAGE]</code>.</li>
+<li><strong>One host-aware resolution ladder for every variable</strong> (built-in and user-defined):
+  <code>DATAMANIFEST_&lt;NAME&gt;_DIR</code> env → <code>_PROFILE.&lt;name&gt;</code> → <code>_HOST.&lt;glob&gt;.&lt;name&gt;</code> →
+  <code>[_STORAGE].&lt;name&gt;</code> → built-in default. Host-specificity lives entirely in resolving
+  the variable — there is <strong>no</strong> per-dataset <code>_HOST</code> map; a machine-specific exact path is
+  a <code>local_path</code> interpolating a host-resolved variable.</li>
+<li><strong><code>mount</code> removed from the model.</strong> A locations-only model has no home for
+  never-materialized in-place access; spec-v2 defines no <code>mount</code> capability. In-place
+  access is deferred to a future revision — see <code>ROADMAP.md</code>.</li>
+</ul>
+<h3 id="produce-or-load-companion-layer-features">Produce-or-load (companion-layer) features<a class="headerlink" href="#produce-or-load-companion-layer-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Produced datasets.</strong> A dataset whose bytes come from running a project
+  function rather than a <code>uri</code>. It has <strong>no <code>datasets.toml</code> entry</strong> — it
+  originates from the <code>@cached</code> surface and is recorded only in machine-generated
+  files. <code>cachetype</code> is not a <code>datasets.toml</code> field; it is a namespace that
+  appears only in those records (the <code>cached.toml</code> entry, the <code>config.toml</code>
+  <code>_META</code>, and the on-disk path). Defaults to <code>store = "$cache"</code> and is keyed by a
+  <strong>parameter hash</strong> rather than host/path/version. Unifies external-vs-produced
+  into one "recipe + key + store + policy" object — the only new axis is
+  parameter-hash keying.</li>
+<li><strong>Parameter-hash keying.</strong> A produced dataset's <code>key</code> is <code>&lt;cachetype&gt;/&lt;hash&gt;</code>,
+  where the hash is the SHA-256 of the <strong>canonical JSON</strong> (JCS, RFC 8785) of its
+  hash-affecting parameters — the producing function's <strong>keyword parameters</strong>
+  (produced datasets are <strong>keyword-only</strong>; positional <code>args</code> have no stable
+  name→value identity to hash). A three-way parameter split is normative:
+  hash-affecting params (in the hash, in <code>config.toml</code>) vs <code>_</code>-prefixed runtime
+  knobs (excluded) vs audit-only extras (in <code>metadata.toml</code>).</li>
+<li><strong>Self-describing sidecars (<code>cache-produce</code>).</strong> <code>config.toml</code> (the re-hashable
+  key table + <code>_META.cachetype</code>/<code>hash</code>) and <code>metadata.toml</code> (provenance: created,
+  tool+version, host, user, <code>[git]</code>, <code>[origin]</code>) sit next to each produced
+  artifact, materialized via the v1.1 safe-materialization primitive.</li>
+<li><strong><code>cached.toml</code> index (<code>cache-gc</code>).</strong> A sibling <code>Manifest.toml</code>-analogue listing
+  produced datasets by portable key (<code>cachetype</code> + <code>hash</code>), kept out of the
+  hand-authored <code>datasets.toml</code>. Gitignored per-machine by default; opt-in commit
+  for shared reproducibility.</li>
+<li><strong>Garbage collection (<code>cache-gc</code>).</strong> The companion's <code>gc</code> is a root-reachability
+  collector: roots are still-existing <code>datasets.toml</code> (incl. <code>$cache</code>-folder
+  entries) and <code>cached.toml</code> files, discovered via a depot-level usage log. An
+  artifact under <code>$cache</code> is collectable iff no live root references its key and it is
+  older than a grace age; the per-artifact back-pointer is audit-only. The <strong>core keeps
+  no GC</strong>.</li>
+<li><strong>New capabilities.</strong> <code>cache-produce</code> (produced datasets + sidecars) and
+  <code>cache-gc</code> (the <code>cached.toml</code> index + usage log + <code>gc</code>) — both declared by the
+  <strong>companion package</strong>, not the core fetch tool.</li>
+</ul>
+<h3 id="cross-language-fetch-rung-3-clarified">Cross-language fetch (rung 3) clarified<a class="headerlink" href="#cross-language-fetch-rung-3-clarified" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>delegate</code> is now a defined field</strong> (per-dataset bool) plus the per-run <code>--delegate</code>
+  flag, and a brief <code>SCHEMA.md</code> §Cross-language fetch frames the rung as the <strong>rare</strong> case
+  (a dataset whose bytes need a fetcher in another language, with no native/<code>shell</code>/<code>uri</code>).</li>
+<li><strong>Mechanism left to the implementation:</strong> a tool may call the other language's runtime
+  directly or fall back to the <strong>Python CLI</strong> (the reference implementation, which aims to
+  cover every language). Fall-through to <code>uri</code> when the toolchain is absent. Does not
+  extend to produced (<code>@cached</code>) datasets.</li>
+</ul>
+<h3 id="explicitly-deferred">Explicitly deferred<a class="headerlink" href="#explicitly-deferred" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The <code>@cached</code> macro/decorator <strong>API</strong> is per-language, not normative (only the
+  on-disk formats + GC rule are).</li>
+<li>Produced-artifact serialization format is a per-tool/per-<code>format</code> choice (no
+  cross-language loading implied).</li>
+<li>Cloud / <code>fsspec</code> / CAS backends remain optional per-language extras, not a spec
+  contract. In-place / mounted access (the former <code>mount</code> store) is deferred past
+  spec-v2 — see <code>ROADMAP.md</code>.</li>
+<li>Where the companion package keeps its own app-internal state is a companion concern,
+  not part of this cross-tool format spec.</li>
+</ul>
+<h2 id="spec-v11-schema-_metaschema-1-additive">spec-v1.1 (schema <code>_META.schema = 1</code>, additive)<a class="headerlink" href="#spec-v11-schema-_metaschema-1-additive" title="Permanent link">&para;</a></h2>
+<p>Additive storage model — no schema bump (old readers preserve the new field/table
+verbatim), tracked on the spec-document axis. New capabilities gate it.</p>
+<h3 id="new-features">New features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Storage model (<code>store</code> field + <code>[_STORAGE]</code>).</strong> A dataset is materialized into a
+  named <strong>store</strong>: <code>data</code> (persistent, default), <code>cache</code> (disposable), <code>repo</code>
+  (project-tracked), or <code>mount</code> (transient, accessed in place). Stores have two policy
+  axes — <em>materialization</em> (<code>local</code>/<code>mount</code>) and <em>retention</em>. The optional <code>[_STORAGE]</code>
+  structural table configures each store's root, with <code>_HOST</code> (hostname glob/regex) and
+  <code>_PROFILE</code> override sub-tables.</li>
+<li><strong>Language-independent default locations.</strong> Default <code>data</code>/<code>cache</code> roots follow the
+  <code>platformdirs</code> <code>user_data_dir</code>/<code>user_cache_dir</code> conventions and are normative, so Python
+  and Julia resolve the same dataset to the <strong>same path</strong> (at minimum for reading) and
+  genuinely share a store. Read resolution MUST cover the canonical locations.</li>
+<li><strong>New capabilities.</strong> <code>storage</code> (honor <code>store</code> + <code>[_STORAGE]</code> resolution) and <code>mount</code>
+  (the transient mounted store). Tools without <code>storage</code> preserve <code>store</code>/<code>[_STORAGE]</code>
+  verbatim. <code>mount</code> mechanics are not yet specified; tools should not advertise it yet.</li>
+<li><strong>Canonical key ordering.</strong> All keys at every level are emitted in Unicode
+  code-point lexicographic order (no <code>_LOADERS</code>/<code>_META</code>-first special case), so a logical
+  manifest serializes to byte-identical output across tools. New <code>byte-identity</code>
+  capability + a planned cross-tool fixture guard it. (Previously each tool sorted
+  differently — Python by dataclass field order, Julia alphabetically — causing churn.)</li>
+<li><strong>Parameterized bindings.</strong> A per-dataset <code>fetcher</code>/<code>loader</code> may be a
+  <code>{ ref, args, kwargs }</code> table instead of a bare string, so one function is reused across
+  datasets that differ only in arguments. <code>args</code> is an ordered positional array, <code>kwargs</code>
+  a keyword table — both plain data, never code — and the tool calls <code>ref(*args; kwargs)</code>
+  explicitly (no auto-injection), with shell-style <code>$var</code> substitution in string values.
+  Values with no TOML type (e.g. a Julia <code>Symbol</code>) are written as plain strings. New
+  <code>binding-args</code> capability; a tool that runs the language but lacks it MUST error on
+  <code>args</code>/<code>kwargs</code> rather than ignore them.</li>
+<li><strong>Normative resolution &amp; concurrency.</strong> Fixed read order (<code>repo</code>→<code>data</code>→<code>cache</code>),
+  shared env-var names (<code>DATAMANIFEST_DATA_DIR</code> / <code>_CACHE_DIR</code> / <code>DATAMANIFEST_PROFILE</code>)
+  and precedence, and a cross-tool concurrency convention (atomic publish, <code>.complete</code>
+  marker, <code>.lock</code> pidfile) so peer tools share a store safely. <code>platformdirs</code> is the
+  reference for default paths. <code>sha256</code> is verified at fetch, not re-verified on load.</li>
+</ul>
+<h2 id="v1-schema-_metaschema-1">v1 (schema <code>_META.schema = 1</code>)<a class="headerlink" href="#v1-schema-_metaschema-1" title="Permanent link">&para;</a></h2>
+<h3 id="breaking-structural-changes">Breaking structural changes<a class="headerlink" href="#breaking-structural-changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Structural <code>_*</code> keys.</strong> Keys beginning with <code>_</code> are reserved at the top level
+  (<code>_META</code>, <code>_LANG</code>, legacy <code>_LOADERS</code>) and within a dataset table (<code>_LANG</code>). They
+  are not datasets and must not be treated as such.</li>
+<li><strong><code>_LANG</code> namespace.</strong> Per-dataset executable bindings (<code>fetcher</code>, <code>loader</code>) now
+  live under <code>[&lt;dataset&gt;._LANG.&lt;lang&gt;]</code>. Project-wide format defaults live under
+  <code>[_LANG.&lt;lang&gt;.loaders]</code>. The flat per-dataset <code>julia=</code>/<code>python=</code>/<code>callable=</code>/
+  <code>shell=</code>/<code>loader=</code> keys are deprecated.</li>
+<li><strong><code>module:function</code> refs only.</strong> All executable references are <code>module:function</code>
+  strings. Inline code (e.g. Julia <code>include_string</code>) and <code>*_modules</code>/<code>*_includes</code>
+  fields are retired; the tool puts the manifest's directory on the import path by
+  convention.</li>
+<li><strong><code>[_META]</code> header.</strong> A v1 manifest carries <code>[_META]</code> with <code>schema = 1</code>. A file
+  without <code>[_META]</code> is read as v0 (legacy flat), leniently.</li>
+</ul>
+<h3 id="new-features_1">New features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Resolution ladders.</strong> The fetch ladder is: own language → <code>shell</code> → (opt-in)
+  peer-CLI delegation → <code>uri</code> → error. The load ladder is: own → manifest format
+  default → built-in default → error. Load never delegates across a process boundary.</li>
+<li><strong>Preservation contract.</strong> A conforming writer regenerates its own <code>_LANG.&lt;self&gt;</code>
+  and copies every other <code>_LANG.*</code> verbatim on write, ensuring lossless round-trips
+  in multi-language projects.</li>
+<li><strong>Conformance levels.</strong> Named capabilities (<code>lang-read</code>, <code>lang-write</code>,
+  <code>shell-fetch</code>, <code>delegation</code>) let partial implementations declare what they support
+  and run the matching fixture-suite tests. The spec is never forked per package.</li>
+<li><strong>Peer-CLI contract.</strong> Normative invocation interface for opt-in delegation:
+  <code>datamanifest fetch &lt;name&gt; --datasets-toml &lt;path&gt;</code>.</li>
+<li><strong>Conformance fixture suite.</strong> <code>tests/fixtures/</code> holds example manifests and
+  machine-readable expected outcomes consumed as tests by all implementations.</li>
+</ul>
+<h3 id="deprecations-still-read-should-not-be-written-by-v1-tools">Deprecations (still read; should not be written by v1 tools)<a class="headerlink" href="#deprecations-still-read-should-not-be-written-by-v1-tools" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>[_LOADERS]</code> — replaced by <code>[_LANG.&lt;lang&gt;.loaders]</code>.</li>
+<li>Per-dataset <code>julia=</code>, <code>python=</code>, <code>callable=</code>, <code>shell=</code>, <code>loader=</code> — replaced by
+  <code>[&lt;dataset&gt;._LANG.&lt;lang&gt;].fetcher</code> / <code>.loader</code>.</li>
+<li><code>julia_modules</code>, <code>python_includes</code> — retired; legacy <code>*_includes</code> still accepted
+  as extra import-path entries.</li>
+</ul>
+<h2 id="v0-no-_meta-header">v0 (no <code>[_META]</code> header)<a class="headerlink" href="#v0-no-_meta-header" title="Permanent link">&para;</a></h2>
+<p>Original flat format: one table per dataset with optional top-level <code>[_LOADERS]</code>
+and per-dataset language-specific keys (<code>julia=</code>, <code>python=</code>, <code>callable=</code>, etc.).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -13,15 +13,15 @@ A small, normative specification for the **`datamanifest.toml`** manifest format
 TOML file that declares the data dependencies of a scientific project (each dataset's
 source URI, checksum, version, format, and how to fetch and load it).
 
-One `datasets.toml` is read by tools in different languages — today
+One `datamanifest.toml` is read by tools in different languages — today
 [Python](https://github.com/perrette/datamanifest) and
 [Julia](https://github.com/awi-esc/DataManifest.jl) — and covers fetching (download,
 checksum, extract, load), portable storage, per-language bindings, and an optional
 produce-or-load cache layer. The data model is `_META.schema = 1`; behavioural revisions
-are tracked by spec tags (currently `spec-v5.5`).
+are tracked by spec tags (currently `spec-v5.6`).
 
 <!-- intro-start -->
-- **One manifest, many languages.** A single `datasets.toml` declares each dataset's
+- **One manifest, many languages.** A single `datamanifest.toml` declares each dataset's
   source, checksum, format, and how to fetch and load it — and the same file is read
   unchanged by tools in [Python](https://github.com/perrette/datamanifest) and
   [Julia](https://github.com/awi-esc/DataManifest.jl).
@@ -62,7 +62,7 @@ Full documentation lives at **<https://perrette.github.io/datamanifest.toml/>**:
 
 ## Quick look
 
-Declare a dataset — its source and checksum — in `datasets.toml`:
+Declare a dataset — its source and checksum — in `datamanifest.toml`:
 
 ```toml
 ["jesstierney/lgmDA"]
