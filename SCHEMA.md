@@ -16,7 +16,7 @@ in this order (the first existing file wins):
 
 1. `datamanifest.toml`
 2. `DataManifest.toml`
-3. `datamanifest.toml`
+3. `datasets.toml`
 4. `Datasets.toml`
 
 An explicitly given path always bypasses discovery. Throughout this document
