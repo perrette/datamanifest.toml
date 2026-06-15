@@ -1,5 +1,19 @@
 # Changelog
 
+## spec-v5.7 (schema `_META.schema = 1`)
+
+**No git-worktree special treatment.** Behavioural only — no schema change, no manifest
+change, no new fixtures.
+
+- **The linked-`git worktree` config and state fallbacks are retracted** (reverting
+  spec-v5.1 and the spec-v5.4 config extension). A tool no longer resolves a worktree's
+  missing `.datamanifest/config.toml` or `.datamanifest/state.toml` against the main
+  checkout: lookups are strictly local to the project directory, with no `git` probing.
+  Worktree layout is left entirely to the user — symlink `.datamanifest/` (or individual
+  files) into a worktree to share config or inventory, as suits the project. This keeps
+  path resolution simple to reason about and uniform across checkouts and non-git
+  directories alike.
+
 ## spec-v5.6 (schema `_META.schema = 1`)
 
 **Manifest file naming and discovery.** Behavioural only — no schema change, no manifest

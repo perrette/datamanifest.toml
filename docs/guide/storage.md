@@ -43,8 +43,7 @@ storage_path = "$scratch/$key"      # this dataset, parked on scratch ($key => t
   match wins: `DATAMANIFEST_<NAME>` env → checkout config → manifest `[_STORAGE._HOST]` →
   manifest `[_STORAGE]` → user config → built-in defaults (each file's `_HOST` glob beats
   its base). The manifest is the only committed file; `.datamanifest/` is entirely
-  git-ignored. A linked `git worktree` with no checkout config of its own reads the main
-  checkout's; a `.datamanifest/config.toml` in the worktree itself always wins.
+  git-ignored.
 - **Configuration is frozen at materialization.** The ladder is evaluated once, when a
   manifest is materialized into a session object; a config-file or environment change does
   not retarget an existing session. Re-resolution is an explicit action (re-materialize or
