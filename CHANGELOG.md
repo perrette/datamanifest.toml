@@ -1,5 +1,20 @@
 # Changelog
 
+## spec-v5.8 (schema `_META.schema = 1`)
+
+**Named positional parameters may feed the cache key.** Behavioural only — no schema
+change, no manifest change, no new fixtures.
+
+- **The `cache-produce` key may be derived from named positional parameters**, not only
+  keyword parameters (relaxing the spec-v3 keyword-only constraint). A producing
+  function's positional parameters have a stable name→value identity — their declared
+  names — so a tool MAY include them in the key table by name; only variadic / unnamed
+  argument lists (`args…`) remain excluded. Whether a language surface accepts positional
+  parameters is a non-normative ergonomic choice: a keyword-only surface (e.g. the Python
+  decorator) stays conformant. The normative requirement is unchanged — the key table is
+  the hash input, so `<cachetype>/<param-hash>` is reproducible across tools. Implemented
+  in DataManifest.jl 0.34.0.
+
 ## spec-v5.7 (schema `_META.schema = 1`)
 
 **No git-worktree special treatment.** Behavioural only — no schema change, no manifest

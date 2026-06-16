@@ -5,7 +5,8 @@ Beyond *fetching* declared datasets, a tool with the `cache-produce` capability 
 (the `@cached` decorator/macro in both implementations).
 
 - **Parameter-hash keying.** The cache key is the lowercase-hex **SHA-256 of the canonical
-  JSON** (JCS / RFC 8785) of the function's hash-affecting keyword parameters. Canonical JSON
+  JSON** (JCS / RFC 8785) of the function's hash-affecting named parameters (keyword, and
+  named positional where a surface offers them; spec-v5.8). Canonical JSON
   is cross-tool reproducible. Hash inputs are strings, integers, **finite floats**, booleans,
   and arrays/objects of those — finite floats use the normative Python `json.dumps` form
   (`1.0`→`1.0`); `NaN`/`±Inf` and nulls are disallowed.
