@@ -995,13 +995,20 @@ A tool with `cache-produce` MUST be able to recompute the hash from `config.toml
 key table and MUST treat a directory whose recomputed hash ≠ `_META.hash` as
 **not** a valid cache hit (re-produce).
 
-Because `format` is a serialization choice and **not** a hash input, several formats of
-the same computation share one `<cachetype>/[<version>/]<hash>` directory (a `data.<ext>`
-per format). A hit is therefore valid only when the data file **for the requested format**
-is present: a complete, hash-valid directory whose `data.<ext>` for *this* format is absent
-**recomputes** (writing that format) rather than failing — so two recipes that share a
-`cachetype` and hash to the same key but emit different formats coexist instead of
-colliding.
+Because neither the `format` (a serialization choice) nor the artifact `basename` is a
+hash input, **several artifacts may share one** `<cachetype>/[<version>/]<hash>` directory
+— one `<basename>.<ext>` per (basename, format). A hit is therefore valid only when the
+data file **for the requested basename and format** is present: a complete, hash-valid
+directory in which that file is absent **recomputes** (writing it) rather than failing.
+Two producers that share a `cachetype` and hash to the same key but emit different formats
+*or different basenames* therefore **coexist instead of colliding** — publishing one
+artifact MUST NOT remove a sibling already present in the directory. (A tool that
+materializes by renaming a staging directory over the target must therefore *merge* into
+an existing directory — moving the produced entries into place — rather than replacing it
+wholesale, which would delete the siblings.) Producers that are genuinely distinct
+computations, rather than alternative serializations of one result, SHOULD use distinct
+`cachetype`s so they resolve to separate directories instead of sharing the `config.toml`
+/ `metadata.toml` sidecars.
 
 **`metadata.toml`** (`cache-produce`) — provenance only, never an input to the
 hash and never an authority for cache validity:

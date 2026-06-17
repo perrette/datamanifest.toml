@@ -1,5 +1,24 @@
 # Changelog
 
+## spec-v5.9 (schema `_META.schema = 1`)
+
+**Artifacts sharing a cache directory coexist — by basename as well as format.**
+Behavioural clarification only — no schema change, no manifest change, no new fixtures.
+
+- **The cache-directory coexistence rule is generalized from differing *formats* to
+  differing *basenames* as well.** Several artifacts may share one
+  `<cachetype>/[<version>/]<hash>` directory — one `<basename>.<ext>` per (basename,
+  format) — since neither `format` nor `basename` is a hash input. Publishing one
+  artifact **MUST NOT** remove a sibling already present in the directory: a tool that
+  materializes by renaming a staging directory over the target must *merge* into an
+  existing directory rather than replace it wholesale (which would delete the siblings).
+  The rule already required format-coexistence; this states it for basenames too, closing
+  a data-loss gap where a second producer sharing the directory clobbered the first.
+  Producers that are genuinely distinct computations (not alternative serializations of
+  one result) SHOULD use distinct `cachetype`s so they resolve to separate directories
+  instead of sharing the `config.toml` / `metadata.toml` sidecars. Implemented in
+  DataManifest.jl 0.37.0–0.37.1.
+
 ## spec-v5.8 (schema `_META.schema = 1`)
 
 **Named positional parameters may feed the cache key.** Behavioural only — no schema
